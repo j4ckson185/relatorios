@@ -44,7 +44,7 @@
         document.getElementById('calendar').addEventListener('change', function() {
             const selectedDate = this.value;
             if (selectedDate) {
-                fetch(`/get_report?motoboy=moises&date=${selectedDate}`)
+                fetch(`https://cabana-8d55e.uc.r.appspot.com/get_report?motoboy=moises&date=${selectedDate}`)
                     .then(response => response.json())
                     .then(data => {
                         displayReport(data);
