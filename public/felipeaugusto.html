@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Página de Felipe Augusto - Relatórios</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,6 +37,55 @@
         th {
             background-color: #f2f2f2;
         }
+        .footer-links {
+            background-color: #f8f8f8;
+            padding: 30px 0;
+            margin-top: 50px;
+            text-align: center;
+        }
+        .footer-links h3 {
+            color: #5d4037;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .link-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .link-item {
+            background-color: #5d4037;
+            border-radius: 10px;
+            padding: 15px 25px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .link-item:hover {
+            background-color: #8d6e63;
+            transform: translateY(-5px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        .link-item i {
+            margin-right: 10px;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .animated {
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body>
@@ -61,6 +111,24 @@
             </tbody>
         </table>
     </div>
+
+    <footer class="footer-links">
+        <h3>Explore mais opções</h3>
+        <div class="link-container">
+            <a href="ganhos.html" class="link-item">
+                <i class="fas fa-coins"></i>
+                Informar Ganhos
+            </a>
+            <a href="#" onclick="redirecionarParaGanhos()" class="link-item animated">
+                <i class="fas fa-chart-line"></i>
+                Ver meus ganhos
+            </a>
+            <a href="waze.html" class="link-item">
+                <i class="fas fa-map-marked-alt"></i>
+                Ver Trânsito
+            </a>
+        </div>
+    </footer>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
@@ -125,6 +193,15 @@
                     row.style.display = 'none';
                 }
             });
+        }
+    </script>
+
+    <script>
+        function redirecionarParaGanhos() {
+            // Implemente a lógica de redirecionamento aqui
+            console.log("Redirecionando para a página de ganhos...");
+            // Por exemplo:
+            // window.location.href = 'ver_ganhos.html';
         }
     </script>
 </body>
