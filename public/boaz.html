@@ -26,11 +26,6 @@
         #reportContent {
             margin-top: 20px;
         }
-        .clickable {
-            color: blue;
-            text-decoration: underline;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -40,59 +35,76 @@
         <!-- Conteúdo do relatório será carregado aqui -->
     </div>
 
-    <script>
-        document.getElementById('calendar').addEventListener('change', function() {
-            const selectedDate = this.value;
-            if (selectedDate) {
-                fetch(`https://cabana-8d55e.uc.r.appspot.com/get_report?motoboy=boaz&date=${selectedDate}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        displayReport(data);
-                    })
-                    .catch(error => {
-                        console.error('Erro ao carregar o relatório:', error);
-                        document.getElementById('reportContent').innerHTML = '<p>Erro ao carregar o relatório. Tente novamente mais tarde.</p>';
-                    });
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === 'boazd3@gmail.com') {
+                document.getElementById('calendar').addEventListener('change', loadReport);
+            } else {
+                window.location.href = 'index.html';
             }
         });
+
+        async function loadReport() {
+            const selectedDate = document.getElementById('calendar').value;
+            if (selectedDate) {
+                try {
+                    const db = getDatabase();
+                    const reportRef = ref(db, `motoboys/boaz/${selectedDate}`);
+                    const snapshot = await get(reportRef);
+                    
+                    if (snapshot.exists()) {
+                        displayReport(snapshot.val());
+                    } else {
+                        document.getElementById('reportContent').innerHTML = '<p>Nenhum relatório encontrado para esta data.</p>';
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar o relatório:', error);
+                    document.getElementById('reportContent').innerHTML = '<p>Erro ao carregar o relatório. Tente novamente mais tarde.</p>';
+                }
+            }
+        }
 
         function displayReport(data) {
             const reportContent = document.getElementById('reportContent');
             reportContent.innerHTML = '';
 
-            if (data.length === 0) {
-                reportContent.innerHTML = '<p>Nenhum relatório encontrado para esta data.</p>';
-                return;
-            }
-
             const table = document.createElement('table');
-            const headerRow = document.createElement('tr');
-            const desiredFields = ['N Pedido', 'Endereço', 'Data e hora', 'Distância em raio (km)', 'Nome do cliente', 'Forma de pagamento', 'Detalhes do pedido'];
+            const headers = ['Nome', 'Data', 'Qtd. Entregas', 'Entregas na mesma casa', 'Turnos', 'PIX', 'Observações', 'Total a receber'];
             
-            desiredFields.forEach(header => {
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
                 const th = document.createElement('th');
                 th.textContent = header;
                 headerRow.appendChild(th);
             });
             table.appendChild(headerRow);
 
-            data.forEach(record => {
-                const row = document.createElement('tr');
-                desiredFields.forEach(field => {
-                    const td = document.createElement('td');
-                    if (field === 'Endereço') {
-                        td.textContent = record[field] || 'N/A';
-                        td.classList.add('clickable');
-                        td.addEventListener('click', () => {
-                            window.location.href = `mapa.html?address=${encodeURIComponent(record[field])}`;
-                        });
-                    } else {
-                        td.textContent = record[field] !== undefined ? record[field] : 'N/A';
-                    }
-                    row.appendChild(td);
-                });
-                table.appendChild(row);
+            const row = document.createElement('tr');
+            [data.nome, data.data, data.qtdEntregas, data.entregasMesmaCasa, data.turnos, data.pix, data.observacoes, data.totalReceber].forEach(value => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                row.appendChild(td);
             });
+            table.appendChild(row);
 
             reportContent.appendChild(table);
         }
