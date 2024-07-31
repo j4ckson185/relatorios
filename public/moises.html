@@ -45,7 +45,12 @@
             const selectedDate = this.value;
             if (selectedDate) {
                 fetch(`https://cabana-8d55e.uc.r.appspot.com/get_report?motoboy=moises&date=${selectedDate}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         displayReport(data);
                     })
