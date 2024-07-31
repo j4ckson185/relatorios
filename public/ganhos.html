@@ -7,193 +7,163 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
-    <h1>Calculadora de Ganhos</h1>
-    <form id="formGanhos">
-        <label for="nome">Nome:</label>
-        <input type="text" id="nome" readonly>
+    <div class="container">
+        <h1>Calculadora de Ganhos</h1>
+        <form id="formGanhos">
+            <label for="nome">Nome:</label>
+            <input type="text" id="nome" readonly>
 
-        <label for="data">Data:</label>
-        <input type="date" id="data" required>
+            <label for="data">Data:</label>
+            <input type="date" id="data" required>
 
-        <label for="qtdEntregas">Quantidade de entregas:</label>
-        <input type="number" id="qtdEntregas" min="0">
+            <label for="qtdEntregas">Quantidade de entregas:</label>
+            <input type="number" id="qtdEntregas" min="0">
 
-        <label for="entregasMesmaCasa">Entregas na mesma casa:</label>
-        <input type="number" id="entregasMesmaCasa" min="0">
+            <label for="entregasMesmaCasa">Entregas na mesma casa:</label>
+            <input type="number" id="entregasMesmaCasa" min="0">
 
-        <label for="turnos">Turnos:</label>
-        <select id="turnos">
-            <option value="1">Um turno</option>
-            <option value="2">Dois turnos</option>
-        </select>
+            <label for="turnos">Turnos:</label>
+            <select id="turnos">
+                <option value="1">Um turno</option>
+                <option value="2">Dois turnos</option>
+            </select>
 
-        <label for="pix">PIX:</label>
-        <input type="text" id="pix">
+            <label for="pix">PIX:</label>
+            <input type="text" id="pix">
 
-        <label for="observacoes">Observações:</label>
-        <textarea id="observacoes" rows="3"></textarea>
+            <label for="observacoes">Observações:</label>
+            <textarea id="observacoes" rows="3"></textarea>
 
-        <label for="totalReceber">Total a receber:</label>
-        <input type="text" id="totalReceber" readonly>
+            <label for="totalReceber">Total a receber:</label>
+            <input type="text" id="totalReceber" readonly>
 
-        <button type="button" id="btnCalcular">Calcular</button>
-    </form>
+            <button type="button" id="btnCalcular">Calcular</button>
+        </form>
 
-    <div id="confirmacao" style="display: none;">
-        <h2>Confirmação</h2>
-        <p>Total a receber: <span id="totalConfirmacao"></span></p>
-        <button id="btnConfirmar">Confirmar</button>
-        <button id="btnCancelar">Cancelar</button>
+        <div id="confirmacao" style="display: none;">
+            <h2>Confirmação</h2>
+            <p>Total a receber: <span id="totalConfirmacao"></span></p>
+            <button id="btnConfirmar">Confirmar</button>
+            <button id="btnCancelar">Cancelar</button>
+        </div>
+
+        <div id="mensagemSucesso" style="display: none;">
+            Relatório enviado com sucesso!
+        </div>
     </div>
 
-    <div id="mensagemSucesso" style="display: none;">
-        Relatório enviado com sucesso!
-    </div>
-</div>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        import { getDatabase, ref, push } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
 
-<script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
-    import { getDatabase, ref, push } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-        authDomain: "cabana-8d55e.firebaseapp.com",
-        databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-        projectId: "cabana-8d55e",
-        storageBucket: "cabana-8d55e.appspot.com",
-        messagingSenderId: "706144237954",
-        appId: "1:706144237954:web:345c10370972486afc779b",
-        measurementId: "G-96Y337GYT8"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const database = getDatabase(app);
-
-    function calcularTotal() {
-        const qtdEntregas = parseInt(document.getElementById('qtdEntregas').value) || 0;
-        const entregasMesmaCasa = parseInt(document.getElementById('entregasMesmaCasa').value) || 0;
-        const turnos = parseInt(document.getElementById('turnos').value);
-
-        let total = (qtdEntregas * 3) - (entregasMesmaCasa * 3);
-        total += turnos === 1 ? 35 : 70;
-
-        document.getElementById('totalReceber').value = `R$ ${total.toFixed(2)}`;
-    }
-
-    function mostrarConfirmacao() {
-        calcularTotal();
-        document.getElementById('totalConfirmacao').textContent = document.getElementById('totalReceber').value;
-        document.getElementById('confirmacao').style.display = 'block';
-    }
-
-    async function enviarParaFirebase(tentativas = 3) {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('Você precisa estar logado para enviar o relatório.');
-            return;
-        }
-
-        const relatorio = {
-            nome: document.getElementById('nome').value,
-            data: document.getElementById('data').value,
-            qtdEntregas: document.getElementById('qtdEntregas').value,
-            entregasMesmaCasa: document.getElementById('entregasMesmaCasa').value,
-            turnos: document.getElementById('turnos').value,
-            pix: document.getElementById('pix').value,
-            observacoes: document.getElementById('observacoes').value,
-            totalReceber: document.getElementById('totalReceber').value,
-            userId: user.uid
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
         };
 
-        try {
-            const db = getDatabase();
-            await push(ref(db, 'relatorios'), relatorio);
-            console.log('Relatório enviado com sucesso');
-            document.getElementById('mensagemSucesso').style.display = 'block';
-            document.getElementById('formGanhos').reset();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
 
-            // Redirecionar para a página individual do usuário
-            const paginaIndividual = getPaginaIndividual(user.email);
-            if (paginaIndividual) {
-                localStorage.setItem('ultimoRelatorio', JSON.stringify(relatorio));
-                window.location.href = paginaIndividual;
+        function calcularTotal() {
+            const qtdEntregas = parseInt(document.getElementById('qtdEntregas').value) || 0;
+            const entregasMesmaCasa = parseInt(document.getElementById('entregasMesmaCasa').value) || 0;
+            const turnos = parseInt(document.getElementById('turnos').value);
+
+            let total = (qtdEntregas * 3) - (entregasMesmaCasa * 3);
+            total += turnos === 1 ? 35 : 70;
+
+            document.getElementById('totalReceber').value = `R$ ${total.toFixed(2)}`;
+        }
+
+        function mostrarConfirmacao() {
+            calcularTotal();
+            document.getElementById('totalConfirmacao').textContent = document.getElementById('totalReceber').value;
+            document.getElementById('confirmacao').style.display = 'block';
+        }
+
+        async function enviarParaFirebase(tentativas = 3) {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Você precisa estar logado para enviar o relatório.');
+                return;
             }
-        } catch (error) {
-            console.error('Erro ao enviar relatório:', error);
-            if (tentativas > 0) {
-                console.log(`Tentando novamente. Tentativas restantes: ${tentativas - 1}`);
-                setTimeout(() => enviarParaFirebase(tentativas - 1), 3000);
+
+            const relatorio = {
+                nome: document.getElementById('nome').value,
+                data: document.getElementById('data').value,
+                qtdEntregas: document.getElementById('qtdEntregas').value,
+                entregasMesmaCasa: document.getElementById('entregasMesmaCasa').value,
+                turnos: document.getElementById('turnos').value,
+                pix: document.getElementById('pix').value,
+                observacoes: document.getElementById('observacoes').value,
+                totalReceber: document.getElementById('totalReceber').value,
+                userId: user.uid,
+                email: user.email
+            };
+
+            try {
+                const db = getDatabase();
+                await push(ref(db, 'relatorios'), relatorio);
+                await push(ref(db, `relatorios_usuarios/${user.uid}`), relatorio);
+                console.log('Relatório enviado com sucesso');
+                document.getElementById('mensagemSucesso').style.display = 'block';
+                document.getElementById('formGanhos').reset();
+            } catch (error) {
+                console.error('Erro ao enviar relatório:', error);
+                if (tentativas > 0) {
+                    console.log(`Tentando novamente. Tentativas restantes: ${tentativas - 1}`);
+                    setTimeout(() => enviarParaFirebase(tentativas - 1), 3000);
+                } else {
+                    alert('Erro ao enviar relatório. Por favor, verifique sua conexão e tente novamente mais tarde.');
+                }
+            }
+        }
+
+        function preencherNome() {
+            const user = auth.currentUser;
+            if (user) {
+                let nome = '';
+                switch (user.email) {
+                    case 'boazd3@gmail.com': nome = 'Boaz'; break;
+                    case 'fellipeirineu90@gmail.com': nome = 'Fellipe Matheus'; break;
+                    case 'giovanni.silva18@gmail.com': nome = 'Giovanni'; break;
+                    case 'moises110723@gmail.com': nome = 'Moisés'; break;
+                    case 'felipeaugusto02001@gmail.com': nome = 'Felipe Augusto'; break;
+                    case 'musculacaoatual@gmail.com': nome = 'Jackson'; break;
+                    default: nome = 'Usuário';
+                }
+                document.getElementById('nome').value = nome;
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                preencherNome();
             } else {
-                alert('Erro ao enviar relatório. Por favor, verifique sua conexão e tente novamente mais tarde.');
+                window.location.href = 'index.html';
             }
-        }
-    }
+        });
 
-    function getPaginaIndividual(email) {
-        const paginas = {
-            'boazd3@gmail.com': 'boaz.html',
-            'fellipeirineu90@gmail.com': 'fellipematheus.html',
-            'giovanni.silva18@gmail.com': 'giovanni.html',
-            'moises110723@gmail.com': 'moises.html',
-            'felipeaugusto02001@gmail.com': 'felipeaugusto.html',
-            'musculacaoatual@gmail.com': 'jackson.html'
-        };
-        return paginas[email] || null;
-    }
+        document.getElementById('btnCalcular').addEventListener('click', mostrarConfirmacao);
+        document.getElementById('btnConfirmar').addEventListener('click', () => {
+            enviarParaFirebase();
+            document.getElementById('confirmacao').style.display = 'none';
+        });
+        document.getElementById('btnCancelar').addEventListener('click', () => {
+            document.getElementById('confirmacao').style.display = 'none';
+        });
 
-    function preencherNome() {
-        const user = auth.currentUser;
-        if (user) {
-            let nome = '';
-            switch (user.email) {
-                case 'boazd3@gmail.com':
-                    nome = 'Boaz';
-                    break;
-                case 'fellipeirineu90@gmail.com':
-                    nome = 'Fellipe Matheus';
-                    break;
-                case 'giovanni.silva18@gmail.com':
-                    nome = 'Giovanni';
-                    break;
-                case 'moises110723@gmail.com':
-                    nome = 'Moisés';
-                    break;
-                case 'felipeaugusto02001@gmail.com':
-                    nome = 'Felipe Augusto';
-                    break;
-                case 'musculacaoatual@gmail.com':
-                    nome = 'Jackson';
-                    break;
-                default:
-                    nome = 'Usuário';
-            }
-            document.getElementById('nome').value = nome;
-        }
-    }
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            preencherNome();
-        } else {
-            window.location.href = 'index.html';
-        }
-    });
-
-    document.getElementById('btnCalcular').addEventListener('click', mostrarConfirmacao);
-    document.getElementById('btnConfirmar').addEventListener('click', () => {
-        enviarParaFirebase();
-        document.getElementById('confirmacao').style.display = 'none';
-    });
-    document.getElementById('btnCancelar').addEventListener('click', () => {
-        document.getElementById('confirmacao').style.display = 'none';
-    });
-
-    ['qtdEntregas', 'entregasMesmaCasa', 'turnos'].forEach(id => {
-        document.getElementById(id).addEventListener('change', calcularTotal);
-    });
-</script>
+        ['qtdEntregas', 'entregasMesmaCasa', 'turnos'].forEach(id => {
+            document.getElementById(id).addEventListener('change', calcularTotal);
+        });
+    </script>
 </body>
 </html>
