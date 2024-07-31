@@ -3,99 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios - Felipe Augusto</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #calendar {
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        #reportContent {
-            margin-top: 20px;
-        }
-        .clickable {
-            color: blue;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-    </style>
+    <title>Relatórios de Felipe Augusto - Cabana Açaí</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Relatórios de Entregas - Felipe Augusto</h1>
-    <input type="date" id="calendar">
-    <div id="reportContent">
-        <!-- Conteúdo do relatório será carregado aqui -->
+    <div class="container">
+        <h1>Relatórios de Felipe Augusto</h1>
+        <div id="filtroData">
+            <label for="dataInicio">Data Início:</label>
+            <input type="date" id="dataInicio">
+            <label for="dataFim">Data Fim:</label>
+            <input type="date" id="dataFim">
+            <button id="btnFiltrar">Filtrar</button>
+        </div>
+        <div id="relatorios"></div>
     </div>
 
-    <script>
-        document.getElementById('calendar').addEventListener('change', function() {
-            const selectedDate = this.value;
-            if (selectedDate) {
-                fetch(`https://cabana-8d55e.uc.r.appspot.com/get_report?motoboy=felipeaugusto&date=${selectedDate}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        displayReport(data);
-                    })
-                    .catch(error => {
-                        console.error('Erro ao carregar o relatório:', error);
-                        document.getElementById('reportContent').innerHTML = '<p>Erro ao carregar o relatório. Tente novamente mais tarde.</p>';
-                    });
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        import { getDatabase, ref, onValue, query, orderByChild, startAt, endAt } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        function exibirRelatorios(relatorios) {
+            const relatoriosDiv = document.getElementById('relatorios');
+            relatoriosDiv.innerHTML = '';
+
+            Object.entries(relatorios).forEach(([key, relatorio]) => {
+                const relatorioDiv = document.createElement('div');
+                relatorioDiv.classList.add('relatorio');
+                relatorioDiv.innerHTML = `
+                    <h3>Data: ${relatorio.data}</h3>
+                    <p>Quantidade de entregas: ${relatorio.qtdEntregas}</p>
+                    <p>Entregas na mesma casa: ${relatorio.entregasMesmaCasa}</p>
+                    <p>Turnos: ${relatorio.turnos}</p>
+                    <p>PIX: ${relatorio.pix}</p>
+                    <p>Observações: ${relatorio.observacoes}</p>
+                    <p>Total a receber: ${relatorio.totalReceber}</p>
+                `;
+                relatoriosDiv.appendChild(relatorioDiv);
+            });
+        }
+
+        function filtrarRelatorios() {
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            const user = auth.currentUser;
+            if (user && user.email === 'felipeaugusto02001@gmail.com
+') {
+                const relatoriosRef = ref(database, `relatorios_usuarios/${user.uid}`);
+                const relatoriosQuery = query(relatoriosRef, orderByChild('data'), startAt(dataInicio), endAt(dataFim));
+
+                onValue(relatoriosQuery, (snapshot) => {
+                    const relatorios = snapshot.val();
+                    if (relatorios) {
+                        exibirRelatorios(relatorios);
+                    } else {
+                        document.getElementById('relatorios').innerHTML = '<p>Nenhum relatório encontrado para o período selecionado.</p>';
+                    }
+                });
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === 'felipeaugusto02001@gmail.com
+') {
+                filtrarRelatorios();
+            } else {
+                window.location.href = 'index.html';
             }
         });
 
-        function displayReport(data) {
-            const reportContent = document.getElementById('reportContent');
-            reportContent.innerHTML = '';
-
-            if (data.length === 0) {
-                reportContent.innerHTML = '<p>Nenhum relatório encontrado para esta data.</p>';
-                return;
-            }
-
-            const table = document.createElement('table');
-            const headerRow = document.createElement('tr');
-            const desiredFields = ['N Pedido', 'Endereço', 'Data e hora', 'Distância em raio (km)', 'Nome do cliente', 'Forma de pagamento', 'Detalhes do pedido'];
-            
-            desiredFields.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            table.appendChild(headerRow);
-
-            data.forEach(record => {
-                const row = document.createElement('tr');
-                desiredFields.forEach(field => {
-                    const td = document.createElement('td');
-                    if (field === 'Endereço') {
-                        td.textContent = record[field] || 'N/A';
-                        td.classList.add('clickable');
-                        td.addEventListener('click', () => {
-                            window.location.href = `mapa.html?address=${encodeURIComponent(record[field])}`;
-                        });
-                    } else {
-                        td.textContent = record[field] !== undefined ? record[field] : 'N/A';
-                    }
-                    row.appendChild(td);
-                });
-                table.appendChild(row);
-            });
-
-            reportContent.appendChild(table);
-        }
+        document.getElementById('btnFiltrar').addEventListener('click', filtrarRelatorios);
     </script>
 </body>
 </html>
