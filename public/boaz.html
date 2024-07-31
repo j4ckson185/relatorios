@@ -3,42 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios - Boaz</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #calendar {
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        #reportContent {
-            margin-top: 20px;
-        }
-    </style>
+    <title>Relatórios de Boaz - Cabana Açaí</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Relatórios de Entregas - Boaz</h1>
-    <input type="date" id="calendar">
-    <div id="reportContent">
-        <!-- Conteúdo do relatório será carregado aqui -->
+    <div class="container">
+        <h1>Relatórios de Boaz</h1>
+        <div id="filtroData">
+            <label for="dataInicio">Data Início:</label>
+            <input type="date" id="dataInicio">
+            <label for="dataFim">Data Fim:</label>
+            <input type="date" id="dataFim">
+            <button id="btnFiltrar">Filtrar</button>
+        </div>
+        <div id="relatorios"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
-        import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
+        import { getDatabase, ref, onValue, query, orderByChild, startAt, endAt } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
@@ -55,59 +39,55 @@
         const auth = getAuth(app);
         const database = getDatabase(app);
 
+        function exibirRelatorios(relatorios) {
+            const relatoriosDiv = document.getElementById('relatorios');
+            relatoriosDiv.innerHTML = '';
+
+            Object.entries(relatorios).forEach(([key, relatorio]) => {
+                const relatorioDiv = document.createElement('div');
+                relatorioDiv.classList.add('relatorio');
+                relatorioDiv.innerHTML = `
+                    <h3>Data: ${relatorio.data}</h3>
+                    <p>Quantidade de entregas: ${relatorio.qtdEntregas}</p>
+                    <p>Entregas na mesma casa: ${relatorio.entregasMesmaCasa}</p>
+                    <p>Turnos: ${relatorio.turnos}</p>
+                    <p>PIX: ${relatorio.pix}</p>
+                    <p>Observações: ${relatorio.observacoes}</p>
+                    <p>Total a receber: ${relatorio.totalReceber}</p>
+                `;
+                relatoriosDiv.appendChild(relatorioDiv);
+            });
+        }
+
+        function filtrarRelatorios() {
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            const user = auth.currentUser;
+            if (user && user.email === 'boazd3@gmail.com') {
+                const relatoriosRef = ref(database, `relatorios_usuarios/${user.uid}`);
+                const relatoriosQuery = query(relatoriosRef, orderByChild('data'), startAt(dataInicio), endAt(dataFim));
+
+                onValue(relatoriosQuery, (snapshot) => {
+                    const relatorios = snapshot.val();
+                    if (relatorios) {
+                        exibirRelatorios(relatorios);
+                    } else {
+                        document.getElementById('relatorios').innerHTML = '<p>Nenhum relatório encontrado para o período selecionado.</p>';
+                    }
+                });
+            }
+        }
+
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === 'boazd3@gmail.com') {
-                document.getElementById('calendar').addEventListener('change', loadReport);
+                filtrarRelatorios();
             } else {
                 window.location.href = 'index.html';
             }
         });
 
-        async function loadReport() {
-            const selectedDate = document.getElementById('calendar').value;
-            if (selectedDate) {
-                try {
-                    const db = getDatabase();
-                    const reportRef = ref(db, `motoboys/boaz/${selectedDate}`);
-                    const snapshot = await get(reportRef);
-                    
-                    if (snapshot.exists()) {
-                        displayReport(snapshot.val());
-                    } else {
-                        document.getElementById('reportContent').innerHTML = '<p>Nenhum relatório encontrado para esta data.</p>';
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar o relatório:', error);
-                    document.getElementById('reportContent').innerHTML = '<p>Erro ao carregar o relatório. Tente novamente mais tarde.</p>';
-                }
-            }
-        }
-
-        function displayReport(data) {
-            const reportContent = document.getElementById('reportContent');
-            reportContent.innerHTML = '';
-
-            const table = document.createElement('table');
-            const headers = ['Nome', 'Data', 'Qtd. Entregas', 'Entregas na mesma casa', 'Turnos', 'PIX', 'Observações', 'Total a receber'];
-            
-            const headerRow = document.createElement('tr');
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            table.appendChild(headerRow);
-
-            const row = document.createElement('tr');
-            [data.nome, data.data, data.qtdEntregas, data.entregasMesmaCasa, data.turnos, data.pix, data.observacoes, data.totalReceber].forEach(value => {
-                const td = document.createElement('td');
-                td.textContent = value;
-                row.appendChild(td);
-            });
-            table.appendChild(row);
-
-            reportContent.appendChild(table);
-        }
+        document.getElementById('btnFiltrar').addEventListener('click', filtrarRelatorios);
     </script>
 </body>
 </html>
