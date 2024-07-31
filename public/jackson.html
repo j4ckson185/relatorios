@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios de Jackson - Cabana Açaí</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Relatórios de Jackson</h1>
+        <div id="filtroData">
+            <label for="dataInicio">Data Início:</label>
+            <input type="date" id="dataInicio">
+            <label for="dataFim">Data Fim:</label>
+            <input type="date" id="dataFim">
+            <button id="btnFiltrar">Filtrar</button>
+        </div>
+        <div id="relatorios"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        import { getDatabase, ref, onValue, query, orderByChild, startAt, endAt } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        function exibirRelatorios(relatorios) {
+            const relatoriosDiv = document.getElementById('relatorios');
+            relatoriosDiv.innerHTML = '';
+
+            Object.entries(relatorios).forEach(([key, relatorio]) => {
+                const relatorioDiv = document.createElement('div');
+                relatorioDiv.classList.add('relatorio');
+                relatorioDiv.innerHTML = `
+                    <h3>Data: ${relatorio.data}</h3>
+                    <p>Quantidade de entregas: ${relatorio.qtdEntregas}</p>
+                    <p>Entregas na mesma casa: ${relatorio.entregasMesmaCasa}</p>
+                    <p>Turnos: ${relatorio.turnos}</p>
+                    <p>PIX: ${relatorio.pix}</p>
+                    <p>Observações: ${relatorio.observacoes}</p>
+                    <p>Total a receber: ${relatorio.totalReceber}</p>
+                `;
+                relatoriosDiv.appendChild(relatorioDiv);
+            });
+        }
+
+        function filtrarRelatorios() {
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            const user = auth.currentUser;
+            if (user && user.email === 'musculacaoatual@gmail.com
+') {
+                const relatoriosRef = ref(database, `relatorios_usuarios/${user.uid}`);
+                const relatoriosQuery = query(relatoriosRef, orderByChild('data'), startAt(dataInicio), endAt(dataFim));
+
+                onValue(relatoriosQuery, (snapshot) => {
+                    const relatorios = snapshot.val();
+                    if (relatorios) {
+                        exibirRelatorios(relatorios);
+                    } else {
+                        document.getElementById('relatorios').innerHTML = '<p>Nenhum relatório encontrado para o período selecionado.</p>';
+                    }
+                });
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === 'musculacaoatual@gmail.com
+') {
+                filtrarRelatorios();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        document.getElementById('btnFiltrar').addEventListener('click', filtrarRelatorios);
+    </script>
+</body>
+</html>
