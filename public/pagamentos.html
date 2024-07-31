@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamentos - Cabana Açaí</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Pagamentos</h1>
+        <label for="selectUsuario">Selecione o usuário:</label>
+        <select id="selectUsuario">
+            <option value="">Selecione...</option>
+            <option value="boazd3@gmail.com">Boaz</option>
+            <option value="fellipeirineu90@gmail.com">Fellipe Matheus</option>
+            <option value="giovanni.silva18@gmail.com">Giovanni</option>
+            <option value="moises110723@gmail.com">Moisés</option>
+            <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
+            <option value="musculacaoatual@gmail.com">Jackson</option>
+        </select>
+        <div id="relatorios"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
+        import { getDatabase, ref, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        const selectUsuario = document.getElementById('selectUsuario');
+        selectUsuario.addEventListener('change', buscarRelatorios);
+
+        function buscarRelatorios() {
+            const email = selectUsuario.value;
+            if (!email) return;
+
+            const relatoriosRef = ref(database, 'relatorios');
+            onValue(relatoriosRef, (snapshot) => {
+                const data = snapshot.val();
+                const relatoriosContainer = document.getElementById('relatorios');
+                relatoriosContainer.innerHTML = '';
+
+                if (data) {
+                    Object.entries(data).forEach(([key, value]) => {
+                        if (value.nome === getNomeByEmail(email)) {
+                            const relatorioElement = criarElementoRelatorio(key, value);
+                            relatoriosContainer.appendChild(relatorioElement);
+                        }
+                    });
+                }
+            });
+        }
+
+        function criarElementoRelatorio(key, relatorio) {
+            const div = document.createElement('div');
+            div.className = 'relatorio';
+            div.innerHTML = `
+                <p><strong>Data:</strong> ${relatorio.data}</p>
+                <p><strong>Quantidade de entregas:</strong> ${relatorio.qtdEntregas}</p>
+                <p><strong>Entregas na mesma casa:</strong> ${relatorio.entregasMesmaCasa}</p>
+                <p><strong>Turnos:</strong> ${relatorio.turnos}</p>
+                <p><strong>PIX:</strong> ${relatorio.pix}</p>
+                <p><strong>Observações:</strong> ${relatorio.observacoes}</p>
+                <p><strong>Total a receber:</strong> ${relatorio.totalReceber}</p>
+                <button class="btn-remover" data-key="${key}">Remover Relatório</button>
+            `;
+
+            const btnRemover = div.querySelector('.btn-remover');
+            btnRemover.addEventListener('click', () => removerRelatorio(key));
+
+            return div;
+        }
+
+        function removerRelatorio(key) {
+            if (confirm('Tem certeza que deseja remover este relatório?')) {
+                const relatorioRef = ref(database, `relatorios/${key}`);
+                remove(relatorioRef)
+                    .then(() => {
+                        console.log('Relatório removido com sucesso');
+                        buscarRelatorios(); // Atualiza a lista após a remoção
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao remover relatório:', error);
+                        alert('Erro ao remover relatório. Por favor, tente novamente.');
+                    });
+            }
+        }
+
+        function getNomeByEmail(email) {
+            switch (email) {
+                case 'boazd3@gmail.com': return 'Boaz';
+                case 'fellipeirineu90@gmail.com': return 'Fellipe Matheus';
+                case 'giovanni.silva18@gmail.com': return 'Giovanni';
+                case 'moises110723@gmail.com': return 'Moisés';
+                case 'felipeaugusto02001@gmail.com': return 'Felipe Augusto';
+                case 'musculacaoatual@gmail.com': return 'Jackson';
+                default: return 'Usuário';
+            }
+        }
+    </script>
+</body>
+</html>

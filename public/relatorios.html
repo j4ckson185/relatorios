@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload de Relatórios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload de Relatórios</h1>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" accept=".xlsx, .xls" required>
+        <select id="motoboy" required>
+            <option value="">Selecione o motoboy</option>
+            <option value="moises">Moisés</option>
+            <option value="giovanni">Giovanni</option>
+            <option value="felipeaugusto">Felipe Augusto</option>
+            <option value="boaz">Boaz</option>
+            <option value="fellipematheus">Fellipe Matheus</option>
+        </select>
+        <button type="submit">Enviar Relatório</button>
+    </form>
+    <div id="tableContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const file = document.getElementById('fileInput').files[0];
+            const motoboy = document.getElementById('motoboy').value;
+
+            if (!file || !motoboy) {
+                alert('Por favor, selecione um arquivo e um motoboy.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                displayTable(jsonData);
+                sendReport(motoboy, jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function displayTable(data) {
+            const container = document.getElementById('tableContainer');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = '<p>Nenhum dado encontrado no arquivo.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            const headerRow = document.createElement('tr');
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                Object.values(row).forEach(value => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+
+            container.appendChild(table);
+        }
+
+        function sendReport(motoboy, reportData) {
+            fetch('/upload_report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    motoboy: motoboy,
+                    date: new Date().toISOString().split('T')[0],
+                    report: reportData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Relatório enviado com sucesso.');
+            })
+            .catch(error => {
+                console.error('Erro ao enviar o relatório:', error);
+                alert('Erro ao enviar o relatório.');
+            });
+        }
+    </script>
+</body>
+</html>

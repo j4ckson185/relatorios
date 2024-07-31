@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios -     Fellipe Matheus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #calendar {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        #reportContent {
+            margin-top: 20px;
+        }
+        .clickable {
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Relatórios de Entregas - Fellipe Matheus</h1>
+    <input type="date" id="calendar">
+    <div id="reportContent">
+        <!-- Conteúdo do relatório será carregado aqui -->
+    </div>
+
+    <script>
+        document.getElementById('calendar').addEventListener('change', function() {
+            const selectedDate = this.value;
+            if (selectedDate) {
+                fetch(`/get_report?motoboy=fellipematheus&date=${selectedDate}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        displayReport(data);
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar o relatório:', error);
+                        document.getElementById('reportContent').innerHTML = '<p>Erro ao carregar o relatório. Tente novamente mais tarde.</p>';
+                    });
+            }
+        });
+
+        function displayReport(data) {
+            const reportContent = document.getElementById('reportContent');
+            reportContent.innerHTML = '';
+
+            if (data.length === 0) {
+                reportContent.innerHTML = '<p>Nenhum relatório encontrado para esta data.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            const headerRow = document.createElement('tr');
+            const desiredFields = ['N Pedido', 'Endereço', 'Data e hora', 'Distância em raio (km)', 'Nome do cliente', 'Forma de pagamento', 'Detalhes do pedido'];
+            
+            desiredFields.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            data.forEach(record => {
+                const row = document.createElement('tr');
+                desiredFields.forEach(field => {
+                    const td = document.createElement('td');
+                    if (field === 'Endereço') {
+                        td.textContent = record[field] || 'N/A';
+                        td.classList.add('clickable');
+                        td.addEventListener('click', () => {
+                            window.location.href = `mapa.html?address=${encodeURIComponent(record[field])}`;
+                        });
+                    } else {
+                        td.textContent = record[field] !== undefined ? record[field] : 'N/A';
+                    }
+                    row.appendChild(td);
+                });
+                table.appendChild(row);
+            });
+
+            reportContent.appendChild(table);
+        }
+    </script>
+</body>
+</html>
