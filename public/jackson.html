@@ -3,26 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios de Jackson - Cabana Açaí</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Página de Jackson - Relatórios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Relatórios de Jackson</h1>
         <div id="filtroData">
-            <label for="dataInicio">Data Início:</label>
-            <input type="date" id="dataInicio">
-            <label for="dataFim">Data Fim:</label>
-            <input type="date" id="dataFim">
-            <button id="btnFiltrar">Filtrar</button>
+            <label for="dataFiltro">Filtrar por data:</label>
+            <input type="date" id="dataFiltro">
+            <button onclick="filtrarPorData()">Filtrar</button>
         </div>
-        <div id="relatorios"></div>
+        <table id="tabelaRelatorios">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Quantidade de Entregas</th>
+                    <th>Entregas na Mesma Casa</th>
+                    <th>Turnos</th>
+                    <th>Total Recebido</th>
+                </tr>
+            </thead>
+            <tbody id="corpoTabela">
+                <!-- Os relatórios serão inseridos aqui -->
+            </tbody>
+        </table>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js';
-        import { getDatabase, ref, onValue, query, orderByChild, startAt, endAt } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
+        import { getDatabase, ref, onValue, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
@@ -39,57 +82,50 @@
         const auth = getAuth(app);
         const database = getDatabase(app);
 
-        function exibirRelatorios(relatorios) {
-            const relatoriosDiv = document.getElementById('relatorios');
-            relatoriosDiv.innerHTML = '';
+        function carregarRelatorios(userId) {
+            const relatoriosRef = ref(database, 'relatorios');
+            const userRelatoriosQuery = query(relatoriosRef, orderByChild('userId'), equalTo(userId));
 
-            Object.entries(relatorios).forEach(([key, relatorio]) => {
-                const relatorioDiv = document.createElement('div');
-                relatorioDiv.classList.add('relatorio');
-                relatorioDiv.innerHTML = `
-                    <h3>Data: ${relatorio.data}</h3>
-                    <p>Quantidade de entregas: ${relatorio.qtdEntregas}</p>
-                    <p>Entregas na mesma casa: ${relatorio.entregasMesmaCasa}</p>
-                    <p>Turnos: ${relatorio.turnos}</p>
-                    <p>PIX: ${relatorio.pix}</p>
-                    <p>Observações: ${relatorio.observacoes}</p>
-                    <p>Total a receber: ${relatorio.totalReceber}</p>
-                `;
-                relatoriosDiv.appendChild(relatorioDiv);
+            onValue(userRelatoriosQuery, (snapshot) => {
+                const corpoTabela = document.getElementById('corpoTabela');
+                corpoTabela.innerHTML = '';
+
+                snapshot.forEach((childSnapshot) => {
+                    const relatorio = childSnapshot.val();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${relatorio.data}</td>
+                        <td>${relatorio.qtdEntregas}</td>
+                        <td>${relatorio.entregasMesmaCasa}</td>
+                        <td>${relatorio.turnos}</td>
+                        <td>${relatorio.totalReceber}</td>
+                    `;
+                    corpoTabela.appendChild(row);
+                });
             });
         }
 
-        function filtrarRelatorios() {
-            const dataInicio = document.getElementById('dataInicio').value;
-            const dataFim = document.getElementById('dataFim').value;
-
-            const user = auth.currentUser;
-            if (user && user.email === 'musculacaoatual@gmail.com
-') {
-                const relatoriosRef = ref(database, `relatorios_usuarios/${user.uid}`);
-                const relatoriosQuery = query(relatoriosRef, orderByChild('data'), startAt(dataInicio), endAt(dataFim));
-
-                onValue(relatoriosQuery, (snapshot) => {
-                    const relatorios = snapshot.val();
-                    if (relatorios) {
-                        exibirRelatorios(relatorios);
-                    } else {
-                        document.getElementById('relatorios').innerHTML = '<p>Nenhum relatório encontrado para o período selecionado.</p>';
-                    }
-                });
-            }
-        }
-
         onAuthStateChanged(auth, (user) => {
-            if (user && user.email === 'musculacaoatual@gmail.com
-') {
-                filtrarRelatorios();
+            if (user && user.email === 'musculacaoatual@gmail.com') {
+                carregarRelatorios(user.uid);
             } else {
                 window.location.href = 'index.html';
             }
         });
 
-        document.getElementById('btnFiltrar').addEventListener('click', filtrarRelatorios);
+        window.filtrarPorData = function() {
+            const dataFiltro = document.getElementById('dataFiltro').value;
+            const rows = document.querySelectorAll('#corpoTabela tr');
+
+            rows.forEach(row => {
+                const dataRelatorio = row.cells[0].textContent;
+                if (dataRelatorio === dataFiltro) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
     </script>
 </body>
 </html>
