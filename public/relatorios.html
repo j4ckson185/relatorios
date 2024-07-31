@@ -100,7 +100,7 @@
         }
 
         function sendReport(motoboy, reportData) {
-            fetch('/upload_report', {
+            fetch('https://cabana-8d55e.uc.r.appspot.com/upload_report', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
