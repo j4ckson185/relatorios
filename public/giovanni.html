@@ -36,6 +36,21 @@
         th {
             background-color: #f2f2f2;
         }
+        .menu {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .menu a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -60,6 +75,14 @@
                 <!-- Os relatórios serão inseridos aqui -->
             </tbody>
         </table>
+    </div>
+
+    <div class="menu">
+        <h3>Explore mais opções</h3>
+        <a href="index.html">Página Inicial</a>
+        <a href="relatorio.html">Novo Relatório</a>
+        <a href="perfil.html">Perfil</a>
+        <a href="#" onclick="logout()">Sair</a>
     </div>
 
     <script type="module">
@@ -124,6 +147,14 @@
                 } else {
                     row.style.display = 'none';
                 }
+            });
+        }
+
+        window.logout = function() {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error('Erro ao fazer logout:', error);
             });
         }
     </script>
