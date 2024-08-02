@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Pedido</title>
+</head>
+<body>
+  <h1>Criar Pedido</h1>
+  <form id="orderForm">
+    <input type="text" id="customerName" placeholder="Customer Name" required />
+    <input type="text" id="orderDetails" placeholder="Order Details" required />
+    <button type="submit">Enviar Pedidos</button>
+  </form>
+
+  <script>
+    document.getElementById('orderForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const customerName = document.getElementById('customerName').value;
+      const orderDetails = document.getElementById('orderDetails').value;
+
+      fetch('https://us-central1-cabana-8d55e.cloudfunctions.net/createOrder
+', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ customerName, orderDetails })
+      })
+      .then(response => response.text())
+      .then(data => {
+        alert(data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    });
+  </script>
+</body>
+</html>
