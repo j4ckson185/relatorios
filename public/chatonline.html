@@ -96,10 +96,10 @@
     <div id="chat-container">
         <div id="chat-header">Chat Atendimento</div>
         <div id="chat-messages"></div>
-        <form id="chat-form">
+        <div id="chat-form">
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
-            <button type="submit" id="send-button">Enviar</button>
-        </form>
+            <button type="button" id="send-button">Enviar</button>
+        </div>
     </div>
 
     <script>
@@ -118,8 +118,8 @@
 
         const database = firebase.database();
         const chatMessages = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
         const chatList = document.getElementById('chat-list');
         const clearAllChatsButton = document.getElementById('clear-all-chats');
 
@@ -145,8 +145,7 @@
             showNotification(message);
         });
 
-        function sendMessage(e) {
-            e.preventDefault();
+        function sendMessage() {
             const messageText = messageInput.value.trim();
             if (messageText && currentChat) {
                 const message = {
@@ -160,12 +159,12 @@
             }
         }
 
-        chatForm.addEventListener('submit', sendMessage);
+        sendButton.addEventListener('click', sendMessage);
 
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                sendMessage(e);
+                sendMessage();
             }
         });
 
