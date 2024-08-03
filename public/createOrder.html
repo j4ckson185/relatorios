@@ -25,7 +25,15 @@
         const authToken = '8d7c77946d534444a168bb7da794febf';
         
         function formatDate(date) {
-            return date.toISOString().split('T')[0];
+            const pad = (num) => num.toString().padStart(2, '0');
+            const offset = -date.getTimezoneOffset();
+            const offsetSign = offset >= 0 ? '+' : '-';
+            const offsetHours = pad(Math.floor(Math.abs(offset) / 60));
+            const offsetMinutes = pad(Math.abs(offset) % 60);
+            
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T` +
+                   `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+                   `${offsetSign}${offsetHours}:${offsetMinutes}`;
         }
 
         async function fetchOrders(useProxy = true) {
@@ -33,13 +41,17 @@
             const startDate = formatDate(now);
             const endDate = formatDate(now);
             
-            let url = `${foodyApiUrl}?startDate=${startDate}&endDate=${endDate}`;
+            let url = `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
             if (useProxy) {
                 url = `${proxyUrl}${encodeURIComponent(url)}`;
             }
 
             console.log('Requesting URL:', url);
-            document.getElementById('debugInfo').innerHTML = `<p>Requesting URL: ${url}</p>`;
+            document.getElementById('debugInfo').innerHTML = `
+                <p>Requesting URL: ${url}</p>
+                <p>Start Date: ${startDate}</p>
+                <p>End Date: ${endDate}</p>
+            `;
 
             try {
                 const response = await axios.get(url, {
