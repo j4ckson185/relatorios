@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração do Chat Online</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .admin-container {
+            display: flex;
+            height: 100vh;
+        }
+        .chat-list {
+            width: 300px;
+            background-color: #fff;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        .chat-item {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+        }
+        .chat-item:hover {
+            background-color: #f5f5f5;
+        }
+        .chat-item.active {
+            background-color: #e1f5fe;
+        }
+        .chat-window {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fff;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        .message.sent {
+            background-color: #e1ffc7;
+            margin-left: auto;
+        }
+        .message.received {
+            background-color: #f0f0f0;
+        }
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            background-color: #fff;
+            border-top: 1px solid #e0e0e0;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #send-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="chat-list" id="chat-list">
+            <!-- Lista de chats será preenchida dinamicamente -->
+        </div>
+        <div class="chat-window">
+            <div class="chat-header">
+                Administração do Chat Online
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- As mensagens serão inseridas aqui dinamicamente -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="message-input" placeholder="Digite sua mensagem...">
+                <button id="send-button">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // Configuração do Firebase (use as mesmas credenciais do chat.html)
+        const firebaseConfig = {
+  apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+  authDomain: "cabana-8d55e.firebaseapp.com",
+  databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+  projectId: "cabana-8d55e",
+  storageBucket: "cabana-8d55e.appspot.com",
+  messagingSenderId: "706144237954",
+  appId: "1:706144237954:web:345c10370972486afc779b",
+  measurementId: "G-96Y337GYT8"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const chatList = document.getElementById('chat-list');
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+
+        let currentChat = null;
+
+        // Função para enviar mensagem
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && currentChat) {
+                database.ref('messages').push({
+                    text: message,
+                    timestamp: Date.now(),
+                    sender: 'admin',
+                    chatId: currentChat
+                });
+                messageInput.value = '';
+            }
+        }
+
+        // Evento de clique no botão enviar
+        sendButton.addEventListener('click', sendMessage);
+
+        // Evento de tecla pressionada no campo de input
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Ouvir por novas mensagens
+        database.ref('messages').on('child_added', function(snapshot) {
+            const message = snapshot.val();
+            if (message.chatId === currentChat) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.classList.add(message.sender === 'admin' ? 'sent' : 'received');
+                messageElement.textContent = message.text;
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Atualizar lista de chats
+            updateChatList();
+
+            // Notificação de desktop
+            if (message.sender !== 'admin' && Notification.permission === "granted") {
+                new Notification("Nova mensagem", { body: message.text });
+            }
+        });
+
+        // Função para atualizar a lista de chats
+        function updateChatList() {
+            database.ref('messages').once('value', function(snapshot) {
+                const messages = snapshot.val();
+                const chats = {};
+
+                for (let key in messages) {
+                    const message = messages[key];
+                    if (!chats[message.chatId]) {
+                        chats[message.chatId] = {
+                            lastMessage: message.text,
+                            timestamp: message.timestamp
+                        };
+                    } else if (message.timestamp > chats[message.chatId].timestamp) {
+                        chats[message.chatId].lastMessage = message.text;
+                        chats[message.chatId].timestamp = message.timestamp;
+                    }
+                }
+
+                chatList.innerHTML = '';
+                for (let chatId in chats) {
+                    const chatItem = document.createElement('div');
+                    chatItem.classList.add('chat-item');
+                    chatItem.textContent = `Chat ${chatId}: ${chats[chatId].lastMessage}`;
+                    chatItem.addEventListener('click', function() {
+                        currentChat = chatId;
+                        loadMessages(chatId);
+                    });
+                    chatList.appendChild(chatItem);
+                }
+            });
+        }
+
+        // Função para carregar mensagens de um chat específico
+        function loadMessages(chatId) {
+            chatMessages.innerHTML = '';
+            database.ref('messages').orderByChild('chatId').equalTo(chatId).once('value', function(snapshot) {
+                const messages = snapshot.val();
+                for (let key in messages) {
+                    const message = messages[key];
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('message');
+                    messageElement.classList.add(message.sender === 'admin' ? 'sent' : 'received');
+                    messageElement.textContent = message.text;
+                    chatMessages.appendChild(messageElement);
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        // Solicitar permissão para notificações de desktop
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        // Inicializar a lista de chats
+        updateChatList();
+    </script>
+</body>
+</html>
