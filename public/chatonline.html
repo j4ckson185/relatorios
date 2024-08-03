@@ -147,15 +147,21 @@
 
         function sendMessage() {
             const messageText = messageInput.value.trim();
-            if (messageText && currentChat) {
+            if (messageText) {
                 const message = {
                     sender: 'Atendente',
                     text: messageText,
                     timestamp: firebase.database.ServerValue.TIMESTAMP,
-                    recipient: currentChat
+                    recipient: currentChat || 'general'
                 };
-                database.ref('messages').push(message);
-                messageInput.value = '';
+                database.ref('messages').push(message)
+                    .then(() => {
+                        console.log('Mensagem enviada com sucesso');
+                        messageInput.value = '';
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao enviar mensagem:', error);
+                    });
             }
         }
 
