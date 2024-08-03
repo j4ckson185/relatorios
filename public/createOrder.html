@@ -12,7 +12,7 @@
   <script>
     const fetchOrders = () => {
       const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/?startDate=2024-06-20T22:20:00Z&endDate=2024-06-21T22:20:00Z'; // URL fornecida
-      const foodyApiToken = '8d7c77946d534444a168bb7da794febf'; // Token da API do Foody Delivery
+      const foodyApiToken = 'Bearer 8d7c77946d534444a168bb7da794febf'; // Token da API do Foody Delivery
 
       // Usar o proxy no Google Cloud para contornar o problema de CORS
       const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
@@ -23,8 +23,8 @@
       fetch(fullUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${foodyApiToken}`,
-          'Content-Type': 'application/json'
+          'Authorization': foodyApiToken,
+          'Content-Type': 'application/json;charset=UTF-8'
         }
       })
       .then(response => {
