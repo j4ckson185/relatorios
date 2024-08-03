@@ -8,10 +8,10 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         h1 { color: #333; }
-        #orderResults { margin-top: 20px; }
-        .order { background-color: #f0f0f0; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        #orderResults, #debugInfo { margin-top: 20px; padding: 10px; background-color: #f0f0f0; }
+        .order { background-color: #fff; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
         .error { color: red; }
-        #debugInfo { margin-top: 20px; padding: 10px; background-color: #f0f0f0; }
+        .success { color: green; }
     </style>
 </head>
 <body>
@@ -21,7 +21,7 @@
 
     <script>
         const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
-        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
         
         function formatDate(date) {
@@ -44,12 +44,13 @@
             try {
                 const response = await axios.get(url, {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
                     }
                 });
                 console.log('Response:', response.data);
-                document.getElementById('debugInfo').innerHTML += `<p>Response: ${JSON.stringify(response.data)}</p>`;
+                document.getElementById('debugInfo').innerHTML += `<p class="success">Response received successfully.</p>`;
+                document.getElementById('debugInfo').innerHTML += `<pre>${JSON.stringify(response.data, null, 2)}</pre>`;
                 displayOrders(response.data);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -66,6 +67,11 @@
                 }
                 document.getElementById('orderResults').innerHTML = `<p class="error">${errorMessage}</p>`;
                 document.getElementById('debugInfo').innerHTML += `<p class="error">${errorMessage}</p>`;
+                
+                // Adicionar informações detalhadas sobre o erro
+                if (error.config) {
+                    document.getElementById('debugInfo').innerHTML += `<p>Request Config:</p><pre>${JSON.stringify(error.config, null, 2)}</pre>`;
+                }
             }
         }
 
