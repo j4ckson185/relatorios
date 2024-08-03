@@ -10,17 +10,25 @@
   <div id="orderResults"></div>
 
   <script>
+    // Função para formatar a data no formato yyyy-MM-dd'T'HH:mm:ssXXX
+    const formatDate = (date) => {
+      return date.toISOString().split('.')[0];
+    };
+
     const fetchOrders = () => {
       const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders'; // URL da API do Foody Delivery para listar pedidos
       const foodyApiToken = '8d7c77946d534444a168bb7da794febf'; // Token da API do Foody Delivery
 
       // Formato de data para a requisição (últimas 24 horas)
-      const endDate = new Date().toISOString();
-      const startDate = new Date(new Date().getTime() - (24 * 60 * 60 * 1000)).toISOString();
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - (24 * 60 * 60 * 1000));
+
+      const formattedEndDate = formatDate(endDate);
+      const formattedStartDate = formatDate(startDate);
 
       // Usar o proxy no Google Cloud para contornar o problema de CORS
       const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
-      const fullUrl = `${proxyUrl}${encodeURIComponent(foodyApiUrl + `?startDate=${startDate}&endDate=${endDate}`)}`;
+      const fullUrl = `${proxyUrl}${encodeURIComponent(foodyApiUrl + `?startDate=${formattedStartDate}&endDate=${formattedEndDate}`)}`;
 
       console.log(`Fetching orders from: ${fullUrl}`);
       
