@@ -94,6 +94,20 @@
             cursor: pointer;
             width: 100%;
         }
+        #audio-recording {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 10px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
     </style>
 </head>
 <body>
@@ -111,6 +125,7 @@
             <button type="button" id="audio-button">Gravar Áudio</button>
         </div>
     </div>
+    <div id="audio-recording">Gravando...</div>
 
     <script>
         // Configuração do Firebase
@@ -131,6 +146,7 @@
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
         const audioButton = document.getElementById('audio-button');
+        const audioRecording = document.getElementById('audio-recording');
         const chatList = document.getElementById('chat-list');
         const clearAllChatsButton = document.getElementById('clear-all-chats');
 
@@ -197,7 +213,7 @@
         let audioChunks = [];
 
         audioButton.addEventListener('click', () => {
-            if (!mediaRecorder) {
+            if (audioButton.textContent === 'Gravar Áudio') {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(stream => {
                         mediaRecorder = new MediaRecorder(stream);
@@ -217,17 +233,17 @@
                                 audioChunks = [];
                             }
                         };
+                        mediaRecorder.start();
+                        audioRecording.style.display = 'flex';
+                        audioButton.textContent = 'Parar Gravação';
                     })
                     .catch(error => {
                         console.error('Erro ao acessar o microfone:', error);
                     });
-            }
-            if (mediaRecorder.state === 'recording') {
+            } else if (audioButton.textContent === 'Parar Gravação') {
                 mediaRecorder.stop();
+                audioRecording.style.display = 'none';
                 audioButton.textContent = 'Gravar Áudio';
-            } else {
-                mediaRecorder.start();
-                audioButton.textContent = 'Parar Gravação';
             }
         });
 
