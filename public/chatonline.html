@@ -108,7 +108,7 @@
         <div id="chat-form">
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
             <button type="button" id="send-button">Enviar</button>
-            <button type="button" id="audio-button">Enviar Áudio</button>
+            <button type="button" id="audio-button">Gravar Áudio</button>
         </div>
     </div>
 
@@ -193,34 +193,42 @@
             }
         });
 
-        audioButton.addEventListener('click', () => {
-            const audioInput = document.createElement('input');
-            audioInput.type = 'file';
-            audioInput.accept = 'audio/*';
-            audioInput.onchange = function(event) {
-                const file = event.target.files[0];
-                const storageRef = firebase.storage().ref('audio/' + file.name);
-                const uploadTask = storageRef.put(file);
+        let mediaRecorder;
+        let audioChunks = [];
 
-                uploadTask.on('state_changed', 
-                    function(snapshot) {
-                        // Progresso do upload
-                    }, function(error) {
-                        console.error('Erro ao enviar áudio:', error);
-                    }, function() {
-                        uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
-                            const message = {
-                                sender: 'Atendente',
-                                text: downloadURL,
-                                type: 'audio',
-                                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                                recipient: currentChat || 'general'
-                            };
-                            database.ref('messages').push(message);
-                        });
+        audioButton.addEventListener('click', () => {
+            if (!mediaRecorder) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.ondataavailable = e => {
+                            audioChunks.push(e.data);
+                            if (mediaRecorder.state === 'inactive') {
+                                let blob = new Blob(audioChunks, { type: 'audio/webm' });
+                                let audioURL = URL.createObjectURL(blob);
+                                const message = {
+                                    sender: 'Atendente',
+                                    text: audioURL,
+                                    type: 'audio',
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                                    recipient: currentChat || 'general'
+                                };
+                                database.ref('messages').push(message);
+                                audioChunks = [];
+                            }
+                        };
+                    })
+                    .catch(error => {
+                        console.error('Erro ao acessar o microfone:', error);
                     });
-            };
-            audioInput.click();
+            }
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                audioButton.textContent = 'Gravar Áudio';
+            } else {
+                mediaRecorder.start();
+                audioButton.textContent = 'Parar Gravação';
+            }
         });
 
         function showNotification(message) {
@@ -233,6 +241,9 @@
                     window.focus();
                     this.close();
                 };
+                // Emitir som de notificação
+                const audio = new Audio('https://example.com/notification.mp3'); // Substitua com o URL do seu som de notificação
+                audio.play();
             } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
