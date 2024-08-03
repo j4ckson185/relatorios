@@ -15,7 +15,7 @@
       const foodyApiToken = 'Bearer 8d7c77946d534444a168bb7da794febf'; // Token da API do Foody Delivery
 
       // Usar o proxy no Google Cloud para contornar o problema de CORS
-      const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
+      const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy';
       const fullUrl = `${proxyUrl}${encodeURIComponent(foodyApiUrl)}`;
 
       console.log(`Fetching orders from: ${fullUrl}`);
