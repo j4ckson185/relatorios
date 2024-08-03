@@ -55,6 +55,15 @@
             border: none;
             cursor: pointer;
         }
+        #audio-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+        }
         .message {
             margin-bottom: 10px;
             padding: 10px;
@@ -99,6 +108,7 @@
         <div id="chat-form">
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
             <button type="button" id="send-button">Enviar</button>
+            <button type="button" id="audio-button">Enviar Áudio</button>
         </div>
     </div>
 
@@ -120,6 +130,7 @@
         const chatMessages = document.getElementById('chat-messages');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
+        const audioButton = document.getElementById('audio-button');
         const chatList = document.getElementById('chat-list');
         const clearAllChatsButton = document.getElementById('clear-all-chats');
 
@@ -129,7 +140,14 @@
             const messageElement = document.createElement('div');
             messageElement.classList.add('message');
             messageElement.classList.add(message.sender === 'Atendente' ? 'sent' : 'received');
-            messageElement.textContent = `${message.sender}: ${message.text}`;
+            if (message.type === 'text') {
+                messageElement.textContent = `${message.sender}: ${message.text}`;
+            } else if (message.type === 'audio') {
+                const audioElement = document.createElement('audio');
+                audioElement.controls = true;
+                audioElement.src = message.text;
+                messageElement.appendChild(audioElement);
+            }
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -151,6 +169,7 @@
                 const message = {
                     sender: 'Atendente',
                     text: messageText,
+                    type: 'text',
                     timestamp: firebase.database.ServerValue.TIMESTAMP,
                     recipient: currentChat || 'general'
                 };
@@ -172,6 +191,36 @@
                 e.preventDefault();
                 sendMessage();
             }
+        });
+
+        audioButton.addEventListener('click', () => {
+            const audioInput = document.createElement('input');
+            audioInput.type = 'file';
+            audioInput.accept = 'audio/*';
+            audioInput.onchange = function(event) {
+                const file = event.target.files[0];
+                const storageRef = firebase.storage().ref('audio/' + file.name);
+                const uploadTask = storageRef.put(file);
+
+                uploadTask.on('state_changed', 
+                    function(snapshot) {
+                        // Progresso do upload
+                    }, function(error) {
+                        console.error('Erro ao enviar áudio:', error);
+                    }, function() {
+                        uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                            const message = {
+                                sender: 'Atendente',
+                                text: downloadURL,
+                                type: 'audio',
+                                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                                recipient: currentChat || 'general'
+                            };
+                            database.ref('messages').push(message);
+                        });
+                    });
+            };
+            audioInput.click();
         });
 
         function showNotification(message) {
