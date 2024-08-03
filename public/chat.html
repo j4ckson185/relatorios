@@ -106,7 +106,7 @@
         <form id="chat-form">
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
             <button type="submit" id="send-button">Enviar</button>
-            <button type="button" id="audio-button">Enviar Áudio</button>
+            <button type="button" id="audio-button">Gravar Áudio</button>
         </form>
     </div>
 
@@ -179,37 +179,45 @@
             }
         });
 
+        let mediaRecorder;
+        let audioChunks = [];
+
         audioButton.addEventListener('click', () => {
             if (!userName) {
                 alert('Por favor, digite seu nome antes de enviar uma mensagem.');
                 return;
             }
-            const audioInput = document.createElement('input');
-            audioInput.type = 'file';
-            audioInput.accept = 'audio/*';
-            audioInput.onchange = function(event) {
-                const file = event.target.files[0];
-                const storageRef = firebase.storage().ref('audio/' + file.name);
-                const uploadTask = storageRef.put(file);
-
-                uploadTask.on('state_changed', 
-                    function(snapshot) {
-                        // Progresso do upload
-                    }, function(error) {
-                        console.error('Erro ao enviar áudio:', error);
-                    }, function() {
-                        uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
-                            const message = {
-                                sender: userName,
-                                text: downloadURL,
-                                type: 'audio',
-                                timestamp: firebase.database.ServerValue.TIMESTAMP
-                            };
-                            database.ref('messages').push(message);
-                        });
+            if (!mediaRecorder) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.ondataavailable = e => {
+                            audioChunks.push(e.data);
+                            if (mediaRecorder.state === 'inactive') {
+                                let blob = new Blob(audioChunks, { type: 'audio/webm' });
+                                let audioURL = URL.createObjectURL(blob);
+                                const message = {
+                                    sender: userName,
+                                    text: audioURL,
+                                    type: 'audio',
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                };
+                                database.ref('messages').push(message);
+                                audioChunks = [];
+                            }
+                        };
+                    })
+                    .catch(error => {
+                        console.error('Erro ao acessar o microfone:', error);
                     });
-            };
-            audioInput.click();
+            }
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                audioButton.textContent = 'Gravar Áudio';
+            } else {
+                mediaRecorder.start();
+                audioButton.textContent = 'Parar Gravação';
+            }
         });
     </script>
 </body>
