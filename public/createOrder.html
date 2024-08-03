@@ -20,8 +20,11 @@
 
       // Usar o proxy no Google Cloud para contornar o problema de CORS
       const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
+      const fullUrl = `${proxyUrl}${encodeURIComponent(foodyApiUrl + `?startDate=${startDate}&endDate=${endDate}`)}`;
 
-      fetch(`${proxyUrl}${encodeURIComponent(foodyApiUrl + `?startDate=${startDate}&endDate=${endDate}`)}`, {
+      console.log(`Fetching orders from: ${fullUrl}`);
+      
+      fetch(fullUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${foodyApiToken}`,
@@ -30,6 +33,7 @@
       })
       .then(response => response.json())
       .then(data => {
+        console.log('Received data:', data);
         const orderResults = document.getElementById('orderResults');
         orderResults.innerHTML = '';
 
