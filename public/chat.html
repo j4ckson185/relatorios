@@ -19,7 +19,7 @@
         }
         #chat-container {
             width: 350px;
-            height: 500px;
+            height: 600px;
             border: 1px solid #ccc;
             border-radius: 10px;
             overflow: hidden;
@@ -62,6 +62,16 @@
             cursor: pointer;
             font-size: 14px;
         }
+        #audio-button {
+            margin-left: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
         .message {
             margin-bottom: 10px;
             padding: 8px 12px;
@@ -96,6 +106,7 @@
         <form id="chat-form">
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
             <button type="submit" id="send-button">Enviar</button>
+            <button type="button" id="audio-button">Enviar Áudio</button>
         </form>
     </div>
 
@@ -118,6 +129,7 @@
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const nameInput = document.getElementById('name-input');
+        const audioButton = document.getElementById('audio-button');
 
         let userName = '';
 
@@ -133,7 +145,14 @@
             const messageElement = document.createElement('div');
             messageElement.classList.add('message');
             messageElement.classList.add(isSent ? 'sent' : 'received');
-            messageElement.textContent = message.text;
+            if (message.type === 'text') {
+                messageElement.textContent = message.text;
+            } else if (message.type === 'audio') {
+                const audioElement = document.createElement('audio');
+                audioElement.controls = true;
+                audioElement.src = message.text;
+                messageElement.appendChild(audioElement);
+            }
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -150,6 +169,7 @@
                 const message = {
                     sender: userName,
                     text: messageText,
+                    type: 'text',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
                 database.ref('messages').push(message);
@@ -157,6 +177,39 @@
             } else if (!userName) {
                 alert('Por favor, digite seu nome antes de enviar uma mensagem.');
             }
+        });
+
+        audioButton.addEventListener('click', () => {
+            if (!userName) {
+                alert('Por favor, digite seu nome antes de enviar uma mensagem.');
+                return;
+            }
+            const audioInput = document.createElement('input');
+            audioInput.type = 'file';
+            audioInput.accept = 'audio/*';
+            audioInput.onchange = function(event) {
+                const file = event.target.files[0];
+                const storageRef = firebase.storage().ref('audio/' + file.name);
+                const uploadTask = storageRef.put(file);
+
+                uploadTask.on('state_changed', 
+                    function(snapshot) {
+                        // Progresso do upload
+                    }, function(error) {
+                        console.error('Erro ao enviar áudio:', error);
+                    }, function() {
+                        uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                            const message = {
+                                sender: userName,
+                                text: downloadURL,
+                                type: 'audio',
+                                timestamp: firebase.database.ServerValue.TIMESTAMP
+                            };
+                            database.ref('messages').push(message);
+                        });
+                    });
+            };
+            audioInput.click();
         });
     </script>
 </body>
