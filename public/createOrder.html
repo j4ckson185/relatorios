@@ -3,39 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Order</title>
+  <title>Real-time Orders from Foody Delivery</title>
 </head>
 <body>
-  <h1>Create Order</h1>
-  <form id="orderForm">
-    <input type="text" id="customerName" placeholder="Customer Name" required />
-    <input type="text" id="orderDetails" placeholder="Order Details" required />
-    <button type="submit">Submit Order</button>
-  </form>
+  <h1>Real-time Orders from Foody Delivery</h1>
+  <div id="orderResults"></div>
 
   <script>
-    document.getElementById('orderForm').addEventListener('submit', function(event) {
-      event.preventDefault();
+    const fetchOrders = () => {
+      const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders'; // URL da API do Foody Delivery para listar pedidos
+      const foodyApiToken = '8d7c77946d534444a168bb7da794febf'; // Token da API do Foody Delivery
 
-      const customerName = document.getElementById('customerName').value;
-      const orderDetails = document.getElementById('orderDetails').value;
+      // Formato de data para a requisição (últimas 24 horas)
+      const endDate = new Date().toISOString();
+      const startDate = new Date(new Date().getTime() - (24 * 60 * 60 * 1000)).toISOString();
 
-      // Enviar o pedido para a função do Firebase
-      fetch('https://us-central1-cabana-8d55e.cloudfunctions.net/createOrder', {
-        method: 'POST',
+      fetch(`${foodyApiUrl}?startDate=${startDate}&endDate=${endDate}`, {
+        method: 'GET',
         headers: {
+          'Authorization': `Bearer ${foodyApiToken}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ customerName, orderDetails })
+        }
       })
-      .then(response => response.text())
+      .then(response => response.json())
       .then(data => {
-        alert(data);
+        const orderResults = document.getElementById('orderResults');
+        orderResults.innerHTML = '';
+
+        data.orders.forEach(order => {
+          const orderElement = document.createElement('div');
+          orderElement.textContent = `Customer: ${order.customer.customerName}, Details: ${order.orderDetails}`;
+          orderResults.appendChild(orderElement);
+
+          // Enviar o pedido para a função do Firebase
+          fetch('https://us-central1-cabana-8d55e.cloudfunctions.net/createOrder', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              customerName: order.customer.customerName,
+              orderDetails: order.orderDetails,
+              deliveryAddress: order.deliveryPoint.address
+            })
+          })
+          .then(response => response.text())
+          .then(result => {
+            console.log(result);
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+        });
       })
       .catch(error => {
-        console.error('Error:', error);
+        console.error('Error fetching orders from Foody Delivery:', error);
       });
-    });
+    };
+
+    // Fetch orders every 10 seconds
+    setInterval(fetchOrders, 10000);
+
+    // Fetch orders immediately on page load
+    fetchOrders();
   </script>
 </body>
 </html>
