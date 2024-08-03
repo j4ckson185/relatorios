@@ -87,12 +87,22 @@
             background-color: #ecf0f1;
             align-self: flex-start;
         }
+        #clear-all-chats {
+            margin-top: 20px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h3>Chats</h3>
         <div id="chat-list"></div>
+        <button id="clear-all-chats">Limpar Todos os Chats</button>
     </div>
     <div id="chat-container">
         <div id="chat-header">Chat Atendimento</div>
@@ -122,6 +132,7 @@
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const chatList = document.getElementById('chat-list');
+        const clearAllChatsButton = document.getElementById('clear-all-chats');
 
         let currentChat = null;
 
@@ -156,6 +167,7 @@
                     recipient: currentChat
                 };
                 database.ref('messages').push(message);
+                addMessageToChat(message);
                 messageInput.value = '';
             }
         });
@@ -204,6 +216,15 @@
             };
             chatList.appendChild(chatItem);
         }
+
+        clearAllChatsButton.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja limpar todos os chats?')) {
+                database.ref('messages').remove();
+                chatList.innerHTML = '';
+                chatMessages.innerHTML = '';
+                currentChat = null;
+            }
+        });
     </script>
 </body>
 </html>
