@@ -86,6 +86,16 @@
             border-radius: 5px;
             font-size: 14px;
         }
+        #clear-chat {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -97,6 +107,7 @@
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
             <button type="submit" id="send-button">Enviar</button>
         </form>
+        <button id="clear-chat">Limpar Chat</button>
     </div>
 
     <script>
@@ -118,6 +129,7 @@
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const nameInput = document.getElementById('name-input');
+        const clearChatButton = document.getElementById('clear-chat');
 
         let userName = '';
 
@@ -156,6 +168,13 @@
                 messageInput.value = '';
             } else if (!userName) {
                 alert('Por favor, digite seu nome antes de enviar uma mensagem.');
+            }
+        });
+
+        clearChatButton.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja limpar todas as mensagens?')) {
+                database.ref('messages').remove();
+                chatMessages.innerHTML = '';
             }
         });
     </script>
