@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Cabana</title>
+    <title>Chat Motoboy</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -52,10 +52,16 @@
             border-radius: 3px;
             cursor: pointer;
         }
+        #name-input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="chat-container">
+        <input type="text" id="name-input" placeholder="Digite seu nome...">
         <div id="chat-messages"></div>
         <form id="chat-form">
             <input type="text" id="message-input" placeholder="Digite sua mensagem...">
@@ -81,11 +87,12 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
+        const nameInput = document.getElementById('name-input');
 
         // Função para adicionar mensagem ao chat
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
-            messageElement.textContent = message;
+            messageElement.textContent = `${message.name}: ${message.text}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -99,8 +106,14 @@
         // Enviar mensagem
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const message = messageInput.value.trim();
-            if (message) {
+            const messageText = messageInput.value.trim();
+            const name = nameInput.value.trim() || 'Anônimo';
+            if (messageText) {
+                const message = {
+                    name: name,
+                    text: messageText,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
                 database.ref('messages').push(message);
                 messageInput.value = '';
             }
