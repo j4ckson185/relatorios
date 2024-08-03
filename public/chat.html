@@ -18,14 +18,22 @@
             background-color: #f0f0f0;
         }
         #chat-container {
-            width: 300px;
-            height: 400px;
+            width: 350px;
+            height: 500px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 10px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #chat-header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
         }
         #chat-messages {
             flex-grow: 1;
@@ -40,27 +48,49 @@
         #message-input {
             flex-grow: 1;
             border: 1px solid #ccc;
-            border-radius: 3px;
-            padding: 5px;
+            border-radius: 20px;
+            padding: 10px;
+            font-size: 14px;
         }
         #send-button {
             margin-left: 10px;
             background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
+            padding: 10px 15px;
+            border-radius: 20px;
             cursor: pointer;
+            font-size: 14px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .sent {
+            background-color: #DCF8C6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .received {
+            background-color: #E0E0E0;
+            align-self: flex-start;
         }
         #name-input {
             width: 100%;
-            padding: 5px;
+            padding: 10px;
             margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div id="chat-container">
+        <div id="chat-header">Chat Motoboy</div>
         <input type="text" id="name-input" placeholder="Digite seu nome...">
         <div id="chat-messages"></div>
         <form id="chat-form">
@@ -89,33 +119,43 @@
         const messageInput = document.getElementById('message-input');
         const nameInput = document.getElementById('name-input');
 
-        // Função para adicionar mensagem ao chat
-        function addMessageToChat(message) {
+        let userName = '';
+
+        nameInput.addEventListener('change', (e) => {
+            userName = e.target.value.trim();
+            if (userName) {
+                nameInput.style.display = 'none';
+                messageInput.focus();
+            }
+        });
+
+        function addMessageToChat(message, isSent) {
             const messageElement = document.createElement('div');
-            messageElement.textContent = `${message.name}: ${message.text}`;
+            messageElement.classList.add('message');
+            messageElement.classList.add(isSent ? 'sent' : 'received');
+            messageElement.textContent = message.text;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Listener para novas mensagens no Firebase
         database.ref('messages').on('child_added', (snapshot) => {
             const message = snapshot.val();
-            addMessageToChat(message);
+            addMessageToChat(message, message.sender === userName);
         });
 
-        // Enviar mensagem
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const messageText = messageInput.value.trim();
-            const name = nameInput.value.trim() || 'Anônimo';
-            if (messageText) {
+            if (messageText && userName) {
                 const message = {
-                    name: name,
+                    sender: userName,
                     text: messageText,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
                 database.ref('messages').push(message);
                 messageInput.value = '';
+            } else if (!userName) {
+                alert('Por favor, digite seu nome antes de enviar uma mensagem.');
             }
         });
     </script>
