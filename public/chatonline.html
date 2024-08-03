@@ -12,20 +12,25 @@
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
             background-color: #f0f0f0;
         }
+        #sidebar {
+            width: 200px;
+            background-color: #f1f1f1;
+            padding: 20px;
+            overflow-y: auto;
+        }
         #chat-container {
-            width: 300px;
-            height: 400px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            overflow: hidden;
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
             background-color: white;
+        }
+        #online-users {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            font-weight: bold;
         }
         #chat-messages {
             flex-grow: 1;
@@ -52,14 +57,20 @@
             border-radius: 3px;
             cursor: pointer;
         }
-        #online-users {
-            padding: 10px;
-            border-bottom: 1px solid #ccc;
-            font-weight: bold;
+        .chat-item {
+            padding: 5px;
+            cursor: pointer;
+        }
+        .chat-item:hover {
+            background-color: #e0e0e0;
         }
     </style>
 </head>
 <body>
+    <div id="sidebar">
+        <h3>Chats</h3>
+        <div id="chat-list"></div>
+    </div>
     <div id="chat-container">
         <div id="online-users">Usuários online: 0</div>
         <div id="chat-messages"></div>
@@ -88,6 +99,7 @@
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const onlineUsersElement = document.getElementById('online-users');
+        const chatList = document.getElementById('chat-list');
 
         // Gerar um ID único para o usuário
         const userId = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -95,7 +107,7 @@
         // Função para adicionar mensagem ao chat
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
-            messageElement.textContent = message;
+            messageElement.textContent = `${message.name}: ${message.text}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -104,13 +116,20 @@
         database.ref('messages').on('child_added', (snapshot) => {
             const message = snapshot.val();
             addMessageToChat(message);
+            showNotification(message);
+            updateChatList(message);
         });
 
         // Enviar mensagem
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const message = messageInput.value.trim();
-            if (message) {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const message = {
+                    name: 'Atendente',
+                    text: messageText,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
                 database.ref('messages').push(message);
                 messageInput.value = '';
             }
@@ -151,18 +170,59 @@
         });
 
         onlineUsersRef.on('child_added', (snapshot) => {
-            onlineUsersRef.once('value').then((snapshot) => {
-                const count = snapshot.numChildren();
-                onlineUsersElement.textContent = `Usuários online: ${count}`;
-            });
+            updateOnlineUsers();
         });
 
         onlineUsersRef.on('child_removed', (snapshot) => {
+            updateOnlineUsers();
+        });
+
+        function updateOnlineUsers() {
             onlineUsersRef.once('value').then((snapshot) => {
                 const count = snapshot.numChildren();
                 onlineUsersElement.textContent = `Usuários online: ${count}`;
             });
-        });
+        }
+
+        // Função para mostrar notificação
+        function showNotification(message) {
+            if (Notification.permission === "granted") {
+                const notification = new Notification("Nova mensagem no chat", {
+                    body: `${message.name}: ${message.text}`,
+                });
+                notification.onclick = function() {
+                    window.focus();
+                    this.close();
+                };
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        showNotification(message);
+                    }
+                });
+            }
+        }
+
+        // Solicitar permissão para notificações
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        // Função para atualizar a lista de chats
+        function updateChatList(message) {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.textContent = `Chat ${message.name}`;
+            chatItem.onclick = () => {
+                chatMessages.innerHTML = '';
+                database.ref('messages').orderByChild('name').equalTo(message.name).once('value', (snapshot) => {
+                    snapshot.forEach((childSnapshot) => {
+                        addMessageToChat(childSnapshot.val());
+                    });
+                });
+            };
+            chatList.appendChild(chatItem);
+        }
     </script>
 </body>
 </html>
