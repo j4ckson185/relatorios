@@ -11,37 +11,45 @@
         #orderResults { margin-top: 20px; }
         .order { background-color: #f0f0f0; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
         .error { color: red; }
+        #debugInfo { margin-top: 20px; padding: 10px; background-color: #f0f0f0; }
     </style>
 </head>
 <body>
     <h1>Pedidos em Tempo Real - Foody Delivery</h1>
     <div id="orderResults"></div>
+    <div id="debugInfo"></div>
 
     <script>
         const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
-        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders';
         const authToken = '8d7c77946d534444a168bb7da794febf';
-
+        
         function formatDate(date) {
             return date.toISOString().split('T')[0];
         }
 
-        async function fetchOrders() {
+        async function fetchOrders(useProxy = true) {
             const now = new Date();
             const startDate = formatDate(now);
             const endDate = formatDate(now);
-            const url = `${proxyUrl}${encodeURIComponent(foodyApiUrl)}?startDate=${startDate}&endDate=${endDate}`;
+            
+            let url = `${foodyApiUrl}?startDate=${startDate}&endDate=${endDate}`;
+            if (useProxy) {
+                url = `${proxyUrl}${encodeURIComponent(url)}`;
+            }
 
             console.log('Requesting URL:', url);
+            document.getElementById('debugInfo').innerHTML = `<p>Requesting URL: ${url}</p>`;
 
             try {
                 const response = await axios.get(url, {
                     headers: {
-                        'Authorization': authToken,
+                        'Authorization': `Bearer ${authToken}`,
                         'Content-Type': 'application/json;charset=UTF-8'
                     }
                 });
                 console.log('Response:', response.data);
+                document.getElementById('debugInfo').innerHTML += `<p>Response: ${JSON.stringify(response.data)}</p>`;
                 displayOrders(response.data);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -57,6 +65,7 @@
                     errorMessage += error.message;
                 }
                 document.getElementById('orderResults').innerHTML = `<p class="error">${errorMessage}</p>`;
+                document.getElementById('debugInfo').innerHTML += `<p class="error">${errorMessage}</p>`;
             }
         }
 
@@ -82,9 +91,14 @@
             });
         }
 
-        // Busca pedidos inicialmente e depois a cada 30 segundos
-        fetchOrders();
-        setInterval(fetchOrders, 30000);
+        // Busca pedidos inicialmente com proxy
+        fetchOrders(true);
+
+        // Tenta buscar sem proxy após 5 segundos
+        setTimeout(() => fetchOrders(false), 5000);
+
+        // Atualiza a cada 30 segundos
+        setInterval(() => fetchOrders(true), 30000);
     </script>
 </body>
 </html>
