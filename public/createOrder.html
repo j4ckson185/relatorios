@@ -18,10 +18,10 @@
       const endDate = new Date().toISOString();
       const startDate = new Date(new Date().getTime() - (24 * 60 * 60 * 1000)).toISOString();
 
-      // Usar um proxy para contornar o problema de CORS
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      // Usar o proxy no Google Cloud para contornar o problema de CORS
+      const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
 
-      fetch(`${proxyUrl}${foodyApiUrl}?startDate=${startDate}&endDate=${endDate}`, {
+      fetch(`${proxyUrl}${encodeURIComponent(foodyApiUrl + `?startDate=${startDate}&endDate=${endDate}`)}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${foodyApiToken}`,
