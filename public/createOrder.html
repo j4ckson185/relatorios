@@ -28,7 +28,7 @@
 
       // Usar o proxy no Google Cloud para contornar o problema de CORS
       const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
-      const fullUrl = `${proxyUrl}${encodeURIComponent(`${foodyApiUrl}/?startDate=${formattedStartDate}&endDate=${formattedEndDate}`)}`;
+      const fullUrl = `${proxyUrl}${encodeURIComponent(`${foodyApiUrl}?startDate=${formattedStartDate}&endDate=${formattedEndDate}`)}`;
 
       console.log(`Fetching orders from: ${fullUrl}`);
       
