@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Entregas - Açaí Express</title>
+    <title>Sistema Avançado de Entregas - Açaí Express</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body, html {
             margin: 0;
@@ -60,25 +61,74 @@
             cursor: pointer;
             margin-top: 5px;
         }
+        #motoboy-info {
+            background-color: #e0e0e0;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        #notifications {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        .notification {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        #route-info {
+            position: fixed;
+            bottom: 10px;
+            left: 310px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
     <div id="header">
-        <h1>Açaí Express - Sistema de Entregas</h1>
+        <h1>Açaí Express - Sistema Avançado de Entregas</h1>
     </div>
     <div id="container">
         <div id="sidebar">
+            <div id="motoboy-info">
+                <h2>Motoboy: João da Silva</h2>
+                <p>Status: <span id="motoboy-status">Disponível</span></p>
+                <button onclick="toggleMotoboyStatus()">Mudar Status</button>
+            </div>
             <h2>Pedidos</h2>
             <div id="orders"></div>
         </div>
         <div id="map"></div>
     </div>
+    <div id="notifications"></div>
+    <div id="route-info" style="display: none;">
+        <h3>Informações da Rota</h3>
+        <p>Distância: <span id="route-distance"></span></p>
+        <p>Tempo estimado: <span id="route-time"></span></p>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
         // Inicializar o mapa
         var map = L.map('map').setView([-5.7793, -35.2009], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        var routingControl = L.Routing.control({
+            waypoints: [],
+            routeWhileDragging: true,
+            show: false
+        }).addTo(map);
 
         // Dados de exemplo de pedidos
         const orders = [
@@ -86,6 +136,8 @@
             { id: 2, customer: "Maria Oliveira", address: "Av. B, 456", status: "in-progress", lat: -5.7551, lng: -35.2541 },
             { id: 3, customer: "Pedro Santos", address: "Praça C, 789", status: "delivered", lat: -5.7359, lng: -35.2695 }
         ];
+
+        let motoboyStatus = "Disponível";
 
         // Função para atualizar a lista de pedidos
         function updateOrders() {
@@ -101,6 +153,7 @@
                     <p><strong>Status:</strong> <span class="status ${order.status}">${getStatusText(order.status)}</span></p>
                     <button onclick="updateStatus(${order.id})">Atualizar Status</button>
                     <button onclick="showOnMap(${order.lat}, ${order.lng})">Ver no Mapa</button>
+                    <button onclick="startNavigation(${order.lat}, ${order.lng})">Iniciar Navegação</button>
                 `;
                 ordersContainer.appendChild(orderElement);
             });
@@ -123,9 +176,11 @@
                 switch(order.status) {
                     case 'pending':
                         order.status = 'in-progress';
+                        showNotification('Pedido #' + orderId + ' em entrega');
                         break;
                     case 'in-progress':
                         order.status = 'delivered';
+                        showNotification('Pedido #' + orderId + ' entregue');
                         break;
                     case 'delivered':
                         order.status = 'pending';
@@ -142,6 +197,62 @@
                 .bindPopup('Local de entrega')
                 .openPopup();
         }
+
+        // Função para iniciar a navegação
+        function startNavigation(lat, lng) {
+            routingControl.setWaypoints([
+                L.latLng(-5.7793, -35.2009), // Posição da loja (exemplo)
+                L.latLng(lat, lng)
+            ]);
+            document.getElementById('route-info').style.display = 'block';
+            routingControl.on('routesfound', function(e) {
+                var routes = e.routes;
+                var summary = routes[0].summary;
+                document.getElementById('route-distance').textContent = (summary.totalDistance / 1000).toFixed(2) + ' km';
+                document.getElementById('route-time').textContent = Math.round(summary.totalTime / 60) + ' minutos';
+            });
+        }
+
+        // Função para mostrar notificações
+        function showNotification(message) {
+            const notificationElement = document.createElement('div');
+            notificationElement.className = 'notification';
+            notificationElement.textContent = message;
+            document.getElementById('notifications').appendChild(notificationElement);
+            setTimeout(() => {
+                notificationElement.style.opacity = '1';
+            }, 100);
+            setTimeout(() => {
+                notificationElement.style.opacity = '0';
+                setTimeout(() => {
+                    notificationElement.remove();
+                }, 500);
+            }, 3000);
+        }
+
+        // Função para alternar o status do motoboy
+        function toggleMotoboyStatus() {
+            motoboyStatus = motoboyStatus === "Disponível" ? "Ocupado" : "Disponível";
+            document.getElementById('motoboy-status').textContent = motoboyStatus;
+            showNotification('Status do motoboy alterado para: ' + motoboyStatus);
+        }
+
+        // Simulação de novo pedido
+        setInterval(() => {
+            if (Math.random() < 0.3) {  // 30% de chance de um novo pedido a cada 10 segundos
+                const newOrder = {
+                    id: orders.length + 1,
+                    customer: "Novo Cliente",
+                    address: "Nova Rua, " + Math.floor(Math.random() * 1000),
+                    status: "pending",
+                    lat: -5.7793 + (Math.random() - 0.5) * 0.1,
+                    lng: -35.2009 + (Math.random() - 0.5) * 0.1
+                };
+                orders.push(newOrder);
+                updateOrders();
+                showNotification('Novo pedido recebido!');
+            }
+        }, 10000);
 
         // Inicializar a lista de pedidos
         updateOrders();
