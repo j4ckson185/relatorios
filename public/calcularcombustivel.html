@@ -28,7 +28,7 @@
             display: block;
             margin-top: 10px;
         }
-        input[type="text"], input[type="number"] {
+        input[type="text"], input[type="number"], textarea {
             width: 100%;
             padding: 8px;
             margin-top: 5px;
@@ -56,16 +56,48 @@
             width: 100%;
             margin-top: 20px;
         }
+        #destinos {
+            margin-top: 10px;
+        }
+        .destino-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .destino-item input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .remover-destino {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Calculadora de Rota e Combustível</h1>
+        
+        <label for="nome">Nome do Motoboy:</label>
+        <input type="text" id="nome" required>
+        
+        <label for="placa">Placa da Moto:</label>
+        <input type="text" id="placa" required>
+        
         <label for="origem">Endereço de origem:</label>
         <input type="text" id="origem" required>
         
-        <label for="destino">Endereço de destino:</label>
-        <input type="text" id="destino" required>
+        <div id="destinos">
+            <label>Destinos:</label>
+            <div class="destino-item">
+                <input type="text" class="destino" required>
+                <button class="remover-destino" onclick="removerDestino(this)">Remover</button>
+            </div>
+        </div>
+        <button onclick="adicionarDestino()">Adicionar Destino</button>
         
         <label for="consumo">Consumo da moto (km/l):</label>
         <input type="number" id="consumo" step="0.1" required>
@@ -73,7 +105,11 @@
         <label for="preco">Preço do combustível (R$/l):</label>
         <input type="number" id="preco" step="0.01" required>
         
+        <label for="observacoes">Observações:</label>
+        <textarea id="observacoes" rows="3"></textarea>
+        
         <button onclick="calcularRota()">Calcular Rota</button>
+        <button id="iniciarNavegacao" style="display:none;" onclick="iniciarNavegacao()">Iniciar Navegação</button>
         
         <div id="map"></div>
         <div id="resultado"></div>
@@ -85,7 +121,9 @@
         let directionsService;
         let directionsRenderer;
         let autocompleteOrigem;
-        let autocompleteDestino;
+        let autocompleteDestinos = [];
+        let currentPositionMarker;
+        let watchPositionId;
 
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
@@ -100,49 +138,135 @@
                 document.getElementById('origem'),
                 {types: ['geocode']}
             );
-            autocompleteDestino = new google.maps.places.Autocomplete(
-                document.getElementById('destino'),
-                {types: ['geocode']}
-            );
+            initAutoCompleteDestinos();
+        }
+
+        function initAutoCompleteDestinos() {
+            document.querySelectorAll('.destino').forEach(input => {
+                const autocomplete = new google.maps.places.Autocomplete(input, {types: ['geocode']});
+                autocompleteDestinos.push(autocomplete);
+            });
+        }
+
+        function adicionarDestino() {
+            const destinosDiv = document.getElementById('destinos');
+            const novoDestino = document.createElement('div');
+            novoDestino.className = 'destino-item';
+            novoDestino.innerHTML = `
+                <input type="text" class="destino" required>
+                <button class="remover-destino" onclick="removerDestino(this)">Remover</button>
+            `;
+            destinosDiv.appendChild(novoDestino);
+            initAutoCompleteDestinos();
+        }
+
+        function removerDestino(button) {
+            button.parentElement.remove();
         }
 
         function calcularRota() {
+            const nome = document.getElementById('nome').value;
+            const placa = document.getElementById('placa').value;
             const origem = document.getElementById('origem').value;
-            const destino = document.getElementById('destino').value;
+            const destinos = Array.from(document.querySelectorAll('.destino')).map(input => input.value);
             const consumo = parseFloat(document.getElementById('consumo').value);
             const preco = parseFloat(document.getElementById('preco').value);
+            const observacoes = document.getElementById('observacoes').value;
 
-            if (!origem || !destino || isNaN(consumo) || isNaN(preco)) {
-                alert('Por favor, preencha todos os campos com valores válidos.');
+            if (!nome || !placa || !origem || destinos.some(d => !d) || isNaN(consumo) || isNaN(preco)) {
+                alert('Por favor, preencha todos os campos obrigatórios com valores válidos.');
                 return;
             }
 
+            const waypoints = destinos.slice(0, -1).map(destino => ({
+                location: destino,
+                stopover: true
+            }));
+
             const request = {
                 origin: origem,
-                destination: destino,
+                destination: destinos[destinos.length - 1],
+                waypoints: waypoints,
+                optimizeWaypoints: true,
                 travelMode: 'DRIVING'
             };
 
             directionsService.route(request, function(result, status) {
                 if (status === 'OK') {
                     directionsRenderer.setDirections(result);
-                    const distancia = result.routes[0].legs[0].distance.value / 1000; // converte metros para km
-                    const duracao = result.routes[0].legs[0].duration.text;
+                    let distanciaTotal = 0;
+                    let duracaoTotal = 0;
 
-                    const litrosNecessarios = distancia / consumo;
+                    result.routes[0].legs.forEach(leg => {
+                        distanciaTotal += leg.distance.value;
+                        duracaoTotal += leg.duration.value;
+                    });
+
+                    distanciaTotal /= 1000; // converte metros para km
+                    const duracaoHoras = Math.floor(duracaoTotal / 3600);
+                    const duracaoMinutos = Math.floor((duracaoTotal % 3600) / 60);
+
+                    const litrosNecessarios = distanciaTotal / consumo;
                     const custoTotal = litrosNecessarios * preco;
 
                     const resultado = document.getElementById('resultado');
                     resultado.innerHTML = `
-                        <p>Distância total: ${distancia.toFixed(2)} km</p>
-                        <p>Tempo estimado: ${duracao}</p>
-                        <p>Combustível necessário: ${litrosNecessarios.toFixed(2)} litros</p>
-                        <p>Custo estimado: R$ ${custoTotal.toFixed(2)}</p>
+                        <h2>Detalhes da Viagem</h2>
+                        <p><strong>Motoboy:</strong> ${nome}</p>
+                        <p><strong>Placa da Moto:</strong> ${placa}</p>
+                        <p><strong>Origem:</strong> ${origem}</p>
+                        <p><strong>Destinos:</strong></p>
+                        <ul>
+                            ${destinos.map(d => `<li>${d}</li>`).join('')}
+                        </ul>
+                        <p><strong>Distância total:</strong> ${distanciaTotal.toFixed(2)} km</p>
+                        <p><strong>Tempo estimado:</strong> ${duracaoHoras}h ${duracaoMinutos}min</p>
+                        <p><strong>Combustível necessário:</strong> ${litrosNecessarios.toFixed(2)} litros</p>
+                        <p><strong>Custo estimado:</strong> R$ ${custoTotal.toFixed(2)}</p>
+                        <p><strong>Observações:</strong> ${observacoes || 'Nenhuma'}</p>
                     `;
+
+                    document.getElementById('iniciarNavegacao').style.display = 'block';
                 } else {
                     alert('Não foi possível calcular a rota. Por favor, verifique os endereços.');
                 }
             });
+        }
+
+        function iniciarNavegacao() {
+            if ('geolocation' in navigator) {
+                watchPositionId = navigator.geolocation.watchPosition(atualizarPosicao, erroGPS, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+            } else {
+                alert('Geolocalização não está disponível no seu navegador.');
+            }
+        }
+
+        function atualizarPosicao(position) {
+            const pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+
+            if (!currentPositionMarker) {
+                currentPositionMarker = new google.maps.Marker({
+                    position: pos,
+                    map: map,
+                    title: 'Sua posição atual'
+                });
+            } else {
+                currentPositionMarker.setPosition(pos);
+            }
+
+            map.setCenter(pos);
+        }
+
+        function erroGPS(error) {
+            console.warn(`ERRO(${error.code}): ${error.message}`);
+            alert('Não foi possível obter sua localização. Por favor, verifique as permissões de GPS.');
         }
 
         initMap();
