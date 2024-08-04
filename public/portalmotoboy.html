@@ -103,7 +103,8 @@
             "henrique.machado.vilas.boas@gmail.com": "Henrique Machado Vilas Boas",
             "meireles.mariana@gmail.com": "Mariana Meireles",
             "pedro.henrique.nobrega@gmail.com": "Pedro Henrique Nobrega",
-            "ricardo.borges@gmail.com": "Ricardo Borges"
+            "ricardo.borges@gmail.com": "Ricardo Borges",
+            "musculacaoatual@gmail.com": "Usuário Musculação Atual"
         };
 
         // Função para carregar dados do usuário
@@ -115,29 +116,36 @@
             const nome = usuarios[email] || 'Nome não encontrado';
             document.getElementById('nomeUsuario').textContent = nome;
 
-            // Simulando dados do usuário
-            const userData = {
-                nome: nome,
-                email: email,
-                desafioSemana: 'Realizar 50 entregas esta semana',
-                progressoDesafio: 30,
-                metaDesafio: 50,
-                entregasRealizadas: 150,
-                avaliacaoMedia: 4.8,
-                pontosAcumulados: 750
-            };
+            // Buscar dados do usuário no Firebase Database
+            db.ref('usuarios').orderByChild('email').equalTo(email).once('value')
+                .then((snapshot) => {
+                    const userData = snapshot.val();
+                    if (userData) {
+                        const userId = Object.keys(userData)[0];
+                        const user = userData[userId];
+                        
+                        document.getElementById('userData').textContent = JSON.stringify(user, null, 2);
 
-            document.getElementById('userData').textContent = JSON.stringify(userData, null, 2);
-
-            document.getElementById('desafioDescricao').textContent = userData.desafioSemana;
-            
-            const percentual = (userData.progressoDesafio / userData.metaDesafio) * 100;
-            document.getElementById('progressoDesafio').style.width = percentual + '%';
-            document.getElementById('progressoTexto').textContent = `${userData.progressoDesafio}/${userData.metaDesafio}`;
-            
-            document.getElementById('entregasRealizadas').textContent = userData.entregasRealizadas;
-            document.getElementById('avaliacaoMedia').textContent = userData.avaliacaoMedia.toFixed(1);
-            document.getElementById('pontosAcumulados').textContent = userData.pontosAcumulados;
+                        document.getElementById('desafioDescricao').textContent = user.desafioSemana || 'Nenhum desafio atual';
+                        
+                        const progresso = user.progressoDesafio || 0;
+                        const meta = user.metaDesafio || 1;
+                        const percentual = (progresso / meta) * 100;
+                        document.getElementById('progressoDesafio').style.width = percentual + '%';
+                        document.getElementById('progressoTexto').textContent = `${progresso}/${meta}`;
+                        
+                        document.getElementById('entregasRealizadas').textContent = user.entregasRealizadas || 0;
+                        document.getElementById('avaliacaoMedia').textContent = (user.avaliacaoMedia || 0).toFixed(1);
+                        document.getElementById('pontosAcumulados').textContent = user.pontosAcumulados || 0;
+                    } else {
+                        console.error('Dados do usuário não encontrados no banco de dados');
+                        alert('Erro: Dados do usuário não encontrados. Por favor, contate o suporte.');
+                    }
+                })
+                .catch((error) => {
+                    console.error('Erro ao carregar dados do usuário:', error);
+                    alert('Erro ao carregar dados do usuário. Por favor, tente novamente mais tarde.');
+                });
         }
 
         // Verificar autenticação do usuário
