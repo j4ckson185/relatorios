@@ -124,12 +124,19 @@
                 const tbody = document.querySelector('#motoboysTable tbody');
                 tbody.innerHTML = '';
 
+                if (!motoboys) {
+                    console.log('Nenhum motoboy encontrado no banco de dados.');
+                    return;
+                }
+
                 for (let userId in motoboys) {
                     const motoboy = motoboys[userId];
+                    console.log('Dados do motoboy:', userId, motoboy); // Depuração
+
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${motoboy.nome}</td>
-                        <td>${motoboy.email}</td>
+                        <td>${motoboy.nome || 'N/A'}</td>
+                        <td>${motoboy.email || 'N/A'}</td>
                         <td>${motoboy.desafioSemana || 'Nenhum'}</td>
                         <td>${motoboy.progressoDesafio || 0}/${motoboy.metaDesafio || 0}</td>
                         <td>
@@ -139,6 +146,9 @@
                     `;
                     tbody.appendChild(tr);
                 }
+            }).catch(error => {
+                console.error('Erro ao carregar motoboys:', error);
+                alert('Erro ao carregar motoboys. Por favor, verifique o console para mais detalhes.');
             });
         }
 
@@ -146,14 +156,25 @@
         function editarMotoboy(userId) {
             db.ref('usuarios/' + userId).once('value').then((snapshot) => {
                 const motoboy = snapshot.val();
+                console.log('Editando motoboy:', userId, motoboy); // Depuração
+
+                if (!motoboy) {
+                    console.error('Motoboy não encontrado:', userId);
+                    alert('Erro: Motoboy não encontrado.');
+                    return;
+                }
+
                 document.getElementById('editUserId').value = userId;
-                document.getElementById('editNome').value = motoboy.nome;
-                document.getElementById('editEmail').value = motoboy.email;
+                document.getElementById('editNome').value = motoboy.nome || '';
+                document.getElementById('editEmail').value = motoboy.email || '';
                 document.getElementById('editDesafio').value = motoboy.desafioSemana || '';
                 document.getElementById('editMeta').value = motoboy.metaDesafio || '';
                 document.getElementById('editProgresso').value = motoboy.progressoDesafio || '';
                 document.getElementById('formTitle').textContent = 'Editar Motoboy';
                 document.getElementById('editForm').style.display = 'block';
+            }).catch(error => {
+                console.error('Erro ao carregar dados do motoboy:', error);
+                alert('Erro ao carregar dados do motoboy. Por favor, tente novamente.');
             });
         }
 
@@ -163,23 +184,42 @@
             const nome = document.getElementById('editNome').value;
             const email = document.getElementById('editEmail').value;
             const desafio = document.getElementById('editDesafio').value;
-            const meta = parseInt(document.getElementById('editMeta').value);
-            const progresso = parseInt(document.getElementById('editProgresso').value);
+            const meta = parseInt(document.getElementById('editMeta').value) || 0;
+            const progresso = parseInt(document.getElementById('editProgresso').value) || 0;
 
-            db.ref('usuarios/' + userId).update({
+            const dadosAtualizados = {
                 nome: nome,
                 email: email,
                 desafioSemana: desafio,
                 metaDesafio: meta,
                 progressoDesafio: progresso
-            }).then(() => {
-                alert('Motoboy atualizado com sucesso!');
-                document.getElementById('editForm').style.display = 'none';
-                carregarMotoboys();
-            }).catch((error) => {
-                console.error("Erro ao atualizar motoboy:", error);
-                alert('Erro ao atualizar motoboy. Por favor, tente novamente.');
-            });
+            };
+
+            console.log('Salvando dados:', userId, dadosAtualizados); // Depuração
+
+            if (userId) {
+                // Atualizar motoboy existente
+                db.ref('usuarios/' + userId).update(dadosAtualizados)
+                    .then(() => {
+                        alert('Motoboy atualizado com sucesso!');
+                        document.getElementById('editForm').style.display = 'none';
+                        carregarMotoboys();
+                    }).catch((error) => {
+                        console.error("Erro ao atualizar motoboy:", error);
+                        alert('Erro ao atualizar motoboy. Por favor, tente novamente.');
+                    });
+            } else {
+                // Adicionar novo motoboy
+                db.ref('usuarios').push(dadosAtualizados)
+                    .then(() => {
+                        alert('Novo motoboy adicionado com sucesso!');
+                        document.getElementById('editForm').style.display = 'none';
+                        carregarMotoboys();
+                    }).catch((error) => {
+                        console.error("Erro ao adicionar novo motoboy:", error);
+                        alert('Erro ao adicionar novo motoboy. Por favor, tente novamente.');
+                    });
+            }
         }
 
         // Cancelar edição
