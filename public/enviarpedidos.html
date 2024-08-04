@@ -268,36 +268,39 @@
                 });
         });
 
-        function loadPedidos() {
-            const pedidosList = document.getElementById('pedidosList');
-            pedidosList.innerHTML = '';
+function loadPedidos() {
+    const pedidosList = document.getElementById('pedidosList');
+    pedidosList.innerHTML = '';
 
-            database.ref('pedidos').on('value', (snapshot) => {
-                pedidosList.innerHTML = '';
-                snapshot.forEach((childSnapshot) => {
-                    const pedido = childSnapshot.val();
-                    const pedidoElement = document.createElement('div');
-                    pedidoElement.className = 'pedido';
-                    pedidoElement.innerHTML = `
-                        <h3>Pedido #${childSnapshot.key}</h3>
-                        <p><strong>Cliente:</strong> ${pedido.customerName}</p>
-                        <p><strong>Telefone:</strong> ${pedido.customerPhone || 'Não informado'}</p>
-                        <p><strong>Endereço:</strong> ${pedido.address}</p>
-                        <p><strong>Itens:</strong></p>
-                        <ul>
-                            ${pedido.items.map(item => `<li>${item.quantity}x ${item.name} - R$ ${item.price.toFixed(2)}</li>`).join('')}
-                        </ul>
-                        <p><strong>Total:</strong> R$ ${pedido.total.toFixed(2)}</p>
-                        <p><strong>Forma de Pagamento:</strong> ${pedido.paymentMethod}</p>
-                        <p><strong>Motoboy:</strong> ${pedido.motoboyName}</p>
-                        <p><strong>Data do Pedido:</strong> ${new Date(pedido.orderDate).toLocaleString()}</p>
-                        <p class="pedido-status"><strong>Status:</strong> ${pedido.status}</p>
-                    `;
-                    pedidosList.appendChild(pedidoElement);
-                });
-            });
-        }
-
+    database.ref('pedidos').on('value', (snapshot) => {
+        pedidosList.innerHTML = '';
+        snapshot.forEach((childSnapshot) => {
+            const pedido = childSnapshot.val();
+            const pedidoElement = document.createElement('div');
+            pedidoElement.className = 'pedido';
+            
+            // Ensure pedido.items is an array
+            const items = Array.isArray(pedido.items) ? pedido.items : [];
+            
+            pedidoElement.innerHTML = `
+                <h3>Pedido #${childSnapshot.key}</h3>
+                <p><strong>Cliente:</strong> ${pedido.customerName}</p>
+                <p><strong>Telefone:</strong> ${pedido.customerPhone || 'Não informado'}</p>
+                <p><strong>Endereço:</strong> ${pedido.address}</p>
+                <p><strong>Itens:</strong></p>
+                <ul>
+                    ${items.map(item => `<li>${item.quantity}x ${item.name} - R$ ${item.price.toFixed(2)}</li>`).join('')}
+                </ul>
+                <p><strong>Total:</strong> R$ ${pedido.total.toFixed(2)}</p>
+                <p><strong>Forma de Pagamento:</strong> ${pedido.paymentMethod}</p>
+                <p><strong>Motoboy:</strong> ${pedido.motoboyName}</p>
+                <p><strong>Data do Pedido:</strong> ${new Date(pedido.orderDate).toLocaleString()}</p>
+                <p class="pedido-status"><strong>Status:</strong> ${pedido.status}</p>
+            `;
+            pedidosList.appendChild(pedidoElement);
+        });
+    });
+}
         // Inicialização
         populateMotoboySelect();
     </script>
