@@ -1,391 +1,175 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Previsão do Tempo Avançada</title>
+    <title>Previsão do Tempo com Widgets Personalizáveis</title>
     <style>
-        :root {
-            --primary-color: #0066cc;
-            --background-color: #f0f8ff;
-            --text-color: #333;
-            --card-background: white;
-        }
-
-        .dark-mode {
-            --primary-color: #4da6ff;
-            --background-color: #1a1a1a;
-            --text-color: #f0f0f0;
-            --card-background: #2c2c2c;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
             padding: 20px;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            transition: background-color 0.3s, color 0.3s;
+            background-color: #f4f4f4;
         }
-
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
         h1, h2, h3 {
-            color: var(--primary-color);
+            color: #333;
         }
-
-        h1 {
-            text-align: center;
-            font-size: 2.5em;
-            margin-bottom: 30px;
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
         }
-
-        form {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        input[type="text"], input[type="date"] {
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 60%;
-            outline: none;
-        }
-
         button {
-            padding: 12px 20px;
-            font-size: 16px;
-            background-color: var(--primary-color);
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.3s;
         }
-
         button:hover {
-            opacity: 0.9;
+            background-color: #45a049;
         }
-
-        #previsao, .forecast-card {
-            background-color: var(--card-background);
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+        #resultado, #previsao-horaria, #clima-evento {
+            margin-top: 20px;
         }
-
-        #nome-cidade {
-            font-size: 2em;
-            margin-bottom: 20px;
-            text-align: center;
+        .widget {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
         }
-
-        .info-principal {
+        .widget-controls {
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .widget-controls button {
+            width: auto;
+            padding: 5px 10px;
+        }
+        #widgets-container {
+            margin-top: 20px;
+        }
+        #widget-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #widget-options label {
+            display: flex;
             align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .temperatura {
-            font-size: 4em;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .descricao {
-            font-size: 1.5em;
-            text-transform: capitalize;
-        }
-
-        #icone-tempo {
-            width: 100px;
-            height: 100px;
-        }
-
-        .info-secundaria {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .info-item {
-            background-color: rgba(249, 249, 249, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .info-item h3 {
-            margin-top: 0;
-        }
-
-        .escondido {
-            display: none;
-        }
-
-        #erro {
-            color: #cc0000;
-            text-align: center;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-
-        #botao-geolocalizacao, #botao-modo-escuro {
-            display: block;
-            margin: 20px auto;
-        }
-
-        #previsao-dias, #previsao-horas {
-            display: flex;
-            overflow-x: auto;
-            margin-top: 20px;
-            padding-bottom: 20px;
-        }
-
-        .forecast-card {
-            min-width: 150px;
-            margin-right: 15px;
-            text-align: center;
-        }
-
-        .forecast-card img {
-            width: 50px;
-            height: 50px;
-        }
-
-        #calendario {
-            margin-top: 20px;
-        }
-
-        #calendario input {
-            margin-right: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Previsão do Tempo Avançada</h1>
-    <form id="formulario-cidade">
-        <input type="text" id="cidade" placeholder="Digite o nome da cidade" required>
-        <button type="submit">Buscar</button>
-    </form>
-    <button id="botao-geolocalizacao">Usar Minha Localização</button>
-    <button id="botao-modo-escuro">Alternar Modo Escuro</button>
-    <div id="erro" class="escondido"></div>
-    <div id="previsao" class="escondido">
-        <h2 id="nome-cidade"></h2>
-        <div class="info-principal">
-            <img id="icone-tempo" src="" alt="Ícone do tempo">
-            <div>
-                <div class="temperatura"><span id="temperatura"></span>°C</div>
-                <div class="descricao" id="descricao"></div>
-            </div>
+    <div class="container">
+        <h1>Previsão do Tempo</h1>
+        <input type="text" id="cidade" placeholder="Digite o nome da cidade">
+        <button onclick="buscarPrevisao()">Buscar Previsão</button>
+        
+        <h2>Widgets Personalizáveis</h2>
+        <div id="widget-options">
+            <label><input type="checkbox" value="atual" checked> Clima Atual</label>
+            <label><input type="checkbox" value="proximos-dias" checked> Próximos Dias</label>
+            <label><input type="checkbox" value="horaria" checked> Previsão por Hora</label>
+            <label><input type="checkbox" value="evento" checked> Previsão para Evento</label>
         </div>
-        <div class="info-secundaria">
-            <div class="info-item">
-                <h3>Sensação Térmica</h3>
-                <p><span id="sensacao"></span>°C</p>
-            </div>
-            <div class="info-item">
-                <h3>Umidade</h3>
-                <p><span id="umidade"></span>%</p>
-            </div>
-            <div class="info-item">
-                <h3>Vento</h3>
-                <p><span id="vento"></span> km/h</p>
-            </div>
-            <div class="info-item">
-                <h3>Probabilidade de Chuva</h3>
-                <p><span id="prob-chuva"></span>%</p>
-            </div>
-            <div class="info-item">
-                <h3>Nascer do Sol</h3>
-                <p><span id="nascer-sol"></span></p>
-            </div>
-            <div class="info-item">
-                <h3>Pôr do Sol</h3>
-                <p><span id="por-sol"></span></p>
-            </div>
-        </div>
-    </div>
-    <h2>Previsão para os Próximos Dias</h2>
-    <div id="previsao-dias"></div>
-    <h2>Previsão por Hora</h2>
-    <div id="previsao-horas"></div>
-    <div id="calendario">
-        <h2>Integração com Calendário</h2>
+        <button onclick="atualizarWidgets()">Atualizar Widgets</button>
+
+        <div id="widgets-container"></div>
+
+        <div id="resultado"></div>
+        <div id="previsao-horaria"></div>
+        
+        <h3>Verificar Clima para Evento</h3>
         <input type="date" id="data-evento">
         <button onclick="verificarClimaEvento()">Verificar Clima para Evento</button>
         <div id="clima-evento"></div>
     </div>
 
     <script>
-        const apiKey = '4a02c99169e65be851bb284395026146';
-        let notificationPermission = false;
+        const apiKey = 'SUA_API_KEY_AQUI'; // Substitua pela sua chave da API OpenWeatherMap
 
-        document.getElementById('formulario-cidade').addEventListener('submit', function(e) {
-            e.preventDefault();
+        function buscarPrevisao() {
             const cidade = document.getElementById('cidade').value;
-            buscarPrevisaoPorCidade(cidade);
-        });
-
-        document.getElementById('botao-geolocalizacao').addEventListener('click', function() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    buscarPrevisaoPorCoordenadas(lat, lon);
-                }, function(error) {
-                    console.error("Erro na geolocalização:", error);
-                    exibirErro("Não foi possível obter sua localização. Por favor, digite o nome da cidade.");
-                });
-            } else {
-                exibirErro("Geolocalização não é suportada pelo seu navegador.");
+            if (!cidade) {
+                alert('Por favor, digite o nome da cidade.');
+                return;
             }
-        });
 
-        document.getElementById('botao-modo-escuro').addEventListener('click', function() {
-            document.body.classList.toggle('dark-mode');
-        });
+            const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(cidade)}&appid=${apiKey}&units=metric&lang=pt_br`;
 
-        function buscarPrevisaoPorCidade(cidade) {
-            const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(cidade)},BR&appid=${apiKey}&units=metric&lang=pt_br`;
-            buscarPrevisao(url);
-        }
-
-        function buscarPrevisaoPorCoordenadas(lat, lon) {
-            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=pt_br`;
-            buscarPrevisao(url);
-        }
-
-        function buscarPrevisao(url) {
             fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        if (response.status === 404) {
-                            throw new Error('Localização não encontrada. Verifique os dados e tente novamente.');
-                        }
-                        throw new Error('Erro ao buscar previsão. Código: ' + response.status);
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    exibirPrevisao(data);
-                    exibirPrevisaoDias(data);
-                    exibirPrevisaoHoras(data);
-                    esconderErro();
-                    solicitarPermissaoNotificacao();
+                    exibirPrevisaoAtual(data);
+                    exibirPrevisaoProximosDias(data);
+                    exibirPrevisaoHoraria(data);
                 })
                 .catch(error => {
                     console.error('Erro ao buscar previsão:', error);
-                    exibirErro(error.message);
+                    document.getElementById('resultado').innerHTML = '<p>Erro ao buscar previsão. Tente novamente mais tarde.</p>';
                 });
         }
 
-        function exibirPrevisao(data) {
-            const previsaoAtual = data.list[0];
-            document.getElementById('nome-cidade').textContent = data.city.name;
-            document.getElementById('temperatura').textContent = Math.round(previsaoAtual.main.temp);
-            document.getElementById('sensacao').textContent = Math.round(previsaoAtual.main.feels_like);
-            document.getElementById('descricao').textContent = previsaoAtual.weather[0].description;
-            document.getElementById('umidade').textContent = previsaoAtual.main.humidity;
-            document.getElementById('vento').textContent = (previsaoAtual.wind.speed * 3.6).toFixed(1);
-            
-            const probChuva = previsaoAtual.pop * 100;
-            document.getElementById('prob-chuva').textContent = probChuva.toFixed(0);
-
-            const nascerSol = new Date(data.city.sunrise * 1000);
-            const porSol = new Date(data.city.sunset * 1000);
-            document.getElementById('nascer-sol').textContent = nascerSol.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            document.getElementById('por-sol').textContent = porSol.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            const iconCode = previsaoAtual.weather[0].icon;
-            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-            document.getElementById('icone-tempo').src = iconUrl;
-            
-            document.getElementById('previsao').classList.remove('escondido');
+        function exibirPrevisaoAtual(data) {
+            const climaAtual = data.list[0];
+            const htmlAtual = `
+                <h2>Clima atual em ${data.city.name}</h2>
+                <p>Temperatura: ${Math.round(climaAtual.main.temp)}°C</p>
+                <p>Condição: ${climaAtual.weather[0].description}</p>
+                <p>Umidade: ${climaAtual.main.humidity}%</p>
+                <p>Vento: ${climaAtual.wind.speed} m/s</p>
+            `;
+            document.getElementById('resultado').innerHTML = htmlAtual;
         }
 
-        function exibirPrevisaoDias(data) {
-            const previsaoDiasContainer = document.getElementById('previsao-dias');
-            previsaoDiasContainer.innerHTML = '';
-
-            const previsoesPorDia = data.list.reduce((acc, previsao) => {
-                const data = new Date(previsao.dt * 1000);
-                const dataFormatada = data.toDateString();
-                if (!acc[dataFormatada]) {
-                    acc[dataFormatada] = previsao;
+        function exibirPrevisaoProximosDias(data) {
+            let htmlProximosDias = '<h2>Previsão para os próximos dias</h2>';
+            const dataAtual = new Date().toDateString();
+            
+            data.list.forEach(previsao => {
+                const dataPrevisao = new Date(previsao.dt * 1000).toDateString();
+                if (dataPrevisao !== dataAtual) {
+                    htmlProximosDias += `
+                        <h3>${new Date(previsao.dt * 1000).toLocaleDateString()}</h3>
+                        <p>Temperatura: ${Math.round(previsao.main.temp)}°C</p>
+                        <p>Condição: ${previsao.weather[0].description}</p>
+                        <p>Probabilidade de chuva: ${(previsao.pop * 100).toFixed(0)}%</p>
+                    `;
+                    dataAtual = dataPrevisao;
                 }
-                return acc;
-            }, {});
-
-            Object.values(previsoesPorDia).slice(0, 5).forEach(previsao => {
-                const data = new Date(previsao.dt * 1000);
-                const card = document.createElement('div');
-                card.className = 'forecast-card';
-                card.innerHTML = `
-                    <h3>${data.toLocaleDateString('pt-BR', { weekday: 'short', month: 'short', day: 'numeric' })}</h3>
-                    <img src="https://openweathermap.org/img/wn/${previsao.weather[0].icon}.png" alt="${previsao.weather[0].description}">
-                    <p>${Math.round(previsao.main.temp)}°C</p>
-                    <p>${previsao.weather[0].description}</p>
-                `;
-                previsaoDiasContainer.appendChild(card);
             });
+
+            document.getElementById('resultado').innerHTML += htmlProximosDias;
         }
 
-        function exibirPrevisaoHoras(data) {
-            const previsaoHorasContainer = document.getElementById('previsao-horas');
-            previsaoHorasContainer.innerHTML = '';
-
+        function exibirPrevisaoHoraria(data) {
+            let htmlHoraria = '<h2>Previsão por hora</h2>';
+            
             data.list.slice(0, 8).forEach(previsao => {
-                const hora = new Date(previsao.dt * 1000);
-                const card = document.createElement('div');
-                card.className = 'forecast-card';
-                card.innerHTML = `
-                    <h3>${hora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</h3>
-                    <img src="https://openweathermap.org/img/wn/${previsao.weather[0].icon}.png" alt="${previsao.weather[0].description}">
-                    <p>${Math.round(previsao.main.temp)}°C</p>
-                    <p>${previsao.weather[0].description}</p>
+                htmlHoraria += `
+                    <h3>${new Date(previsao.dt * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</h3>
+                    <p>Temperatura: ${Math.round(previsao.main.temp)}°C</p>
+                    <p>Condição: ${previsao.weather[0].description}</p>
+                    <p>Probabilidade de chuva: ${(previsao.pop * 100).toFixed(0)}%</p>
                 `;
-                previsaoHorasContainer.appendChild(card);
             });
+
+            document.getElementById('previsao-horaria').innerHTML = htmlHoraria;
         }
 
-        function exibirErro(mensagem) {
-            const erroElement = document.getElementById('erro');
-            erroElement.textContent = mensagem;
-            erroElement.classList.remove('escondido');
-            document.getElementById('previsao').classList.add('escondido');
-        }
-
-        function esconderErro() {
-            document.getElementById('erro').classList.add('escondido');
-        }
-
-        function solicitarPermissaoNotificacao() {
-            if (!("Notification" in window)) {
-                console.log("Este navegador não suporta notificações de desktop");
-            } else if (Notification.permission === "granted") {
-                notificationPermission = true;
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(function (permission) {
-                    if (permission === "granted") {
-                        notificationPermission = true;
-                    }
-                });
-            }
-        }
-
-        function enviarNotificacao(titulo, corpo) {
-            if (notificationPermission) {
-                new Notification(titulo, { body: corpo });
-            }
-        }
-
-function verificarClimaEvento() {
+        function verificarClimaEvento() {
             const dataEvento = document.getElementById('data-evento').value;
             if (!dataEvento) {
                 alert('Por favor, selecione uma data para o evento.');
@@ -430,9 +214,84 @@ function verificarClimaEvento() {
                 });
         }
 
+        function enviarNotificacao(titulo, mensagem) {
+            if (Notification.permission === "granted") {
+                new Notification(titulo, { body: mensagem });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification(titulo, { body: mensagem });
+                    }
+                });
+            }
+        }
+
+        function solicitarPermissaoNotificacao() {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+
+        function atualizarWidgets() {
+            const widgetsContainer = document.getElementById('widgets-container');
+            widgetsContainer.innerHTML = '';
+
+            const opcoes = document.querySelectorAll('#widget-options input:checked');
+            opcoes.forEach(opcao => {
+                const widget = criarWidget(opcao.value);
+                widgetsContainer.appendChild(widget);
+            });
+
+            buscarPrevisao();
+        }
+
+        function criarWidget(tipo) {
+            const widget = document.createElement('div');
+            widget.className = 'widget';
+            widget.id = `widget-${tipo}`;
+
+            const controles = document.createElement('div');
+            controles.className = 'widget-controls';
+
+            const titulo = document.createElement('h3');
+            titulo.textContent = obterTituloWidget(tipo);
+
+            const botaoRemover = document.createElement('button');
+            botaoRemover.textContent = 'Remover';
+            botaoRemover.onclick = () => removerWidget(tipo);
+
+            controles.appendChild(titulo);
+            controles.appendChild(botaoRemover);
+
+            widget.appendChild(controles);
+            return widget;
+        }
+
+        function obterTituloWidget(tipo) {
+            switch(tipo) {
+                case 'atual': return 'Clima Atual';
+                case 'proximos-dias': return 'Próximos Dias';
+                case 'horaria': return 'Previsão por Hora';
+                case 'evento': return 'Previsão para Evento';
+                default: return 'Widget';
+            }
+        }
+
+        function removerWidget(tipo) {
+            const widget = document.getElementById(`widget-${tipo}`);
+            if (widget) {
+                widget.remove();
+            }
+            const checkbox = document.querySelector(`#widget-options input[value="${tipo}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        }
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             solicitarPermissaoNotificacao();
+            atualizarWidgets();
         });
     </script>
 </body>
