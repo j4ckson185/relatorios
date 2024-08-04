@@ -112,156 +112,104 @@
         let score = 0;
 
         const knowledgeBase = {
-            "capacete": "O uso do capacete é obrigatório e essencial para sua segurança. Ele reduz o risco de lesões graves na cabeça em caso de acidente.",
-            "luvas": "Luvas são importantes para proteger suas mãos em caso de queda e melhorar o controle da moto.",
-            "jaqueta": "Uma jaqueta adequada protege contra abrasões e intempéries, além de aumentar sua visibilidade no trânsito.",
-            "calça": "Calças resistentes, como as de couro ou com proteção, são fundamentais para proteger suas pernas em caso de acidente.",
-            "bota": "Botas adequadas protegem seus pés e tornozelos, além de proporcionar melhor aderência aos pedais da moto.",
-            "manutenção": "Realizar manutenção regular na sua moto é crucial para evitar problemas mecânicos e acidentes.",
-            "visibilidade": "Use roupas e acessórios refletivos para aumentar sua visibilidade, especialmente à noite.",
-            "clima": "Esteja preparado para diferentes condições climáticas. Chuva e frio podem afetar sua segurança e desempenho.",
-            "trânsito": "Fique atento ao trânsito, respeite as leis e sinalizações, e sempre pilote defensivamente.",
-            "descanso": "Descanse adequadamente entre as entregas. Fadiga pode diminuir seus reflexos e aumentar o risco de acidentes."
-        };
-
-        const unknownResponses = [
-            "Eita, essa pergunta me pegou de surpresa! 😅 Que tal me perguntar sobre equipamentos de segurança?",
-            "Hmm, não tenho certeza sobre isso. Mas ei, você sabia que usar capacete reduz em 40% o risco de morte em acidentes?",
-            "Opa, essa informação escapou do meu banco de dados! 🏃‍♂️💨 Que tal me contar como foi seu dia de trabalho hoje?",
-            "Nossa, essa é difícil! 🤔 Enquanto penso, me diz aí: você prefere entregas de dia ou de noite?",
-            "Caramba, você me pegou! 😱 Mas falando em pegar, você sempre pega seu capacete antes de sair, né?",
-            "Uau, você faz perguntas interessantes! 🧐 Mas e aí, qual foi a entrega mais inusitada que você já fez?",
-            "Essa pergunta é mais complicada que trânsito em horário de pico! 😄 Melhor mudarmos de assunto. Como está sua moto hoje?",
-            "Hum... não sei responder isso, mas posso te contar uma piada de motoboy. Quer ouvir?",
-            "Opa, acho que meu GPS mental se perdeu nessa pergunta! 🗺️ Que tal me perguntar sobre dicas de segurança no trânsito?",
-            "Eita, acho que preciso de uma atualização de software pra essa! 🖥️ Enquanto isso, me conta: qual seu lanche favorito durante as entregas?"
-        ];
-
-        const questions = [
-            "E aí, motoboy, qual foi a situação mais engraçada que você já passou numa entrega? 😂",
-            "Se sua moto pudesse falar, o que você acha que ela diria pra você? 🏍️",
-            "Qual superpoder você gostaria de ter para fazer entregas? 🦸‍♂️",
-            "Se você pudesse dar um conselho pro seu eu do passado sobre ser motoboy, qual seria? 🤔",
-            "Qual é o item mais estranho que você já teve que entregar? 📦",
-            "Se existisse um Oscar para motoboys, em qual categoria você ganharia? 🏆",
-            "Qual é o seu truque secreto para lidar com clientes impacientes? 🤫",
-            "Se você pudesse inventar um acessório incrível para motoboys, o que seria? 🛠️",
-            "Qual é a sua teoria sobre por que os semáforos sempre ficam vermelhos quando você está com pressa? 🚦",
-            "Se você fosse escrever um livro sobre suas aventuras como motoboy, qual seria o título? 📚"
-        ];
-
-        const interactiveResponses = {
-            "engraçada": [
-                "Nossa, essa deve ter sido hilária! 😂 Aposto que você tem várias histórias pra contar num show de stand-up de motoboys!",
-                "Caramba, dá pra fazer um filme de comédia com essas histórias! 🎬 Já pensou em escrever um roteiro?",
-                "Hahahaha! 🤣 É por isso que adoro conversar com motoboys, vocês sempre têm as melhores histórias!"
-            ],
-            "falar": [
-                "Rapaz, se minha moto falasse, ela provavelmente diria: 'Por favor, menos buracos e mais revisões!' 😅",
-                "Ah, aposto que ela pediria uma lavagem e um posto de gasolina com desconto! 🧼⛽",
-                "Ela provavelmente reclamaria do seu gosto musical nas entregas! 🎵 Mas quem liga? O piloto é você! 😎"
-            ],
-            "superpoder": [
-                "Uau, esse superpoder seria incrível! 🦸‍♂️ Imagina quantas entregas você faria num piscar de olhos!",
-                "Caramba, com esse poder você seria o motoboy mais rápido do Oeste! 🤠 Ou do Leste, ou de onde você for!",
-                "Esse superpoder é maneiro demais! Mas lembra, 'com grandes poderes vem grandes responsabilidades'... e mais gorjetas! 💰"
-            ],
-            "conselho": [
-                "Esse é um conselho e tanto! 👏 Se todos os motoboys novatos ouvissem isso, as ruas seriam muito mais seguras!",
-                "Uau, você é tipo um guru dos motoboys! 🧘‍♂️ Devia abrir um curso online 'Sabedoria das Duas Rodas'!",
-                "Sábias palavras, meu amigo! 🦉 Com esse conselho, você podia ser o Yoda dos motoboys. Que a força do trânsito esteja com você!"
-            ],
-            "estranho": [
-                "Minha nossa! 😱 E eu achando que entregar pizza de abacaxi era estranho! Você ganhou!",
-                "Caramba, isso é mais inusitado que pneu quadrado! 😂 Você devia escrever um livro 'As Entregas Mais Loucas'!",
-                "Uau! Depois dessa entrega, nada mais te assusta, né? 💪 Você é oficialmente um motoboy de elite!"
-            ],
-            "Oscar": [
-                "Haha, adorei! 🏆 Você merece não só um Oscar, mas um Tony, um Emmy e um Grammy também!",
-                "Essa categoria é perfeita pra você! Já consigo até ver seu discurso de agradecimento na TV! 📺",
-                "Olha só, temos uma estrela das entregas aqui! 🌟 Quando for pra Hollywood, não esquece da gente, viu?"
-            ],
-            "truque": [
-                "Esse truque é genial! 🧙‍♂️ Você devia dar palestras de 'Como Encantar Clientes Sem Usar Mágica'!",
-                "Uau, você é tipo um ninja da paciência! 🥷 Esse truque devia ser ensinado em todas as escolas de motoboys!",
-                "Cara, com esse truque você podia ser diplomata! 🤝 Imagina resolver conflitos internacionais entre uma entrega e outra?"
-            ],
-            "acessório": [
-                "Caramba, essa invenção é incrível! 🚀 Já pensou em participar do 'Shark Tank: Edição Motoboy'?",
-                "Uau! Com esse acessório, você seria tipo o 'Tony Stark' dos motoboys! 🦾 Quando começa a produção em massa?",
-                "Genial! 💡 Isso revolucionaria o mundo das entregas! Você devia patentear essa ideia antes que eu roube! 😉"
-            ],
-            "semáforos": [
-                "Essa teoria é hilária! 😂 Acho que os semáforos têm um complô secreto contra os motoboys apressados!",
-                "Hahaha! Talvez os semáforos sejam controlados por alienígenas que adoram ver motoboys impacientes! 👽🛸",
-                "Boa teoria! Eu acho que os semáforos são na verdade câmeras escondidas de um reality show 'Motoboys Pistolas'! 📺😠"
-            ],
-            "livro": [
-                "Esse título é sensacional! 📚 Já consigo ver ele no topo da lista dos mais vendidos!",
-                "Hahaha, adorei! 😂 Esse livro seria um best-seller instantâneo no mundo dos motoboys!",
-                "Cara, com um título desses, seu livro vai virar filme! 🎬 Quem você quer que interprete você no cinema?"
-            ]
+            "capacete": {
+                keywords: ["capacete", "proteção cabeça", "proteção craniana"],
+                response: "O uso do capacete é obrigatório e essencial para sua segurança. Ele reduz o risco de lesões graves na cabeça em caso de acidente. Certifique-se de usar um capacete que esteja em boas condições e devidamente ajustado."
+            },
+            "luvas": {
+                keywords: ["luvas", "proteção mãos"],
+                response: "Luvas são importantes para proteger suas mãos em caso de queda e melhorar o controle da moto. Elas também ajudam a reduzir a fadiga nas mãos durante longas viagens."
+            },
+            "jaqueta": {
+                keywords: ["jaqueta", "casaco", "blusa"],
+                response: "Uma jaqueta adequada protege contra abrasões e intempéries, além de aumentar sua visibilidade no trânsito. Opte por jaquetas com proteções nos cotovelos, ombros e costas."
+            },
+            "calça": {
+                keywords: ["calça", "proteção pernas"],
+                response: "Calças resistentes, como as de couro ou com proteção, são fundamentais para proteger suas pernas em caso de acidente. Evite usar shorts ou calças finas durante as entregas."
+            },
+            "bota": {
+                keywords: ["bota", "calçado", "sapato"],
+                response: "Botas adequadas protegem seus pés e tornozelos, além de proporcionar melhor aderência aos pedais da moto. Use botas que cubram os tornozelos e tenham sola antiderrapante."
+            },
+            "manutenção": {
+                keywords: ["manutenção", "revisão", "cuidados moto"],
+                response: "Realizar manutenção regular na sua moto é crucial para evitar problemas mecânicos e acidentes. Verifique regularmente os freios, pneus, luzes e óleo. Uma moto bem cuidada é mais segura e econômica."
+            },
+            "visibilidade": {
+                keywords: ["visibilidade", "ser visto", "refletivo"],
+                response: "Use roupas e acessórios refletivos para aumentar sua visibilidade, especialmente à noite. Isso ajuda outros motoristas a te verem com mais facilidade, reduzindo o risco de acidentes."
+            },
+            "clima": {
+                keywords: ["clima", "chuva", "frio", "calor"],
+                response: "Esteja preparado para diferentes condições climáticas. Chuva e frio podem afetar sua segurança e desempenho. Use roupas impermeáveis em dias chuvosos e vista-se em camadas em dias frios."
+            },
+            "trânsito": {
+                keywords: ["trânsito", "tráfego", "ruas", "avenidas"],
+                response: "Fique atento ao trânsito, respeite as leis e sinalizações, e sempre pilote defensivamente. Mantenha uma distância segura dos outros veículos e esteja preparado para reagir a situações inesperadas."
+            },
+            "descanso": {
+                keywords: ["descanso", "pausa", "descansar", "dormir"],
+                response: "Descanse adequadamente entre as entregas. Fadiga pode diminuir seus reflexos e aumentar o risco de acidentes. Faça pausas regulares, hidrate-se e, se necessário, tire um cochilo rápido em um local seguro."
+            }
         };
 
         function getBotResponse(userMessage) {
             userMessage = userMessage.toLowerCase();
-            for (const [keyword, response] of Object.entries(knowledgeBase)) {
-                if (userMessage.includes(keyword)) {
-                    incrementScore();
-                    return response;
+            for (const [topic, info] of Object.entries(knowledgeBase)) {
+                for (const keyword of info.keywords) {
+                    if (userMessage.includes(keyword)) {
+                        incrementScore();
+                        return info.response;
+                    }
                 }
             }
-            return getRandomUnknownResponse();
+            return getContextualResponse(userMessage);
         }
 
-        function getRandomUnknownResponse() {
-            const randomIndex = Math.floor(Math.random() * unknownResponses.length);
-            return unknownResponses[randomIndex];
+        function getContextualResponse(userMessage) {
+            if (userMessage.includes("como") && userMessage.includes("seguro")) {
+                return "Para ser um motoboy mais seguro, sempre use equipamentos de proteção, mantenha sua moto em boas condições, respeite as leis de trânsito e fique atento ao seu entorno. Que aspecto específico da segurança você gostaria de saber mais?";
+            } else if (userMessage.includes("dica") || userMessage.includes("conselho")) {
+                return "Uma dica importante é sempre manter uma distância segura dos outros veículos. Isso te dá mais tempo para reagir a situações inesperadas. Tem alguma situação específica em que você gostaria de dicas?";
+            } else if (userMessage.includes("acidente") || userMessage.includes("queda")) {
+                return "Acidentes podem acontecer, mas muitos podem ser evitados com precaução. Use sempre equipamentos de proteção, pilote defensivamente e esteja sempre alerta. Você tem alguma preocupação específica sobre prevenção de acidentes?";
+            } else if (userMessage.includes("cansaço") || userMessage.includes("sono")) {
+                return "O cansaço é um grande risco para motoboys. Faça pausas regulares, hidrate-se bem e, se possível, tire pequenos cochilos em locais seguros. Como você costuma lidar com o cansaço durante o trabalho?";
+            } else {
+                return "Entendo sua preocupação. A segurança é fundamental para motoboys. Há algum aspecto específico da segurança que você gostaria de discutir? Por exemplo, equipamentos de proteção, manutenção da moto ou dicas de pilotagem segura?";
+            }
         }
 
         function askQuestion() {
+            const questions = [
+                "Como você lida com o trânsito intenso durante as entregas?",
+                "Qual equipamento de segurança você considera mais importante?",
+                "Você já enfrentou alguma situação perigosa durante uma entrega? Como lidou com isso?",
+                "Quais são suas estratégias para manter-se alerta durante longas jornadas de trabalho?",
+                "Como você se prepara para trabalhar em diferentes condições climáticas?"
+            ];
             const randomIndex = Math.floor(Math.random() * questions.length);
-            const question = questions[randomIndex];
-            appendMessage('Assistente', question);
+            appendMessage('Assistente', questions[randomIndex]);
         }
-
-        function getInteractiveResponse(userMessage) {
-            for (const [keyword, responses] of Object.entries(interactiveResponses)) {
-                if (userMessage.toLowerCase().includes(keyword)) {
-                    const randomIndex = Math.floor(Math.random() * responses.length);
-                    return responses[randomIndex];
-                }
-            }
-            return null;
-        }
-
-        let lastMessageWasQuestion = false;
 
         function sendMessage() {
             const userMessage = userInput.value;
             if (userMessage.trim() === '') return;
 
             appendMessage('Você', userMessage);
-            let botResponse;
-
-            if (lastMessageWasQuestion) {
-                botResponse = getInteractiveResponse(userMessage) || getBotResponse(userMessage);
-                lastMessageWasQuestion = false;
-            } else {
-                botResponse = getBotResponse(userMessage);
-                if (Math.random() < 0.3) {  // 30% de chance de fazer uma pergunta
-                    askQuestion();
-                    lastMessageWasQuestion = true;
-                }
-            }
-
+            const botResponse = getBotResponse(userMessage);
             appendMessage('Assistente', botResponse);
 
             userInput.value = '';
             updateQuickReplies();
+
+            if (Math.random() < 0.3) {  // 30% de chance de fazer uma pergunta
+                setTimeout(askQuestion, 1000);
+            }
         }
 
- function appendMessage(sender, message) {
+        function appendMessage(sender, message) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', sender === 'Você' ? 'user-message' : 'bot-message');
             messageElement.textContent = `${sender}: ${message}`;
@@ -298,7 +246,7 @@
         });
 
         // Mensagem inicial do assistente
-        appendMessage('Assistente', 'Olá! Sou o assistente de segurança para motoboys. Como posso ajudar você hoje?');
+        appendMessage('Assistente', 'Olá! Sou o assistente de segurança para motoboys. Como posso ajudar você hoje? Tem alguma dúvida sobre equipamentos de proteção, manutenção da moto ou dicas de segurança no trânsito?');
         updateQuickReplies();
     </script>
 </body>
