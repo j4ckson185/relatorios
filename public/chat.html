@@ -192,9 +192,11 @@
         }
 
         function stopRecording() {
-            mediaRecorder.stop();
-            recordButton.textContent = 'Gravar Áudio';
-            audioRecording.style.display = 'none';
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                recordButton.textContent = 'Gravar Áudio';
+                audioRecording.style.display = 'none';
+            }
         }
 
         function cancelRecording() {
@@ -232,21 +234,23 @@
 
         database.ref('messages').on('child_added', snapshot => {
             const message = snapshot.val();
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            
-            if (message.type === 'text') {
-                messageElement.textContent = `${message.user}: ${message.message}`;
-            } else if (message.type === 'audio') {
-                const audio = document.createElement('audio');
-                audio.src = message.audioUrl;
-                audio.controls = true;
-                messageElement.textContent = `${message.user}: `;
-                messageElement.appendChild(audio);
+            if (message.user && (message.message || message.audioUrl)) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                
+                if (message.type === 'text') {
+                    messageElement.textContent = `${message.user}: ${message.message}`;
+                } else if (message.type === 'audio') {
+                    const audio = document.createElement('audio');
+                    audio.src = message.audioUrl;
+                    audio.controls = true;
+                    messageElement.textContent = `${message.user}: `;
+                    messageElement.appendChild(audio);
+                }
+                
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
-            
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
         });
     </script>
 </body>
