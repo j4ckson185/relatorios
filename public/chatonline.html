@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat do Administrador</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #messages {
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+        #messageForm {
+            display: flex;
+        }
+        #messageInput {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat do Administrador</h1>
+    <div id="messages"></div>
+    <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Digite sua mensagem" required>
+        <button type="submit">Enviar</button>
+    </form>
+
+    <script>
+        // Configuração do Firebase (substitua com suas próprias credenciais)
+        const firebaseConfig = {
+  apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+  authDomain: "cabana-8d55e.firebaseapp.com",
+  databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+  projectId: "cabana-8d55e",
+  storageBucket: "cabana-8d55e.appspot.com",
+  messagingSenderId: "706144237954",
+  appId: "1:706144237954:web:345c10370972486afc779b",
+  measurementId: "G-96Y337GYT8"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const messagesDiv = document.getElementById('messages');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+
+        // Função para carregar mensagens
+        function loadMessages() {
+            db.collection('messages').orderBy('timestamp').onSnapshot((snapshot) => {
+                messagesDiv.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const message = doc.data();
+                    const messageElement = document.createElement('p');
+                    messageElement.textContent = `${message.sender}: ${message.text}`;
+                    messagesDiv.appendChild(messageElement);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+
+        // Enviar mensagem
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = messageInput.value;
+            if (text.trim() === '') return;
+
+            const user = auth.currentUser;
+            if (user) {
+                db.collection('messages').add({
+                    text: text,
+                    sender: 'Admin',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                messageInput.value = '';
+            }
+        });
+
+        // Verificar autenticação e carregar mensagens
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadMessages();
+            } else {
+                console.log('Usuário não autenticado');
+                // Redirecionar para página de login ou mostrar mensagem de erro
+            }
+        });
+    </script>
+</body>
+</html>
