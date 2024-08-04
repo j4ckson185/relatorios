@@ -261,9 +261,45 @@
             updateQuickReplies();
         }
 
-        function appendMessage(sender, message) {
+ function appendMessage(sender, message) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', sender === 'Você' ? 'user-message' : 'bot-message');
             messageElement.textContent = `${sender}: ${message}`;
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function updateQuickReplies() {
+            quickReplies.innerHTML = '';
+            const topics = Object.keys(knowledgeBase);
+            const randomTopics = topics.sort(() => 0.5 - Math.random()).slice(0, 3);
+            randomTopics.forEach(topic => {
+                const button = document.createElement('button');
+                button.classList.add('quick-reply');
+                button.textContent = topic;
+                button.addEventListener('click', () => {
+                    userInput.value = topic;
+                    sendMessage();
+                });
+                quickReplies.appendChild(button);
+            });
+        }
+
+        function incrementScore() {
+            score += 10;
+            scoreElement.textContent = `Pontuação: ${score}`;
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Mensagem inicial do assistente
+        appendMessage('Assistente', 'Olá! Sou o assistente de segurança para motoboys. Como posso ajudar você hoje?');
+        updateQuickReplies();
+    </script>
+</body>
+</html>
