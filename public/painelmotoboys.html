@@ -79,7 +79,7 @@
 
         logoutBtn.addEventListener('click', () => {
             auth.signOut().then(() => {
-                window.location.href = 'login.html'; // Redirecionar para a página de login
+                console.log('Usuário deslogado com sucesso');
             }).catch((error) => {
                 console.error('Erro ao fazer logout:', error);
             });
@@ -89,7 +89,7 @@
             if (user) {
                 loadPedidosForMotoboy(user.email);
             } else {
-                window.location.href = 'login.html'; // Redirecionar para a página de login se não estiver autenticado
+                console.log('Usuário não está autenticado');
             }
         });
 
