@@ -240,10 +240,11 @@
             if (message.sender === currentUser.email) {
                 messageElement.className += ' own';
             }
+            const timestamp = message.timestamp ? new Date(message.timestamp.toDate()) : new Date();
             messageElement.innerHTML = `
                 <div class="sender">${message.sender}</div>
                 <div class="text">${message.text}</div>
-                <div class="timestamp">${new Date(message.timestamp?.toDate()).toLocaleString()}</div>
+                <div class="timestamp">${timestamp.toLocaleString()}</div>
             `;
             messagesDiv.appendChild(messageElement);
         }
