@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input, select {
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        #editForm {
+            display: none;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Painel Administrativo - Gerenciamento de Motoboys</h1>
+        
+        <table id="motoboysTable">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Desafio Atual</th>
+                    <th>Progresso</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dados dos motoboys serão inseridos aqui -->
+            </tbody>
+        </table>
+
+        <button onclick="mostrarFormularioNovo()">Adicionar Novo Motoboy</button>
+
+        <div id="editForm">
+            <h2 id="formTitle">Editar Motoboy</h2>
+            <input type="hidden" id="editUserId">
+            <input type="text" id="editNome" placeholder="Nome">
+            <input type="email" id="editEmail" placeholder="Email">
+            <input type="text" id="editDesafio" placeholder="Desafio">
+            <input type="number" id="editMeta" placeholder="Meta do Desafio">
+            <input type="number" id="editProgresso" placeholder="Progresso">
+            <button onclick="salvarEdicao()">Salvar</button>
+            <button onclick="cancelarEdicao()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Referência ao banco de dados
+        const db = firebase.database();
+
+        // Carregar dados dos motoboys
+        function carregarMotoboys() {
+            db.ref('usuarios').once('value').then((snapshot) => {
+                const motoboys = snapshot.val();
+                const tbody = document.querySelector('#motoboysTable tbody');
+                tbody.innerHTML = '';
+
+                for (let userId in motoboys) {
+                    const motoboy = motoboys[userId];
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${motoboy.nome}</td>
+                        <td>${motoboy.email}</td>
+                        <td>${motoboy.desafioSemana || 'Nenhum'}</td>
+                        <td>${motoboy.progressoDesafio || 0}/${motoboy.metaDesafio || 0}</td>
+                        <td>
+                            <button onclick="editarMotoboy('${userId}')">Editar</button>
+                            <button onclick="excluirMotoboy('${userId}')">Excluir</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        // Editar motoboy
+        function editarMotoboy(userId) {
+            db.ref('usuarios/' + userId).once('value').then((snapshot) => {
+                const motoboy = snapshot.val();
+                document.getElementById('editUserId').value = userId;
+                document.getElementById('editNome').value = motoboy.nome;
+                document.getElementById('editEmail').value = motoboy.email;
+                document.getElementById('editDesafio').value = motoboy.desafioSemana || '';
+                document.getElementById('editMeta').value = motoboy.metaDesafio || '';
+                document.getElementById('editProgresso').value = motoboy.progressoDesafio || '';
+                document.getElementById('formTitle').textContent = 'Editar Motoboy';
+                document.getElementById('editForm').style.display = 'block';
+            });
+        }
+
+        // Salvar edição
+        function salvarEdicao() {
+            const userId = document.getElementById('editUserId').value;
+            const nome = document.getElementById('editNome').value;
+            const email = document.getElementById('editEmail').value;
+            const desafio = document.getElementById('editDesafio').value;
+            const meta = parseInt(document.getElementById('editMeta').value);
+            const progresso = parseInt(document.getElementById('editProgresso').value);
+
+            db.ref('usuarios/' + userId).update({
+                nome: nome,
+                email: email,
+                desafioSemana: desafio,
+                metaDesafio: meta,
+                progressoDesafio: progresso
+            }).then(() => {
+                alert('Motoboy atualizado com sucesso!');
+                document.getElementById('editForm').style.display = 'none';
+                carregarMotoboys();
+            }).catch((error) => {
+                console.error("Erro ao atualizar motoboy:", error);
+                alert('Erro ao atualizar motoboy. Por favor, tente novamente.');
+            });
+        }
+
+        // Cancelar edição
+        function cancelarEdicao() {
+            document.getElementById('editForm').style.display = 'none';
+        }
+
+        // Excluir motoboy
+        function excluirMotoboy(userId) {
+            if (confirm('Tem certeza que deseja excluir este motoboy?')) {
+                db.ref('usuarios/' + userId).remove()
+                    .then(() => {
+                        alert('Motoboy excluído com sucesso!');
+                        carregarMotoboys();
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao excluir motoboy:", error);
+                        alert('Erro ao excluir motoboy. Por favor, tente novamente.');
+                    });
+            }
+        }
+
+        // Mostrar formulário para novo motoboy
+        function mostrarFormularioNovo() {
+            document.getElementById('editUserId').value = '';
+            document.getElementById('editNome').value = '';
+            document.getElementById('editEmail').value = '';
+            document.getElementById('editDesafio').value = '';
+            document.getElementById('editMeta').value = '';
+            document.getElementById('editProgresso').value = '';
+            document.getElementById('formTitle').textContent = 'Adicionar Novo Motoboy';
+            document.getElementById('editForm').style.display = 'block';
+        }
+
+        // Carregar motoboys ao iniciar a página
+        window.onload = carregarMotoboys;
+    </script>
+</body>
+</html>
