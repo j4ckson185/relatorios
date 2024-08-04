@@ -163,7 +163,96 @@
     </div>
 
     <script>
-        // O script JavaScript permanece o mesmo
+        const apiKey = '4a02c99169e65be851bb284395026146';
+        
+        document.getElementById('formulario-cidade').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cidade = document.getElementById('cidade').value;
+            buscarPrevisaoPorCidade(cidade);
+        });
+
+        document.getElementById('botao-geolocalizacao').addEventListener('click', function() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    buscarPrevisaoPorCoordenadas(lat, lon);
+                }, function(error) {
+                    console.error("Erro na geolocalização:", error);
+                    exibirErro("Não foi possível obter sua localização. Por favor, digite o nome da cidade.");
+                });
+            } else {
+                exibirErro("Geolocalização não é suportada pelo seu navegador.");
+            }
+        });
+
+        function buscarPrevisaoPorCidade(cidade) {
+            const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(cidade)},BR&appid=${apiKey}&units=metric&lang=pt_br`;
+            buscarPrevisao(url);
+        }
+
+        function buscarPrevisaoPorCoordenadas(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=pt_br`;
+            buscarPrevisao(url);
+        }
+
+        function buscarPrevisao(url) {
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Localização não encontrada. Verifique os dados e tente novamente.');
+                        }
+                        throw new Error('Erro ao buscar previsão. Código: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    exibirPrevisao(data);
+                    esconderErro();
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar previsão:', error);
+                    exibirErro(error.message);
+                });
+        }
+
+        function exibirPrevisao(data) {
+            const previsaoAtual = data.list[0];
+            document.getElementById('nome-cidade').textContent = data.city.name;
+            document.getElementById('temperatura').textContent = Math.round(previsaoAtual.main.temp);
+            document.getElementById('sensacao').textContent = Math.round(previsaoAtual.main.feels_like);
+            document.getElementById('descricao').textContent = previsaoAtual.weather[0].description;
+            document.getElementById('umidade').textContent = previsaoAtual.main.humidity;
+            document.getElementById('vento').textContent = (previsaoAtual.wind.speed * 3.6).toFixed(1);
+            
+            // Probabilidade de chuva (convertida para porcentagem)
+            const probChuva = previsaoAtual.pop * 100;
+            document.getElementById('prob-chuva').textContent = probChuva.toFixed(0);
+
+            // Nascer e pôr do sol
+            const nascerSol = new Date(data.city.sunrise * 1000);
+            const porSol = new Date(data.city.sunset * 1000);
+            document.getElementById('nascer-sol').textContent = nascerSol.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('por-sol').textContent = porSol.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            const iconCode = previsaoAtual.weather[0].icon;
+            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+            document.getElementById('icone-tempo').src = iconUrl;
+            
+            document.getElementById('previsao').classList.remove('escondido');
+        }
+
+        function exibirErro(mensagem) {
+            const erroElement = document.getElementById('erro');
+            erroElement.textContent = mensagem;
+            erroElement.classList.remove('escondido');
+            document.getElementById('previsao').classList.add('escondido');
+        }
+
+        function esconderErro() {
+            document.getElementById('erro').classList.add('escondido');
+        }
     </script>
 </body>
 </html>
