@@ -73,6 +73,12 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        .error {
+            color: red;
+            font-size: 0.8em;
+            margin-top: -5px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -85,10 +91,14 @@
             <button id="newOrderBtn">Novo Pedido</button>
             <form id="orderForm">
                 <input type="hidden" id="orderId">
-                <input type="text" id="clientName" placeholder="Nome do Cliente" required>
-                <input type="text" id="street" placeholder="Rua" required>
-                <input type="text" id="number" placeholder="Número" required>
-                <input type="text" id="neighborhood" placeholder="Bairro" required>
+                <input type="text" id="clientName" placeholder="Nome do Cliente" required minlength="3" maxlength="50">
+                <div id="clientNameError" class="error"></div>
+                <input type="text" id="street" placeholder="Rua" required minlength="3" maxlength="100">
+                <div id="streetError" class="error"></div>
+                <input type="text" id="number" placeholder="Número" required pattern="[0-9]+">
+                <div id="numberError" class="error"></div>
+                <input type="text" id="neighborhood" placeholder="Bairro" required minlength="2" maxlength="50">
+                <div id="neighborhoodError" class="error"></div>
                 <button type="submit">Salvar Pedido</button>
             </form>
             <div id="orderList"></div>
@@ -194,6 +204,30 @@
             }
         }
 
+        // Função de validação personalizada
+        function validateForm() {
+            let isValid = true;
+            const fields = [
+                { id: 'clientName', errorId: 'clientNameError', errorMsg: 'Nome deve ter entre 3 e 50 caracteres.' },
+                { id: 'street', errorId: 'streetError', errorMsg: 'Rua deve ter entre 3 e 100 caracteres.' },
+                { id: 'number', errorId: 'numberError', errorMsg: 'Número deve conter apenas dígitos.' },
+                { id: 'neighborhood', errorId: 'neighborhoodError', errorMsg: 'Bairro deve ter entre 2 e 50 caracteres.' }
+            ];
+
+            fields.forEach(field => {
+                const input = document.getElementById(field.id);
+                const errorElement = document.getElementById(field.errorId);
+                errorElement.textContent = '';
+
+                if (!input.checkValidity()) {
+                    errorElement.textContent = field.errorMsg;
+                    isValid = false;
+                }
+            });
+
+            return isValid;
+        }
+
         // Manipulação do formulário de pedido
         const newOrderBtn = document.getElementById('newOrderBtn');
         const orderForm = document.getElementById('orderForm');
@@ -202,10 +236,17 @@
             orderForm.reset();
             document.getElementById('orderId').value = '';
             orderForm.style.display = 'block';
+            // Limpar mensagens de erro
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
         });
 
         orderForm.addEventListener('submit', (e) => {
             e.preventDefault();
+
+            if (!validateForm()) {
+                return; // Parar a submissão se a validação falhar
+            }
+
             const orderId = document.getElementById('orderId').value;
             const clientName = document.getElementById('clientName').value;
             const street = document.getElementById('street').value;
