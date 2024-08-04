@@ -60,6 +60,17 @@
             text-align: center;
             margin-top: 20px;
         }
+        #botao-geolocalizacao {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -68,6 +79,7 @@
         <input type="text" id="cidade" placeholder="Digite o nome da cidade" required>
         <button type="submit">Buscar</button>
     </form>
+    <button id="botao-geolocalizacao">Usar Minha Localização</button>
     <div id="erro" class="escondido"></div>
     <div id="previsao" class="escondido">
         <h2>Previsão para <span id="nome-cidade"></span></h2>
@@ -87,17 +99,40 @@
         document.getElementById('formulario-cidade').addEventListener('submit', function(e) {
             e.preventDefault();
             const cidade = document.getElementById('cidade').value;
-            buscarPrevisao(cidade);
+            buscarPrevisaoPorCidade(cidade);
         });
 
-        function buscarPrevisao(cidade) {
+        document.getElementById('botao-geolocalizacao').addEventListener('click', function() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    buscarPrevisaoPorCoordenadas(lat, lon);
+                }, function(error) {
+                    console.error("Erro na geolocalização:", error);
+                    exibirErro("Não foi possível obter sua localização. Por favor, digite o nome da cidade.");
+                });
+            } else {
+                exibirErro("Geolocalização não é suportada pelo seu navegador.");
+            }
+        });
+
+        function buscarPrevisaoPorCidade(cidade) {
             const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cidade)},BR&appid=${apiKey}&units=metric&lang=pt_br`;
-            
+            buscarPrevisao(url);
+        }
+
+        function buscarPrevisaoPorCoordenadas(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=pt_br`;
+            buscarPrevisao(url);
+        }
+
+        function buscarPrevisao(url) {
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
                         if (response.status === 404) {
-                            throw new Error('Cidade não encontrada. Verifique a ortografia ou tente adicionar o estado (ex: São Paulo,SP)');
+                            throw new Error('Localização não encontrada. Verifique os dados e tente novamente.');
                         }
                         throw new Error('Erro ao buscar previsão. Código: ' + response.status);
                     }
