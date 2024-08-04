@@ -208,13 +208,18 @@
             if (audioButton.textContent === 'Gravar Áudio') {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(stream => {
-                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                         mediaRecorder.ondataavailable = e => {
                             audioChunks.push(e.data);
-                            if (mediaRecorder.state === 'inactive') {
-                                let blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        };
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const reader = new FileReader();
+                            reader.readAsDataURL(audioBlob);
+                            reader.onloadend = function() {
+                                const base64data = reader.result;
                                 const storageRef = storage.ref('audio/' + Date.now() + '.webm');
-                                storageRef.put(blob).then(snapshot => {
+                                storageRef.putString(base64data, 'data_url').then(snapshot => {
                                     snapshot.ref.getDownloadURL().then(downloadURL => {
                                         const message = {
                                             sender: userName,
@@ -225,8 +230,8 @@
                                         database.ref('messages').push(message);
                                     });
                                 });
-                                audioChunks = [];
                             }
+                            audioChunks = [];
                         };
                         mediaRecorder.start();
                         audioRecording.style.display = 'flex';
