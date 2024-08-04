@@ -3,106 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Motoboys</title>
+    <title>Chat</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
         }
-        .container {
+        .chat-container {
+            width: 100%;
             max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .chat-header {
-            background-color: #075e54;
-            color: white;
-            padding: 10px;
-            text-align: center;
-        }
-        .chat-messages {
-            background-color: #e5ddd5;
-            height: 400px;
-            overflow-y: scroll;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .message {
             background-color: white;
             border-radius: 10px;
-            padding: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .message {
             margin-bottom: 10px;
-            max-width: 70%;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e0e0e0;
         }
-        .message.sent {
-            background-color: #dcf8c6;
-            margin-left: auto;
-        }
-        .input-area {
+        .chat-input {
             display: flex;
-            margin-top: 10px;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
         }
         #messageInput {
             flex-grow: 1;
             padding: 10px;
-            border: none;
-            border-radius: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
-        #sendButton, #recordButton {
-            background-color: #075e54;
+        button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 20px;
-            margin-left: 10px;
-            border-radius: 20px;
+            border-radius: 5px;
             cursor: pointer;
         }
-        #userSelect {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
+        #recordButton {
+            background-color: #dc3545;
         }
-        .audio-recording {
-            display: flex;
+        #audioRecording {
+            display: none;
             align-items: center;
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 20px;
             margin-top: 10px;
         }
-        .audio-recording-time {
-            margin-right: 10px;
-        }
-        .audio-recording-cancel {
-            margin-left: auto;
-            cursor: pointer;
+        #recordingTime {
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="chat-header">
-            <h2>Chat Motoboys</h2>
-        </div>
-        <select id="userSelect">
-            <option value="Giovanni">Giovanni</option>
-            <option value="Boaz">Boaz</option>
-            <option value="Moisés">Moisés</option>
-            <option value="Fellipe Matheus">Fellipe Matheus</option>
-            <option value="Felipe Augusto">Felipe Augusto</option>
-        </select>
+    <div class="chat-container">
         <div class="chat-messages" id="chatMessages"></div>
-        <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Digite uma mensagem...">
-            <button id="sendButton">Enviar</button>
-            <button id="recordButton">Gravar Áudio</button>
+        <div class="chat-input">
+            <select id="userSelect">
+                <option value="Motoboy">Motoboy</option>
+                <option value="Cliente">Cliente</option>
+            </select>
+            <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
+            <button onclick="sendMessage()">Enviar</button>
+            <button id="recordButton" onclick="toggleRecording()">Gravar Áudio</button>
         </div>
-        <div class="audio-recording" id="audioRecording" style="display: none;">
-            <span class="audio-recording-time" id="audioRecordingTime">00:00</span>
-            <span>Gravando áudio...</span>
-            <span class="audio-recording-cancel" id="audioRecordingCancel">X</span>
+        <div id="audioRecording">
+            <span>Gravando...</span>
+            <span id="recordingTime">00:00</span>
         </div>
     </div>
 
@@ -112,37 +91,32 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId: "706144237954",
-            appId: "1:706144237954:web:345c10370972486afc779b",
-            measurementId: "G-96Y337GYT8"
+            apiKey: "AIzaSyDTjBtRXYoJZwW5SgIfzQ8Q-Jp-rh1i5MI",
+            authDomain: "chatfastmoto.firebaseapp.com",
+            databaseURL: "https://chatfastmoto-default-rtdb.firebaseio.com",
+            projectId: "chatfastmoto",
+            storageBucket: "chatfastmoto.appspot.com",
+            messagingSenderId: "628249474801",
+            appId: "1:628249474801:web:ab6f4fb0b6883ff334c6e4",
+            measurementId: "G-3JQHMXJ6XH"
         };
 
         firebase.initializeApp(firebaseConfig);
+
         const database = firebase.database();
         const storage = firebase.storage();
 
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const recordButton = document.getElementById('recordButton');
         const userSelect = document.getElementById('userSelect');
+        const recordButton = document.getElementById('recordButton');
         const audioRecording = document.getElementById('audioRecording');
-        const audioRecordingTime = document.getElementById('audioRecordingTime');
-        const audioRecordingCancel = document.getElementById('audioRecordingCancel');
+        const recordingTime = document.getElementById('recordingTime');
 
         let mediaRecorder;
         let audioChunks = [];
         let startTime;
         let timerInterval;
-
-        sendButton.addEventListener('click', sendMessage);
-        recordButton.addEventListener('click', toggleRecording);
-        audioRecordingCancel.addEventListener('click', cancelRecording);
 
         function sendMessage() {
             const message = messageInput.value.trim();
@@ -199,22 +173,6 @@
             }
         }
 
-        function cancelRecording() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                recordButton.textContent = 'Gravar Áudio';
-                audioRecording.style.display = 'none';
-                clearInterval(timerInterval);
-            }
-        }
-
-        function updateRecordingTime() {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
-            const seconds = (elapsed % 60).toString().padStart(2, '0');
-            audioRecordingTime.textContent = `${minutes}:${seconds}`;
-        }
-
         function uploadAudio(audioBlob) {
             const user = userSelect.value;
             const timestamp = Date.now();
@@ -230,6 +188,13 @@
                     });
                 });
             });
+        }
+
+        function updateRecordingTime() {
+            const duration = Date.now() - startTime;
+            const seconds = Math.floor(duration / 1000) % 60;
+            const minutes = Math.floor(duration / 60000);
+            recordingTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
         database.ref('messages').on('child_added', snapshot => {
