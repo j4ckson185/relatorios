@@ -11,6 +11,8 @@
             padding: 0;
             height: 100%;
             font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
         }
         #header {
             background-color: #ff6b6b;
@@ -18,8 +20,28 @@
             padding: 10px;
             text-align: center;
         }
+        #content {
+            display: flex;
+            flex: 1;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            overflow-y: auto;
+        }
         #map {
-            height: calc(100% - 50px);
+            flex: 1;
+        }
+        .order-item {
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .order-item.selected {
+            background-color: #e6f3ff;
         }
     </style>
 </head>
@@ -27,20 +49,86 @@
     <div id="header">
         <h1>Cabana Açaí</h1>
     </div>
-    <div id="map"></div>
+    <div id="content">
+        <div id="sidebar">
+            <h2>Pedidos</h2>
+            <div id="orderList"></div>
+        </div>
+        <div id="map"></div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
+        // Dados de exemplo para os pedidos
+        const orders = [
+            { id: 1, client: "João", address: "Rua A, 123", lat: -5.7795, lng: -35.2009 },
+            { id: 2, client: "Maria", address: "Av. B, 456", lat: -5.7750, lng: -35.2050 },
+            { id: 3, client: "Pedro", address: "Praça C, 789", lat: -5.7830, lng: -35.1980 }
+        ];
+
         // Inicialização do mapa
-        var map = L.map('map').setView([-5.7793, -35.2009], 13);
+        const map = L.map('map').setView([-5.7793, -35.2009], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Adicionar um marcador de exemplo
-        L.marker([-5.7793, -35.2009]).addTo(map)
-            .bindPopup('Cabana Açaí')
-            .openPopup();
+        const markers = {};
+
+        // Função para renderizar a lista de pedidos
+        function renderOrderList() {
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '';
+            orders.forEach(order => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                orderItem.innerHTML = `
+                    <strong>Pedido #${order.id}</strong><br>
+                    Cliente: ${order.client}<br>
+                    Endereço: ${order.address}
+                `;
+                orderItem.addEventListener('click', () => toggleOrderSelection(order));
+                orderList.appendChild(orderItem);
+            });
+        }
+
+        // Função para alternar a seleção de um pedido
+        function toggleOrderSelection(order) {
+            const orderItem = document.querySelector(`.order-item:nth-child(${order.id})`);
+            orderItem.classList.toggle('selected');
+            updateMap();
+        }
+
+        // Função para atualizar o mapa com base nos pedidos selecionados
+        function updateMap() {
+            // Limpar todos os marcadores existentes
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
+
+            // Adicionar marcadores para pedidos selecionados
+            const selectedOrders = document.querySelectorAll('.order-item.selected');
+            selectedOrders.forEach(orderItem => {
+                const orderId = parseInt(orderItem.querySelector('strong').textContent.split('#')[1]);
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    const marker = L.marker([order.lat, order.lng]).addTo(map);
+                    marker.bindPopup(`Pedido #${order.id}<br>${order.client}<br>${order.address}`);
+                    markers[order.id] = marker;
+                }
+            });
+
+            // Se não houver pedidos selecionados, mostrar todos
+            if (selectedOrders.length === 0) {
+                orders.forEach(order => {
+                    const marker = L.marker([order.lat, order.lng]).addTo(map);
+                    marker.bindPopup(`Pedido #${order.id}<br>${order.client}<br>${order.address}`);
+                    markers[order.id] = marker;
+                });
+            }
+        }
+
+        // Inicializar a lista de pedidos e o mapa
+        renderOrderList();
+        updateMap();
     </script>
 </body>
 </html>
