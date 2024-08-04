@@ -1,163 +1,114 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interface do Motoboy - Cabana Açaí</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f0f0f0;
         }
-        h1 {
-            color: #4a4a4a;
-        }
-        #orderList {
-            list-style-type: none;
-            padding: 0;
-        }
-        .order-item {
-            background-color: white;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .order-item h3 {
-            margin-top: 0;
-        }
-        .status-btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .accept-btn {
+        header {
             background-color: #4CAF50;
             color: white;
+            text-align: center;
+            padding: 1em;
         }
-        .complete-btn {
-            background-color: #2196F3;
+        nav {
+            background-color: #333;
             color: white;
+            padding: 0.5em;
         }
-        #userInfo {
-            margin-bottom: 20px;
-        }
-        #logoutBtn {
+        nav button {
             background-color: #f44336;
-            color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 3px;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
             cursor: pointer;
+        }
+        main {
+            padding: 20px;
+        }
+        .pedido {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div id="userInfo"></div>
-    <button id="logoutBtn">Sair</button>
-    <h1>Pedidos Disponíveis</h1>
-    <ul id="orderList"></ul>
+    <header>
+        <h1>Interface do Motoboy - Cabana Açaí</h1>
+    </header>
+    <nav>
+        <button id="logoutBtn">Sair</button>
+    </nav>
+    <main>
+        <h2>Pedidos Disponíveis</h2>
+        <div id="pedidosList"></div>
+    </main>
 
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId: "706144237954",
-            appId: "1:706144237954:web:345c10370972486afc779b",
-            measurementId: "G-96Y337GYT8"
+            apiKey: "AIzaSyDRcj2LVVHsFXgGT6zr1YCxeAqrOIPmgUU",
+            authDomain: "cabana-acai-delivery.firebaseapp.com",
+            projectId: "cabana-acai-delivery",
+            storageBucket: "cabana-acai-delivery.appspot.com",
+            messagingSenderId: "111130312815",
+            appId: "1:111130312815:web:b0f28fee3abb6bc6cdb564"
         };
-
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
-
-        // Referências
-        const auth = firebase.auth();
         const database = firebase.database();
-        const orderList = document.getElementById('orderList');
-        const userInfo = document.getElementById('userInfo');
+        const auth = firebase.auth();
+
         const logoutBtn = document.getElementById('logoutBtn');
+        const pedidosList = document.getElementById('pedidosList');
 
-        // Verificar estado de autenticação
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                userInfo.textContent = `Olá, ${user.email}`;
-                loadOrders();
-            } else {
-                window.location.href = 'login.html'; // Redirecionar para página de login
-            }
-        });
-
-        // Carregar pedidos
-        function loadOrders() {
-            const ordersRef = database.ref('orders');
-            ordersRef.on('value', (snapshot) => {
-                orderList.innerHTML = '';
-                snapshot.forEach((childSnapshot) => {
-                    const order = childSnapshot.val();
-                    const orderId = childSnapshot.key;
-                    if (order.status === 'pending' || (order.motoboyId === auth.currentUser.uid && order.status !== 'completed')) {
-                        displayOrder(order, orderId);
-                    }
-                });
-            });
-        }
-
-        // Exibir pedido
-        function displayOrder(order, orderId) {
-            const li = document.createElement('li');
-            li.className = 'order-item';
-            li.innerHTML = `
-                <h3>Pedido #${orderId}</h3>
-                <p>Cliente: ${order.customerName}</p>
-                <p>Endereço: ${order.address}</p>
-                <p>Itens: ${order.items.join(', ')}</p>
-                <p>Status: ${order.status}</p>
-            `;
-
-            if (order.status === 'pending') {
-                const acceptBtn = document.createElement('button');
-                acceptBtn.textContent = 'Aceitar Pedido';
-                acceptBtn.className = 'status-btn accept-btn';
-                acceptBtn.onclick = () => updateOrderStatus(orderId, 'em andamento');
-                li.appendChild(acceptBtn);
-            } else if (order.status === 'em andamento' && order.motoboyId === auth.currentUser.uid) {
-                const completeBtn = document.createElement('button');
-                completeBtn.textContent = 'Concluir Entrega';
-                completeBtn.className = 'status-btn complete-btn';
-                completeBtn.onclick = () => updateOrderStatus(orderId, 'completed');
-                li.appendChild(completeBtn);
-            }
-
-            orderList.appendChild(li);
-        }
-
-        // Atualizar status do pedido
-        function updateOrderStatus(orderId, newStatus) {
-            const orderRef = database.ref(`orders/${orderId}`);
-            orderRef.update({
-                status: newStatus,
-                motoboyId: auth.currentUser.uid
-            });
-        }
-
-        // Logout
-        logoutBtn.onclick = () => {
+        logoutBtn.addEventListener('click', () => {
             auth.signOut().then(() => {
-                window.location.href = 'login.html';
+                window.location.href = 'login.html'; // Redirecionar para a página de login
             }).catch((error) => {
                 console.error('Erro ao fazer logout:', error);
             });
-        };
+        });
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadPedidosForMotoboy(user.email);
+            } else {
+                window.location.href = 'login.html'; // Redirecionar para a página de login se não estiver autenticado
+            }
+        });
+
+        function loadPedidosForMotoboy(motoboyEmail) {
+            database.ref('pedidos').orderByChild('motoboyEmail').equalTo(motoboyEmail).on('value', (snapshot) => {
+                pedidosList.innerHTML = '';
+                snapshot.forEach((childSnapshot) => {
+                    const pedido = childSnapshot.val();
+                    const pedidoElement = document.createElement('div');
+                    pedidoElement.className = 'pedido';
+                    pedidoElement.innerHTML = `
+                        <p><strong>Cliente:</strong> ${pedido.customerName}</p>
+                        <p><strong>Endereço:</strong> ${pedido.address}</p>
+                        <p><strong>Itens:</strong> ${pedido.items}</p>
+                    `;
+                    pedidosList.appendChild(pedidoElement);
+                });
+            });
+        }
     </script>
 </body>
 </html>
