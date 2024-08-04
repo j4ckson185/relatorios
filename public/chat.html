@@ -185,14 +185,18 @@
             const audioRef = storage.ref(`audios/${timestamp}.webm`);
             
             audioRef.put(audioBlob).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(downloadURL => {
-                    database.ref('messages').push({
-                        user: user,
-                        audioUrl: downloadURL,
-                        timestamp: timestamp,
-                        type: 'audio'
-                    });
+                console.log("Áudio enviado com sucesso");
+                return snapshot.ref.getDownloadURL();
+            }).then(downloadURL => {
+                console.log("URL do áudio:", downloadURL);
+                return database.ref('messages').push({
+                    user: user,
+                    audioUrl: downloadURL,
+                    timestamp: timestamp,
+                    type: 'audio'
                 });
+            }).then(() => {
+                console.log("Mensagem de áudio salva no banco de dados");
             }).catch(error => {
                 console.error("Erro ao fazer upload do áudio:", error);
             });
