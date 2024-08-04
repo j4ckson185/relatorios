@@ -43,6 +43,36 @@
         .order-item.selected {
             background-color: #e6f3ff;
         }
+        #newOrderBtn {
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #orderForm {
+            display: none;
+            background-color: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        #orderForm input, #orderForm button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        #orderForm button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -52,6 +82,14 @@
     <div id="content">
         <div id="sidebar">
             <h2>Pedidos</h2>
+            <button id="newOrderBtn">Novo Pedido</button>
+            <form id="orderForm">
+                <input type="text" id="clientName" placeholder="Nome do Cliente" required>
+                <input type="text" id="address" placeholder="Endereço" required>
+                <input type="number" id="lat" placeholder="Latitude" step="any" required>
+                <input type="number" id="lng" placeholder="Longitude" step="any" required>
+                <button type="submit">Adicionar Pedido</button>
+            </form>
             <div id="orderList"></div>
         </div>
         <div id="map"></div>
@@ -60,7 +98,7 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         // Dados de exemplo para os pedidos
-        const orders = [
+        let orders = [
             { id: 1, client: "João", address: "Rua A, 123", lat: -5.7795, lng: -35.2009 },
             { id: 2, client: "Maria", address: "Av. B, 456", lat: -5.7750, lng: -35.2050 },
             { id: 3, client: "Pedro", address: "Praça C, 789", lat: -5.7830, lng: -35.1980 }
@@ -72,7 +110,7 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        const markers = {};
+        let markers = {};
 
         // Função para renderizar a lista de pedidos
         function renderOrderList() {
@@ -125,6 +163,36 @@
                 });
             }
         }
+
+        // Manipulação do formulário de novo pedido
+        const newOrderBtn = document.getElementById('newOrderBtn');
+        const orderForm = document.getElementById('orderForm');
+
+        newOrderBtn.addEventListener('click', () => {
+            orderForm.style.display = orderForm.style.display === 'none' ? 'block' : 'none';
+        });
+
+        orderForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const clientName = document.getElementById('clientName').value;
+            const address = document.getElementById('address').value;
+            const lat = parseFloat(document.getElementById('lat').value);
+            const lng = parseFloat(document.getElementById('lng').value);
+
+            const newOrder = {
+                id: orders.length + 1,
+                client: clientName,
+                address: address,
+                lat: lat,
+                lng: lng
+            };
+
+            orders.push(newOrder);
+            renderOrderList();
+            updateMap();
+            orderForm.reset();
+            orderForm.style.display = 'none';
+        });
 
         // Inicializar a lista de pedidos e o mapa
         renderOrderList();
