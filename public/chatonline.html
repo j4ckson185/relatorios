@@ -1,196 +1,47 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Online</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-        }
-        .chat-container {
-            width: 100%;
-            max-width: 600px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        .chat-messages {
-            height: 400px;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        .message {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: #e0e0e0;
-        }
-        .chat-input {
-            display: flex;
-            padding: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-        #messageInput {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        button {
-            margin-left: 10px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #recordButton {
-            background-color: #dc3545;
-        }
-        #audioRecording {
-            display: none;
-            align-items: center;
-            margin-top: 10px;
-        }
-        #recordingTime {
-            margin-left: 10px;
-        }
-    </style>
+    <title>Chat Online - Administração</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-messages" id="chatMessages"></div>
-        <div class="chat-input">
-            <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
-            <button onclick="sendMessage()">Enviar</button>
-            <button id="recordButton" onclick="toggleRecording()">Gravar Áudio</button>
+        <div class="chat-header">
+            <h2>Admin Chat</h2>
         </div>
-        <div id="audioRecording">
-            <span>Gravando...</span>
-            <span id="recordingTime">00:00</span>
-        </div>
+        <div class="chat-messages" id="chat-messages"></div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyDTjBtRXYoJZwW5SgIfzQ8Q-Jp-rh1i5MI",
-            authDomain: "chatfastmoto.firebaseapp.com",
-            databaseURL: "https://chatfastmoto-default-rtdb.firebaseio.com",
-            projectId: "chatfastmoto",
-            storageBucket: "chatfastmoto.appspot.com",
-            messagingSenderId: "628249474801",
-            appId: "1:628249474801:web:ab6f4fb0b6883ff334c6e4",
-            measurementId: "G-3JQHMXJ6XH"
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
         };
 
         firebase.initializeApp(firebaseConfig);
 
-        const database = firebase.database();
-        const storage = firebase.storage();
+        const db = firebase.database();
+        const chatMessages = document.getElementById('chat-messages');
 
-        const chatMessages = document.getElementById('chatMessages');
-        const messageInput = document.getElementById('messageInput');
-        const recordButton = document.getElementById('recordButton');
-        const audioRecording = document.getElementById('audioRecording');
-        const recordingTime = document.getElementById('recordingTime');
-
-        let mediaRecorder;
-        let audioChunks = [];
-        let startTime;
-        let timerInterval;
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message) {
-                const timestamp = Date.now();
-                database.ref('messages').push({
-                    user: 'Admin',
-                    message: message,
-                    timestamp: timestamp,
-                    type: 'text'
-                }).then(() => {
-                    messageInput.value = '';
-                }).catch((error) => {
-                    console.error("Erro ao enviar mensagem:", error);
-                });
-            }
-        }
-
-        function toggleRecording() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                stopRecording();
-            } else {
-                startRecording();
-            }
-        }
-
-        function startRecording() {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
-                    mediaRecorder.start();
-                    audioChunks = [];
-                    startTime = Date.now();
-                    updateRecordingTime();
-                    timerInterval = setInterval(updateRecordingTime, 1000);
-                    recordButton.textContent = 'Parar Gravação';
-                    audioRecording.style.display = 'flex';
-
-                    mediaRecorder.addEventListener('dataavailable', event => {
-                        audioChunks.push(event.data);
-                    });
-
-                    mediaRecorder.addEventListener('stop', () => {
-                        clearInterval(timerInterval);
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        uploadAudio(audioBlob);
-                    });
-                });
-        }
-
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                recordButton.textContent = 'Gravar Áudio';
-                audioRecording.style.display = 'none';
-            }
-        }
-
-        function uploadAudio(audioBlob) {
-            const timestamp = Date.now();
-            const audioRef = storage.ref(`audios/${timestamp}.webm`);
-            
-            audioRef.put(audioBlob).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(downloadURL => {
-                    database.ref('messages').push({
-                        user: 'Admin',
-                        audioUrl: downloadURL,
-                        timestamp: timestamp,
-                        type: 'audio'
-                    });
-                });
-            });
-        }
-
-        function updateRecordingTime() {
-            const duration = Date.now() - startTime;
-            const seconds = Math.floor(duration / 1000) % 60;
-            const minutes = Math.floor(duration / 60000);
-            recordingTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        database.ref('messages').on('child_added', snapshot => {
+        // Receber mensagens em tempo real
+        db.ref('messages').on('child_added', (snapshot) => {
+            const message = snapshot.val();
+            const messageElement = document.createElement('div');
+            messageElement.textContent = `${message.sender}: ${message.message}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+    </script>
+</body>
+</html>
