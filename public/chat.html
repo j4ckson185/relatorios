@@ -21,21 +21,23 @@
             margin: 0 auto;
             padding: 20px;
         }
+        .chat-window {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
         .chat-header {
             background-color: #4267B2;
             color: white;
             padding: 15px;
             font-size: 18px;
             font-weight: bold;
-            border-radius: 10px 10px 0 0;
         }
         #messages {
             height: 400px;
             overflow-y: auto;
             padding: 15px;
-            background-color: white;
-            border: 1px solid #e4e6eb;
-            border-top: none;
         }
         .message {
             margin-bottom: 15px;
@@ -72,9 +74,7 @@
             display: flex;
             padding: 15px;
             background-color: white;
-            border: 1px solid #e4e6eb;
-            border-top: none;
-            border-radius: 0 0 10px 10px;
+            border-top: 1px solid #e4e6eb;
         }
         #messageInput {
             flex-grow: 1;
@@ -128,22 +128,22 @@
 </head>
 <body>
     <div class="container">
-        <div class="chat-header">
-            Chat do Motoboy
-        </div>
-        <div id="messages"></div>
-        <div id="typingIndicator"></div>
-        <form id="messageForm">
-            <label for="fileInput" id="fileLabel">📎</label>
-            <input type="file" id="fileInput" accept="image/*">
-            <input type="text" id="messageInput" placeholder="Digite sua mensagem" required>
-            <button type="submit">Enviar</button>
-        </form>
-        <div class="emoji-picker">
-            <span class="emoji" onclick="addEmoji('😊')">😊</span>
-            <span class="emoji" onclick="addEmoji('👍')">👍</span>
-            <span class="emoji" onclick="addEmoji('🚚')">🚚</span>
-            <span class="emoji" onclick="addEmoji('🏍️')">🏍️</span>
+        <div class="chat-window">
+            <div class="chat-header">Chat do Motoboy</div>
+            <div id="messages"></div>
+            <div id="typingIndicator"></div>
+            <form id="messageForm">
+                <label for="fileInput" id="fileLabel">📎</label>
+                <input type="file" id="fileInput" accept="image/*">
+                <input type="text" id="messageInput" placeholder="Digite sua mensagem" required>
+                <button type="submit">Enviar</button>
+            </form>
+            <div class="emoji-picker">
+                <span class="emoji" onclick="addEmoji('😊')">😊</span>
+                <span class="emoji" onclick="addEmoji('👍')">👍</span>
+                <span class="emoji" onclick="addEmoji('🚚')">🚚</span>
+                <span class="emoji" onclick="addEmoji('🏍️')">🏍️</span>
+            </div>
         </div>
     </div>
 
@@ -173,13 +173,12 @@
         const typingIndicator = document.getElementById('typingIndicator');
 
         let currentUser;
-        let chatRoomId;
+        let chatId;
 
         // Função para carregar mensagens
         function loadMessages() {
-            if (!chatRoomId) return;
-
-            db.collection('chatRooms').doc(chatRoomId).collection('messages')
+            messagesDiv.innerHTML = '';
+            db.collection('chatRooms').doc(chatId).collection('messages')
                 .orderBy('timestamp')
                 .onSnapshot((snapshot) => {
                     snapshot.docChanges().forEach((change) => {
@@ -200,10 +199,11 @@
             if (message.sender === currentUser.email) {
                 messageElement.className += ' own';
             }
+            const timestamp = message.timestamp ? new Date(message.timestamp.toDate()) : new Date();
             messageElement.innerHTML = `
                 <div class="sender">${message.sender}</div>
                 <div class="text">${message.text}</div>
-                <div class="timestamp">${new Date(message.timestamp?.toDate()).toLocaleString()}</div>
+                <div class="timestamp">${timestamp.toLocaleString()}</div>
             `;
             messagesDiv.appendChild(messageElement);
         }
@@ -214,21 +214,19 @@
             const text = messageInput.value;
             if (text.trim() === '') return;
 
-            if (currentUser && chatRoomId) {
-                const newMessage = {
-                    text: text,
-                    sender: currentUser.email,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                db.collection('chatRooms').doc(chatRoomId).collection('messages').add(newMessage)
-                    .then(() => {
-                        messageInput.value = '';
-                        updateTypingStatus(false);
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao enviar mensagem: ", error);
-                    });
-            }
+            const newMessage = {
+                text: text,
+                sender: currentUser.email,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            db.collection('chatRooms').doc(chatId).collection('messages').add(newMessage)
+                .then(() => {
+                    messageInput.value = '';
+                    updateTypingStatus(false);
+                })
+                .catch((error) => {
+                    console.error("Erro ao enviar mensagem: ", error);
+                });
         });
 
         // Atualizar status do usuário
@@ -257,7 +255,7 @@
                         sender: currentUser.email,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     };
-                    db.collection('chatRooms').doc(chatRoomId).collection('messages').add(newMessage)
+                    db.collection('chatRooms').doc(chatId).collection('messages').add(newMessage)
                         .then(() => {
                             displayMessage(newMessage);
                         });
@@ -274,8 +272,8 @@
         });
 
         function updateTypingStatus(isTyping) {
-            if (currentUser && chatRoomId) {
-                db.collection('chatRooms').doc(chatRoomId).update({
+            if (currentUser && chatId) {
+                db.collection('chatRooms').doc(chatId).update({
                     [`${currentUser.uid}_typing`]: isTyping
                 });
             }
@@ -283,7 +281,7 @@
 
         // Observar indicador de digitação
         function observeTypingIndicator() {
-            db.collection('chatRooms').doc(chatRoomId)
+            db.collection('chatRooms').doc(chatId)
                 .onSnapshot((doc) => {
                     const data = doc.data();
                     for (let key in data) {
@@ -306,21 +304,15 @@
             if (user) {
                 currentUser = user;
                 updateUserStatus(user.uid, true);
+                // Aqui você precisa implementar a lógica para obter o chatId correto para este motoboy
+                // Por exemplo, você pode buscar no Firestore por um documento que corresponda ao email do motoboy
                 db.collection('chatRooms').where('motoboyEmail', '==', user.email).get()
                     .then((querySnapshot) => {
                         if (!querySnapshot.empty) {
-                            chatRoomId = querySnapshot.docs[0].id;
+                            chatId = querySnapshot.docs[0].id;
                             loadMessages();
                         } else {
-                            console.log('Nenhuma sala de chat encontrada para este motoboy');
-                            // Criar uma nova sala de chat para o motoboy
-                            db.collection('chatRooms').add({
-                                motoboyEmail: user.email,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                            }).then((docRef) => {
-                                chatRoomId = docRef.id;
-                                loadMessages();
-                            });
+                            console.log('Nenhum chat encontrado para este motoboy');
                         }
                     });
             } else {
