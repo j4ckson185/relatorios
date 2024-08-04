@@ -43,7 +43,7 @@
         .order-item.selected {
             background-color: #e6f3ff;
         }
-        #newOrderBtn {
+        #newOrderBtn, .editBtn {
             margin-bottom: 10px;
             padding: 5px 10px;
             background-color: #4CAF50;
@@ -84,11 +84,12 @@
             <h2>Pedidos</h2>
             <button id="newOrderBtn">Novo Pedido</button>
             <form id="orderForm">
+                <input type="hidden" id="orderId">
                 <input type="text" id="clientName" placeholder="Nome do Cliente" required>
-                <input type="text" id="address" placeholder="Endereço" required>
-                <input type="number" id="lat" placeholder="Latitude" step="any" required>
-                <input type="number" id="lng" placeholder="Longitude" step="any" required>
-                <button type="submit">Adicionar Pedido</button>
+                <input type="text" id="street" placeholder="Rua" required>
+                <input type="text" id="number" placeholder="Número" required>
+                <input type="text" id="neighborhood" placeholder="Bairro" required>
+                <button type="submit">Salvar Pedido</button>
             </form>
             <div id="orderList"></div>
         </div>
@@ -99,13 +100,13 @@
     <script>
         // Dados de exemplo para os pedidos
         let orders = [
-            { id: 1, client: "João", address: "Rua A, 123", lat: -5.7795, lng: -35.2009 },
-            { id: 2, client: "Maria", address: "Av. B, 456", lat: -5.7750, lng: -35.2050 },
-            { id: 3, client: "Pedro", address: "Praça C, 789", lat: -5.7830, lng: -35.1980 }
+            { id: 1, client: "João", street: "Rua A", number: "123", neighborhood: "Centro" },
+            { id: 2, client: "Maria", street: "Av. B", number: "456", neighborhood: "Potengi" },
+            { id: 3, client: "Pedro", street: "Praça C", number: "789", neighborhood: "Lagoa Nova" }
         ];
 
         // Inicialização do mapa
-        const map = L.map('map').setView([-5.7793, -35.2009], 13);
+        const map = L.map('map').setView([-5.7373, -35.2452], 13); // Coordenadas aproximadas de Natal, RN
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -122,10 +123,20 @@
                 orderItem.innerHTML = `
                     <strong>Pedido #${order.id}</strong><br>
                     Cliente: ${order.client}<br>
-                    Endereço: ${order.address}
+                    Endereço: ${order.street}, ${order.number}, ${order.neighborhood}
+                    <button class="editBtn" data-id="${order.id}">Editar</button>
                 `;
                 orderItem.addEventListener('click', () => toggleOrderSelection(order));
                 orderList.appendChild(orderItem);
+            });
+
+            // Adicionar event listeners para os botões de edição
+            document.querySelectorAll('.editBtn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Previne a propagação do evento para o item do pedido
+                    const orderId = parseInt(e.target.getAttribute('data-id'));
+                    editOrder(orderId);
+                });
             });
         }
 
@@ -144,50 +155,81 @@
 
             // Adicionar marcadores para pedidos selecionados
             const selectedOrders = document.querySelectorAll('.order-item.selected');
-            selectedOrders.forEach(orderItem => {
-                const orderId = parseInt(orderItem.querySelector('strong').textContent.split('#')[1]);
-                const order = orders.find(o => o.id === orderId);
-                if (order) {
-                    const marker = L.marker([order.lat, order.lng]).addTo(map);
-                    marker.bindPopup(`Pedido #${order.id}<br>${order.client}<br>${order.address}`);
-                    markers[order.id] = marker;
-                }
-            });
+            const ordersToShow = selectedOrders.length > 0 ? 
+                Array.from(selectedOrders).map(el => orders.find(o => o.id === parseInt(el.querySelector('.editBtn').getAttribute('data-id')))) : 
+                orders;
 
-            // Se não houver pedidos selecionados, mostrar todos
-            if (selectedOrders.length === 0) {
-                orders.forEach(order => {
-                    const marker = L.marker([order.lat, order.lng]).addTo(map);
-                    marker.bindPopup(`Pedido #${order.id}<br>${order.client}<br>${order.address}`);
-                    markers[order.id] = marker;
-                });
+            ordersToShow.forEach(order => {
+                geocodeAddress(order);
+            });
+        }
+
+        // Função para geocodificar o endereço
+        function geocodeAddress(order) {
+            const address = `${order.street}, ${order.number}, ${order.neighborhood}, Natal, RN, Brazil`;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        const marker = L.marker([lat, lon]).addTo(map);
+                        marker.bindPopup(`Pedido #${order.id}<br>${order.client}<br>${address}`);
+                        markers[order.id] = marker;
+                    }
+                })
+                .catch(error => console.error('Erro na geocodificação:', error));
+        }
+
+        // Função para editar um pedido existente
+        function editOrder(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                document.getElementById('orderId').value = order.id;
+                document.getElementById('clientName').value = order.client;
+                document.getElementById('street').value = order.street;
+                document.getElementById('number').value = order.number;
+                document.getElementById('neighborhood').value = order.neighborhood;
+                orderForm.style.display = 'block';
             }
         }
 
-        // Manipulação do formulário de novo pedido
+        // Manipulação do formulário de pedido
         const newOrderBtn = document.getElementById('newOrderBtn');
         const orderForm = document.getElementById('orderForm');
 
         newOrderBtn.addEventListener('click', () => {
-            orderForm.style.display = orderForm.style.display === 'none' ? 'block' : 'none';
+            orderForm.reset();
+            document.getElementById('orderId').value = '';
+            orderForm.style.display = 'block';
         });
 
         orderForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            const orderId = document.getElementById('orderId').value;
             const clientName = document.getElementById('clientName').value;
-            const address = document.getElementById('address').value;
-            const lat = parseFloat(document.getElementById('lat').value);
-            const lng = parseFloat(document.getElementById('lng').value);
+            const street = document.getElementById('street').value;
+            const number = document.getElementById('number').value;
+            const neighborhood = document.getElementById('neighborhood').value;
 
-            const newOrder = {
-                id: orders.length + 1,
-                client: clientName,
-                address: address,
-                lat: lat,
-                lng: lng
-            };
+            if (orderId) {
+                // Editar pedido existente
+                const orderIndex = orders.findIndex(o => o.id === parseInt(orderId));
+                if (orderIndex !== -1) {
+                    orders[orderIndex] = { id: parseInt(orderId), client: clientName, street, number, neighborhood };
+                }
+            } else {
+                // Adicionar novo pedido
+                const newOrder = {
+                    id: orders.length + 1,
+                    client: clientName,
+                    street,
+                    number,
+                    neighborhood
+                };
+                orders.push(newOrder);
+            }
 
-            orders.push(newOrder);
             renderOrderList();
             updateMap();
             orderForm.reset();
@@ -197,6 +239,9 @@
         // Inicializar a lista de pedidos e o mapa
         renderOrderList();
         updateMap();
+
+        // Centralizar o mapa na Rua Serra do Mar, 1216, Potengi
+        geocodeAddress({ street: "Rua Serra do Mar", number: "1216", neighborhood: "Potengi" });
     </script>
 </body>
 </html>
