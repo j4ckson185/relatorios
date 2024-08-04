@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Motoboy</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .info-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            padding: 3px;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+        }
+        .progress-bar-fill {
+            display: block;
+            height: 22px;
+            background-color: #659cef;
+            border-radius: 3px;
+            transition: width 500ms ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Portal do Motoboy</h1>
+        <div id="userInfo" class="info-box">
+            <h2>Suas Informações</h2>
+            <p>Nome: <span id="nomeUsuario"></span></p>
+            <p>Email: <span id="emailUsuario"></span></p>
+        </div>
+        <div id="desafioInfo" class="info-box">
+            <h2>Desafio Semanal</h2>
+            <p id="desafioDescricao"></p>
+            <div class="progress-bar">
+                <span class="progress-bar-fill" id="progressoDesafio"></span>
+            </div>
+            <p>Progresso: <span id="progressoTexto"></span></p>
+        </div>
+        <div id="estatisticas" class="info-box">
+            <h2>Suas Estatísticas</h2>
+            <p>Entregas Realizadas: <span id="entregasRealizadas"></span></p>
+            <p>Avaliação Média: <span id="avaliacaoMedia"></span></p>
+            <p>Pontos Acumulados: <span id="pontosAcumulados"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Referência ao banco de dados
+        const db = firebase.database();
+
+        // Função para carregar dados do usuário
+        function carregarDadosUsuario(uid) {
+            db.ref('usuarios/' + uid).once('value').then((snapshot) => {
+                const userData = snapshot.val();
+                if (userData) {
+                    document.getElementById('nomeUsuario').textContent = userData.nome;
+                    document.getElementById('emailUsuario').textContent = userData.email;
+                    document.getElementById('desafioDescricao').textContent = userData.desafioSemana || 'Nenhum desafio atual';
+                    
+                    const progresso = userData.progressoDesafio || 0;
+                    const meta = userData.metaDesafio || 1;
+                    const percentual = (progresso / meta) * 100;
+                    document.getElementById('progressoDesafio').style.width = percentual + '%';
+                    document.getElementById('progressoTexto').textContent = `${progresso}/${meta}`;
+                    
+                    document.getElementById('entregasRealizadas').textContent = userData.entregasRealizadas || 0;
+                    document.getElementById('avaliacaoMedia').textContent = (userData.avaliacaoMedia || 0).toFixed(1);
+                    document.getElementById('pontosAcumulados').textContent = userData.pontosAcumulados || 0;
+                }
+            });
+        }
+
+        // Verificar autenticação do usuário
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                carregarDadosUsuario(user.uid);
+            } else {
+                // Redirecionar para página de login se não estiver autenticado
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html>
