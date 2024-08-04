@@ -24,6 +24,9 @@
             background-color: #333;
             color: white;
             padding: 0.5em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         nav button {
             background-color: #4CAF50;
@@ -43,13 +46,27 @@
         .pedido {
             background-color: white;
             border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .pedido h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        .pedido p {
+            margin: 5px 0;
+        }
+        .pedido-status {
+            font-weight: bold;
+            text-transform: uppercase;
         }
         form {
             background-color: white;
             padding: 20px;
             border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         input, textarea, select {
             width: 100%;
@@ -73,6 +90,10 @@
         button[type=submit]:hover {
             background-color: #45a049;
         }
+        #userEmail {
+            color: white;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -80,8 +101,14 @@
         <h1>Cabana Açaí - Sistema de Entrega</h1>
     </header>
     <nav>
-        <button id="pedidosBtn">Pedidos</button>
-        <button id="novoPedidoBtn">Novo Pedido</button>
+        <div>
+            <button id="pedidosBtn">Pedidos</button>
+            <button id="novoPedidoBtn">Novo Pedido</button>
+        </div>
+        <div>
+            <span id="userEmail"></span>
+            <button id="logoutBtn">Sair</button>
+        </div>
     </nav>
     <main>
         <section id="pedidosSection">
@@ -92,9 +119,17 @@
             <h2>Novo Pedido</h2>
             <form id="novoPedidoForm">
                 <input type="text" id="customerName" placeholder="Nome do Cliente" required>
+                <input type="tel" id="customerPhone" placeholder="Telefone do Cliente">
                 <input type="text" id="address" placeholder="Endereço" required>
-                <textarea id="items" placeholder="Itens do Pedido" required></textarea>
-                <select id="motoboySelect">
+                <textarea id="items" placeholder="Itens do Pedido (formato: quantidade x item - preço)" required></textarea>
+                <input type="number" id="total" placeholder="Total do Pedido" step="0.01" required>
+                <select id="paymentMethod" required>
+                    <option value="">Selecione a forma de pagamento</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão">Cartão</option>
+                    <option value="PIX">PIX</option>
+                </select>
+                <select id="motoboySelect" required>
                     <option value="">Selecione um Motoboy</option>
                 </select>
                 <button type="submit">Salvar Pedido</button>
@@ -106,14 +141,14 @@
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
-  apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-  authDomain: "cabana-8d55e.firebaseapp.com",
-  databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-  projectId: "cabana-8d55e",
-  storageBucket: "cabana-8d55e.appspot.com",
-  messagingSenderId: "706144237954",
-  appId: "1:706144237954:web:345c10370972486afc779b",
-  measurementId: "G-96Y337GYT8"
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -135,6 +170,8 @@
         const novoPedidoForm = document.getElementById('novoPedidoForm');
         const cancelBtn = document.getElementById('cancelBtn');
         const motoboySelect = document.getElementById('motoboySelect');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userEmailElement = document.getElementById('userEmail');
 
         pedidosBtn.addEventListener('click', () => {
             pedidosSection.style.display = 'block';
@@ -152,6 +189,26 @@
             novoPedidoSection.style.display = 'none';
         });
 
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                console.log('Usuário deslogado com sucesso');
+                window.location.href = 'login.html';
+            }).catch((error) => {
+                console.error('Erro ao fazer logout:', error);
+            });
+        });
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                console.log('Usuário autenticado:', user.email);
+                userEmailElement.textContent = user.email;
+                loadPedidos();
+            } else {
+                console.log('Usuário não está autenticado');
+                window.location.href = 'login.html';
+            }
+        });
+
         function populateMotoboySelect() {
             motoboys.forEach(motoboy => {
                 const option = document.createElement('option');
@@ -164,8 +221,11 @@
         novoPedidoForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('customerPhone').value;
             const address = document.getElementById('address').value;
             const items = document.getElementById('items').value;
+            const total = parseFloat(document.getElementById('total').value);
+            const paymentMethod = document.getElementById('paymentMethod').value;
             const motoboyId = motoboySelect.value;
 
             if (!motoboyId) {
@@ -177,12 +237,19 @@
 
             const newPedido = {
                 customerName,
+                customerPhone,
                 address,
-                items,
+                items: items.split('\n').map(item => {
+                    const [quantity, name, price] = item.split(' - ');
+                    return { quantity: quantity.split('x')[0].trim(), name: name.trim(), price: parseFloat(price.replace('R$', '').trim()) };
+                }),
+                total,
+                paymentMethod,
                 motoboyId: parseInt(motoboyId),
                 motoboyName: motoboy.name,
                 motoboyEmail: motoboy.email,
-                timestamp: Date.now()
+                orderDate: Date.now(),
+                status: 'Pendente'
             };
 
             // Salvar o pedido no Firebase
@@ -212,10 +279,19 @@
                     const pedidoElement = document.createElement('div');
                     pedidoElement.className = 'pedido';
                     pedidoElement.innerHTML = `
+                        <h3>Pedido #${childSnapshot.key}</h3>
                         <p><strong>Cliente:</strong> ${pedido.customerName}</p>
+                        <p><strong>Telefone:</strong> ${pedido.customerPhone || 'Não informado'}</p>
                         <p><strong>Endereço:</strong> ${pedido.address}</p>
-                        <p><strong>Itens:</strong> ${pedido.items}</p>
+                        <p><strong>Itens:</strong></p>
+                        <ul>
+                            ${pedido.items.map(item => `<li>${item.quantity}x ${item.name} - R$ ${item.price.toFixed(2)}</li>`).join('')}
+                        </ul>
+                        <p><strong>Total:</strong> R$ ${pedido.total.toFixed(2)}</p>
+                        <p><strong>Forma de Pagamento:</strong> ${pedido.paymentMethod}</p>
                         <p><strong>Motoboy:</strong> ${pedido.motoboyName}</p>
+                        <p><strong>Data do Pedido:</strong> ${new Date(pedido.orderDate).toLocaleString()}</p>
+                        <p class="pedido-status"><strong>Status:</strong> ${pedido.status}</p>
                     `;
                     pedidosList.appendChild(pedidoElement);
                 });
@@ -224,7 +300,6 @@
 
         // Inicialização
         populateMotoboySelect();
-        loadPedidos();
     </script>
 </body>
 </html>
