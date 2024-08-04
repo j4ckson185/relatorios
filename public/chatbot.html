@@ -5,25 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistente de Segurança para Motoboys</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; transition: background-color 0.3s, color 0.3s; }
         #chat-container { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
         #user-input { width: 70%; padding: 5px; }
-        button { padding: 5px 10px; }
+        button { padding: 5px 10px; margin: 2px; }
         .quick-replies { margin-top: 10px; }
         .quick-reply-btn { margin-right: 5px; margin-bottom: 5px; }
         .checklist-item { display: flex; align-items: center; margin-bottom: 5px; }
         .checklist-item input { margin-right: 5px; }
         #score-display { margin-top: 10px; font-weight: bold; }
+        #user-profile { margin-bottom: 10px; }
+        #daily-tip { margin-bottom: 10px; font-style: italic; }
+        #night-mode-toggle { position: absolute; top: 10px; right: 10px; }
+        #emergency-button { background-color: red; color: white; font-weight: bold; }
+        .achievement { display: inline-block; margin: 5px; padding: 5px; border: 1px solid gold; border-radius: 5px; }
+        body.night-mode { background-color: #333; color: #fff; }
+        body.night-mode #chat-container { background-color: #222; border-color: #555; }
     </style>
 </head>
 <body>
     <h1>Assistente de Segurança para Motoboys 🏍️</h1>
+    <button id="night-mode-toggle" onclick="toggleNightMode()">🌙</button>
+    <div id="user-profile"></div>
+    <div id="daily-tip"></div>
     <div id="chat-container"></div>
     <input type="text" id="user-input" placeholder="Digite sua pergunta...">
     <button onclick="sendMessage()">Enviar</button>
+    <button id="emergency-button" onclick="showEmergencyInfo()">EMERGÊNCIA</button>
     <div class="quick-replies" id="quick-replies"></div>
     <div id="checklist-container"></div>
     <div id="score-display">Pontuação de Segurança: 0</div>
+    <div id="achievements"></div>
+    <button onclick="showWeatherInfo()">Ver Previsão do Tempo</button>
 
     <script>
         const chatContainer = document.getElementById('chat-container');
@@ -31,7 +44,12 @@
         const quickRepliesContainer = document.getElementById('quick-replies');
         const checklistContainer = document.getElementById('checklist-container');
         const scoreDisplay = document.getElementById('score-display');
+        const userProfileDiv = document.getElementById('user-profile');
+        const dailyTipDiv = document.getElementById('daily-tip');
+        const achievementsDiv = document.getElementById('achievements');
         let score = 0;
+        let userProfile = { name: '', motoType: '', workRoutine: '' };
+        let achievements = [];
 
         const knowledgeBase = {
             "clima": "🌦️ Verifique sempre a previsão do tempo antes de sair. Em caso de chuva, redobre a atenção e use equipamentos adequados.",
@@ -59,6 +77,16 @@
             "Checar luzes",
             "Usar equipamentos de proteção",
             "Verificar previsão do tempo"
+        ];
+
+        const dailyTips = [
+            "Sempre use capacete, mesmo em trajetos curtos.",
+            "Mantenha uma distância segura dos veículos à sua frente.",
+            "Faça pausas regulares em viagens longas para evitar fadiga.",
+            "Verifique a pressão dos pneus regularmente.",
+            "Use roupas de cores vivas ou refletivas para aumentar sua visibilidade.",
+            "Evite pontos cegos de outros veículos.",
+            "Não use o celular enquanto pilota, nem mesmo com fones de ouvido."
         ];
 
         function sendMessage() {
@@ -106,6 +134,7 @@
         }
 
         function createChecklist() {
+            checklistContainer.innerHTML = '<h3>Checklist Diário de Segurança:</h3>';
             dailyChecklist.forEach(item => {
                 const div = document.createElement('div');
                 div.classList.add('checklist-item');
@@ -128,6 +157,7 @@
         function incrementScore() {
             score += 10;
             updateScoreDisplay();
+            checkAchievements();
         }
 
         function decrementScore() {
@@ -139,16 +169,102 @@
             scoreDisplay.textContent = `Pontuação de Segurança: ${score}`;
         }
 
+        function createUserProfile() {
+            userProfile.name = prompt("Qual é o seu nome?") || "Amigo Motoboy";
+            userProfile.motoType = prompt("Qual o tipo da sua moto?") || "Não especificado";
+            userProfile.workRoutine = prompt("Qual sua rotina de trabalho? (ex: diurno, noturno, misto)") || "Não especificado";
+            updateUserProfileDisplay();
+        }
+
+        function updateUserProfileDisplay() {
+            userProfileDiv.innerHTML = `
+                <h3>Perfil do Usuário:</h3>
+                <p>Nome: ${userProfile.name}</p>
+                <p>Tipo de Moto: ${userProfile.motoType}</p>
+                <p>Rotina de Trabalho: ${userProfile.workRoutine}</p>
+            `;
+        }
+
+        function showDailyTip() {
+            const tipIndex = Math.floor(Math.random() * dailyTips.length);
+            dailyTipDiv.textContent = `Dica do Dia: ${dailyTips[tipIndex]}`;
+        }
+
+        function toggleNightMode() {
+            document.body.classList.toggle('night-mode');
+            const button = document.getElementById('night-mode-toggle');
+            button.textContent = document.body.classList.contains('night-mode') ? '☀️' : '🌙';
+        }
+
+        function showEmergencyInfo() {
+            alert("INFORMAÇÕES DE EMERGÊNCIA:\n\n" +
+                  "- Polícia: 190\n" +
+                  "- Bombeiros: 193\n" +
+                  "- SAMU: 192\n" +
+                  "- Mantenha a calma\n" +
+                  "- Se possível, saia da via\n" +
+                  "- Ligue a sinalização de emergência\n" +
+                  "- Se houver feridos, não os mova, exceto se houver risco imediato");
+        }
+
+        function checkAchievements() {
+            if (score >= 50 && !achievements.includes("Iniciante Seguro")) {
+                achievements.push("Iniciante Seguro");
+                showAchievement("Iniciante Seguro");
+            }
+            if (score >= 100 && !achievements.includes("Mestre da Segurança")) {
+                achievements.push("Mestre da Segurança");
+                showAchievement("Mestre da Segurança");
+            }
+        }
+
+        function showAchievement(achievement) {
+            const achievementElement = document.createElement('div');
+            achievementElement.classList.add('achievement');
+            achievementElement.textContent = `🏆 ${achievement}`;
+            achievementsDiv.appendChild(achievementElement);
+            alert(`Parabéns! Você desbloqueou a conquista: ${achievement}`);
+        }
+
+        function showWeatherInfo() {
+            // Simulating weather API call
+            const weatherConditions = ["Ensolarado", "Nublado", "Chuvoso", "Ventoso"];
+            const randomWeather = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+            const temperature = Math.floor(Math.random() * 15) + 20; // Random temperature between 20-35°C
+            alert(`Previsão do tempo para hoje:\nCondição: ${randomWeather}\nTemperatura: ${temperature}°C`);
+        }
+
+        // Inicialização
+        updateQuickReplies();
+        createChecklist();
+        createUserProfile();
+        showDailyTip();
+        appendMessage('Assistente', `Olá ${userProfile.name}! Sou seu assistente de segurança. Como posso ajudar você hoje? 😊`);
+
+        // Notificações Push (simulado)
+        setTimeout(() => {
+            if (Notification.permission === "granted") {
+                new Notification("Lembrete de Segurança", {
+                    body: "Não se esqueça de verificar sua moto antes de sair!",
+                    icon: "https://example.com/icon.png"
+                });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification("Lembrete de Segurança", {
+                            body: "Não se esqueça de verificar sua moto antes de sair!",
+                            icon: "https://example.com/icon.png"
+                        });
+                    }
+                });
+            }
+        }, 10000);
+
         userInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-
-        // Inicialização
-        updateQuickReplies();
-        createChecklist();
-        appendMessage('Assistente', "Olá! Sou seu assistente de segurança. Como posso ajudar você hoje? 😊");
     </script>
 </body>
 </html>
