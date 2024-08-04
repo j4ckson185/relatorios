@@ -284,18 +284,23 @@ function loadPedidos() {
             
             pedidoElement.innerHTML = `
                 <h3>Pedido #${childSnapshot.key}</h3>
-                <p><strong>Cliente:</strong> ${pedido.customerName}</p>
+                <p><strong>Cliente:</strong> ${pedido.customerName || 'Não informado'}</p>
                 <p><strong>Telefone:</strong> ${pedido.customerPhone || 'Não informado'}</p>
-                <p><strong>Endereço:</strong> ${pedido.address}</p>
+                <p><strong>Endereço:</strong> ${pedido.address || 'Não informado'}</p>
                 <p><strong>Itens:</strong></p>
                 <ul>
-                    ${items.map(item => `<li>${item.quantity}x ${item.name} - R$ ${item.price.toFixed(2)}</li>`).join('')}
+                    ${items.map(item => {
+                        const quantity = item.quantity || 'N/A';
+                        const name = item.name || 'Item desconhecido';
+                        const price = typeof item.price === 'number' ? item.price.toFixed(2) : 'N/A';
+                        return `<li>${quantity}x ${name} - R$ ${price}</li>`;
+                    }).join('')}
                 </ul>
-                <p><strong>Total:</strong> R$ ${pedido.total.toFixed(2)}</p>
-                <p><strong>Forma de Pagamento:</strong> ${pedido.paymentMethod}</p>
-                <p><strong>Motoboy:</strong> ${pedido.motoboyName}</p>
-                <p><strong>Data do Pedido:</strong> ${new Date(pedido.orderDate).toLocaleString()}</p>
-                <p class="pedido-status"><strong>Status:</strong> ${pedido.status}</p>
+                <p><strong>Total:</strong> R$ ${typeof pedido.total === 'number' ? pedido.total.toFixed(2) : 'N/A'}</p>
+                <p><strong>Forma de Pagamento:</strong> ${pedido.paymentMethod || 'Não informado'}</p>
+                <p><strong>Motoboy:</strong> ${pedido.motoboyName || 'Não atribuído'}</p>
+                <p><strong>Data do Pedido:</strong> ${pedido.orderDate ? new Date(pedido.orderDate).toLocaleString() : 'Data não disponível'}</p>
+                <p class="pedido-status"><strong>Status:</strong> ${pedido.status || 'Não definido'}</p>
             `;
             pedidosList.appendChild(pedidoElement);
         });
