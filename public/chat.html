@@ -7,7 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -33,6 +32,9 @@
             padding: 15px;
             font-size: 18px;
             font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         #messages {
             height: 400px;
@@ -100,16 +102,6 @@
         button:hover {
             background-color: #0073e6;
         }
-        #fileInput {
-            display: none;
-        }
-        #fileLabel {
-            cursor: pointer;
-            padding: 10px;
-            background-color: #f0f2f5;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
         .emoji-picker {
             margin-top: 10px;
             display: flex;
@@ -124,17 +116,26 @@
         .emoji:hover {
             transform: scale(1.2);
         }
+        #removeChat {
+            background-color: #dc3545;
+            font-size: 14px;
+            padding: 5px 10px;
+        }
+        #removeChat:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="chat-window">
-            <div class="chat-header">Chat do Motoboy</div>
+            <div class="chat-header">
+                Chat do Motoboy
+                <button id="removeChat" style="display: none;">Remover Chat</button>
+            </div>
             <div id="messages"></div>
             <div id="typingIndicator"></div>
             <form id="messageForm">
-                <label for="fileInput" id="fileLabel">📎</label>
-                <input type="file" id="fileInput" accept="image/*">
                 <input type="text" id="messageInput" placeholder="Digite sua mensagem" required>
                 <button type="submit">Enviar</button>
             </form>
@@ -146,6 +147,8 @@
             </div>
         </div>
     </div>
+
+    <audio id="notificationSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alert-quick-chime-766.mp3"></audio>
 
     <script>
         // Configuração do Firebase
@@ -164,16 +167,17 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const storage = firebase.storage();
 
         const messagesDiv = document.getElementById('messages');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
-        const fileInput = document.getElementById('fileInput');
         const typingIndicator = document.getElementById('typingIndicator');
+        const removeChatButton = document.getElementById('removeChat');
+        const notificationSound = document.getElementById('notificationSound');
 
         let currentUser;
         let chatId;
+        let isAdmin = false;
 
         // Função para carregar mensagens
         function loadMessages() {
@@ -181,12 +185,17 @@
             db.collection('chatRooms').doc(chatId).collection('messages')
                 .orderBy('timestamp')
                 .onSnapshot((snapshot) => {
+                    let isNewMessage = false;
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === "added") {
                             const message = change.doc.data();
                             displayMessage(message);
+                            isNewMessage = true;
                         }
                     });
+                    if (isNewMessage && isAdmin) {
+                        notificationSound.play();
+                    }
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 });
             observeTypingIndicator();
@@ -237,32 +246,6 @@
             }, { merge: true });
         }
 
-        // Enviar notificação
-        function sendNotification(message) {
-            if (Notification.permission === "granted") {
-                new Notification("Nova mensagem", { body: message });
-            }
-        }
-
-        // Enviar arquivo
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            const storageRef = storage.ref(`chatFiles/${file.name}`);
-            storageRef.put(file).then((snapshot) => {
-                snapshot.ref.getDownloadURL().then((url) => {
-                    const newMessage = {
-                        text: `<img src="${url}" alt="Imagem enviada" style="max-width: 200px;">`,
-                        sender: currentUser.email,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    db.collection('chatRooms').doc(chatId).collection('messages').add(newMessage)
-                        .then(() => {
-                            displayMessage(newMessage);
-                        });
-                });
-            });
-        });
-
         // Indicador de digitação
         let typingTimer;
         messageInput.addEventListener('input', () => {
@@ -286,7 +269,7 @@
                     const data = doc.data();
                     for (let key in data) {
                         if (key.endsWith('_typing') && data[key] && key !== `${currentUser.uid}_typing`) {
-                            typingIndicator.textContent = 'Administrador está digitando...';
+                            typingIndicator.textContent = 'Alguém está digitando...';
                             return;
                         }
                     }
@@ -299,20 +282,47 @@
             messageInput.value += emoji;
         }
 
+        // Remover chat (apenas para administrador)
+        removeChatButton.addEventListener('click', () => {
+            if (isAdmin && chatId) {
+                if (confirm('Tem certeza que deseja remover este chat?')) {
+                    db.collection('chatRooms').doc(chatId).delete()
+                        .then(() => {
+                            alert('Chat removido com sucesso.');
+                            // Redirecionar ou atualizar a página após remover o chat
+                        })
+                        .catch((error) => {
+                            console.error("Erro ao remover chat: ", error);
+                        });
+                }
+            }
+        });
+
         // Verificar autenticação e carregar chat
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
                 updateUserStatus(user.uid, true);
-                // Aqui você precisa implementar a lógica para obter o chatId correto para este motoboy
-                // Por exemplo, você pode buscar no Firestore por um documento que corresponda ao email do motoboy
-                db.collection('chatRooms').where('motoboyEmail', '==', user.email).get()
-                    .then((querySnapshot) => {
-                        if (!querySnapshot.empty) {
-                            chatId = querySnapshot.docs[0].id;
-                            loadMessages();
+                
+                // Verificar se o usuário é um administrador
+                db.collection('users').doc(user.uid).get()
+                    .then((doc) => {
+                        if (doc.exists && doc.data().isAdmin) {
+                            isAdmin = true;
+                            removeChatButton.style.display = 'block';
+                            // Lógica para carregar todos os chats para o administrador
+                            loadAdminChats();
                         } else {
-                            console.log('Nenhum chat encontrado para este motoboy');
+                            // Lógica para carregar o chat do motoboy
+                            db.collection('chatRooms').where('motoboyEmail', '==', user.email).get()
+                                .then((querySnapshot) => {
+                                    if (!querySnapshot.empty) {
+                                        chatId = querySnapshot.docs[0].id;
+                                        loadMessages();
+                                    } else {
+                                        console.log('Nenhum chat encontrado para este motoboy');
+                                    }
+                                });
                         }
                     });
             } else {
@@ -320,6 +330,13 @@
                 // Redirecionar para página de login ou mostrar mensagem de erro
             }
         });
+
+        // Função para carregar chats do administrador
+        function loadAdminChats() {
+            // Aqui você pode implementar a lógica para carregar e exibir todos os chats
+            // para o administrador, por exemplo, uma lista de chats ativos
+            console.log('Carregando chats para o administrador');
+        }
 
         // Limpar status ao fechar a página
         window.addEventListener('beforeunload', () => {
