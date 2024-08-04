@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão do Tempo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        h1 {
+            color: #0066cc;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            width: 60%;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        #previsao {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #icone-tempo {
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+        }
+        .flex {
+            display: flex;
+            align-items: center;
+        }
+        .escondido {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Previsão do Tempo</h1>
+    <form id="formulario-cidade">
+        <input type="text" id="cidade" placeholder="Digite o nome da cidade" required>
+        <button type="submit">Buscar</button>
+    </form>
+    <div id="previsao" class="escondido">
+        <h2>Previsão para <span id="nome-cidade"></span></h2>
+        <div class="flex">
+            <img id="icone-tempo" src="" alt="Ícone do tempo">
+            <h3 id="descricao"></h3>
+        </div>
+        <p>Temperatura: <span id="temperatura"></span>°C</p>
+        <p>Sensação térmica: <span id="sensacao"></span>°C</p>
+        <p>Umidade: <span id="umidade"></span>%</p>
+        <p>Vento: <span id="vento"></span> km/h</p>
+    </div>
+
+    <script>
+        const apiKey = 'SUA_CHAVE_API_AQUI'; // Substitua pela sua chave API do OpenWeatherMap
+        
+        document.getElementById('formulario-cidade').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cidade = document.getElementById('cidade').value;
+            buscarPrevisao(cidade);
+        });
+
+        function buscarPrevisao(cidade) {
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${cidade}&appid=${apiKey}&units=metric&lang=pt_br`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    exibirPrevisao(data);
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar previsão:', error);
+                    alert('Erro ao buscar previsão. Verifique o nome da cidade e tente novamente.');
+                });
+        }
+
+        function exibirPrevisao(data) {
+            document.getElementById('nome-cidade').textContent = data.name;
+            document.getElementById('temperatura').textContent = Math.round(data.main.temp);
+            document.getElementById('sensacao').textContent = Math.round(data.main.feels_like);
+            document.getElementById('descricao').textContent = data.weather[0].description;
+            document.getElementById('umidade').textContent = data.main.humidity;
+            document.getElementById('vento').textContent = (data.wind.speed * 3.6).toFixed(1); // Convertendo m/s para km/h
+            
+            const iconCode = data.weather[0].icon;
+            const iconUrl = `http://openweathermap.org/img/wn/${iconCode}.png`;
+            document.getElementById('icone-tempo').src = iconUrl;
+            
+            document.getElementById('previsao').classList.remove('escondido');
+        }
+    </script>
+</body>
+</html>
