@@ -101,6 +101,7 @@
             measurementId: "G-3JQHMXJ6XH"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
 
         const database = firebase.database();
@@ -128,8 +129,11 @@
                     message: message,
                     timestamp: timestamp,
                     type: 'text'
+                }).then(() => {
+                    messageInput.value = '';
+                }).catch((error) => {
+                    console.error("Erro ao enviar mensagem:", error);
                 });
-                messageInput.value = '';
             }
         }
 
@@ -162,6 +166,8 @@
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         uploadAudio(audioBlob);
                     });
+                }).catch(error => {
+                    console.error("Erro ao acessar o microfone:", error);
                 });
         }
 
@@ -187,6 +193,8 @@
                         type: 'audio'
                     });
                 });
+            }).catch(error => {
+                console.error("Erro ao fazer upload do áudio:", error);
             });
         }
 
@@ -215,6 +223,15 @@
                 
                 chatMessages.appendChild(messageElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+
+        // Adicione um listener de erro para o Firebase
+        database.ref('.info/connected').on('value', function(snap) {
+            if (snap.val() === true) {
+                console.log("Conectado ao Firebase");
+            } else {
+                console.log("Desconectado do Firebase");
             }
         });
     </script>
