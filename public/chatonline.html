@@ -28,7 +28,7 @@
             border-left: 1px solid #ccc;
         }
         #chat-header {
-            background-color: #4CAF50;
+            background-color: #075E54;
             color: white;
             padding: 10px;
             text-align: center;
@@ -38,45 +38,50 @@
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto;
+            background-color: #E5DDD5;
         }
         #chat-form {
             display: flex;
-            padding: 20px;
+            padding: 10px;
+            background-color: #F0F0F0;
+            align-items: center;
         }
         #message-input {
             flex-grow: 1;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 14px;
+            background-color: white;
+        }
+        #send-button, #audio-button {
+            background-color: #075E54;
+            color: white;
+            border: none;
             padding: 10px;
-            font-size: 16px;
-        }
-        #send-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
+            border-radius: 50%;
             cursor: pointer;
-        }
-        #audio-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            cursor: pointer;
+            font-size: 14px;
             margin-left: 10px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .message {
             margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 8px 12px;
+            border-radius: 7px;
             max-width: 70%;
+            word-wrap: break-word;
         }
         .sent {
-            background-color: #e1ffc7;
+            background-color: #DCF8C6;
             margin-left: auto;
         }
         .received {
-            background-color: #f0f0f0;
+            background-color: white;
         }
         .chat-item {
             padding: 10px;
@@ -88,52 +93,3 @@
         }
         #clear-all-chats {
             margin-top: 20px;
-            padding: 10px;
-            background-color: #f44336;
-            color: white;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-        }
-        #audio-recording {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            font-size: 18px;
-            padding: 10px;
-            border-radius: 10px;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-    </style>
-</head>
-<body>
-    <div id="sidebar">
-        <h3>Chats</h3>
-        <div id="chat-list"></div>
-        <button id="clear-all-chats">Limpar Todos os Chats</button>
-    </div>
-    <div id="chat-container">
-        <div id="chat-header">Chat Atendimento</div>
-        <div id="chat-messages"></div>
-        <div id="chat-form">
-            <input type="text" id="message-input" placeholder="Digite sua mensagem...">
-            <button type="button" id="send-button">Enviar</button>
-            <button type="button" id="audio-button">Gravar Áudio</button>
-        </div>
-    </div>
-    <div id="audio-recording">Gravando...</div>
-
-    <script>
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId:
