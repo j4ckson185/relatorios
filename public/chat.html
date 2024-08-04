@@ -203,7 +203,7 @@
             messageElement.innerHTML = `
                 <div class="sender">${message.sender}</div>
                 <div class="text">${message.text}</div>
-                <div class="timestamp">${new Date(message.timestamp.toDate()).toLocaleString()}</div>
+                <div class="timestamp">${new Date(message.timestamp?.toDate()).toLocaleString()}</div>
             `;
             messagesDiv.appendChild(messageElement);
         }
@@ -222,19 +222,21 @@
                 };
                 db.collection('chatRooms').doc(chatRoomId).collection('messages').add(newMessage)
                     .then(() => {
-                        displayMessage(newMessage);
                         messageInput.value = '';
                         updateTypingStatus(false);
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao enviar mensagem: ", error);
                     });
             }
         });
 
         // Atualizar status do usuário
         function updateUserStatus(userId, isOnline) {
-            return db.collection('users').doc(userId).update({
+            return db.collection('users').doc(userId).set({
                 isOnline: isOnline,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
         }
 
         // Enviar notificação
@@ -311,6 +313,14 @@
                             loadMessages();
                         } else {
                             console.log('Nenhuma sala de chat encontrada para este motoboy');
+                            // Criar uma nova sala de chat para o motoboy
+                            db.collection('chatRooms').add({
+                                motoboyEmail: user.email,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }).then((docRef) => {
+                                chatRoomId = docRef.id;
+                                loadMessages();
+                            });
                         }
                     });
             } else {
