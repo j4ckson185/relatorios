@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente de Segurança para Motoboys</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        #chat-container { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        #user-input { width: 70%; padding: 5px; }
+        button { padding: 5px 10px; }
+        .quick-replies { margin-top: 10px; }
+        .quick-reply-btn { margin-right: 5px; margin-bottom: 5px; }
+        .checklist-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .checklist-item input { margin-right: 5px; }
+        #score-display { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Assistente de Segurança para Motoboys 🏍️</h1>
+    <div id="chat-container"></div>
+    <input type="text" id="user-input" placeholder="Digite sua pergunta...">
+    <button onclick="sendMessage()">Enviar</button>
+    <div class="quick-replies" id="quick-replies"></div>
+    <div id="checklist-container"></div>
+    <div id="score-display">Pontuação de Segurança: 0</div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const quickRepliesContainer = document.getElementById('quick-replies');
+        const checklistContainer = document.getElementById('checklist-container');
+        const scoreDisplay = document.getElementById('score-display');
+        let score = 0;
+
+        const knowledgeBase = {
+            "clima": "🌦️ Verifique sempre a previsão do tempo antes de sair. Em caso de chuva, redobre a atenção e use equipamentos adequados.",
+            "equipamento": "🦺 Use sempre capacete, jaqueta de proteção, luvas e botas. Certifique-se de que estão em bom estado.",
+            "manutenção": "🔧 Faça a manutenção regular da sua moto. Verifique freios, pneus e luzes antes de cada jornada.",
+            "trânsito": "🚦 Fique atento ao trânsito, respeite as leis e sinalizações. Mantenha uma distância segura dos outros veículos.",
+            "descanso": "😴 Faça pausas regulares, especialmente em jornadas longas. O descanso é essencial para manter a atenção.",
+            "visibilidade": "👀 Use roupas e acessórios refletivos para aumentar sua visibilidade, especialmente à noite.",
+            "direção defensiva": "🛡️ Pratique a direção defensiva. Antecipe-se às ações dos outros motoristas e pedestres.",
+            "emergência": "🚨 Em caso de emergência, mantenha a calma. Tenha sempre os números de emergência à mão.",
+            "hidratação": "💧 Mantenha-se hidratado, especialmente em dias quentes. Leve sempre água consigo.",
+            "planejamento": "🗺️ Planeje suas rotas com antecedência, evitando áreas conhecidas por serem perigosas ou congestionadas."
+        };
+
+        const quickReplies = [
+            "Como me preparar para chuva?",
+            "Quais equipamentos são essenciais?",
+            "Dicas de manutenção da moto",
+            "Como praticar direção defensiva?"
+        ];
+
+        const dailyChecklist = [
+            "Verificar pneus",
+            "Testar freios",
+            "Checar luzes",
+            "Usar equipamentos de proteção",
+            "Verificar previsão do tempo"
+        ];
+
+        function sendMessage() {
+            const userMessage = userInput.value;
+            if (userMessage.trim() === '') return;
+
+            appendMessage('Você', userMessage);
+            const botResponse = getBotResponse(userMessage);
+            appendMessage('Assistente', botResponse);
+
+            userInput.value = '';
+            updateQuickReplies();
+        }
+
+        function appendMessage(sender, message) {
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function getBotResponse(userMessage) {
+            userMessage = userMessage.toLowerCase();
+            for (const [keyword, response] of Object.entries(knowledgeBase)) {
+                if (userMessage.includes(keyword)) {
+                    incrementScore();
+                    return response;
+                }
+            }
+            return "Desculpe, não tenho informações específicas sobre isso. Para sua segurança, sempre siga as leis de trânsito e use equipamentos de proteção adequados. 🛑";
+        }
+
+        function updateQuickReplies() {
+            quickRepliesContainer.innerHTML = '';
+            quickReplies.forEach(reply => {
+                const button = document.createElement('button');
+                button.textContent = reply;
+                button.classList.add('quick-reply-btn');
+                button.onclick = () => {
+                    userInput.value = reply;
+                    sendMessage();
+                };
+                quickRepliesContainer.appendChild(button);
+            });
+        }
+
+        function createChecklist() {
+            dailyChecklist.forEach(item => {
+                const div = document.createElement('div');
+                div.classList.add('checklist-item');
+                div.innerHTML = `
+                    <input type="checkbox" id="${item}" onchange="updateScore(this)">
+                    <label for="${item}">${item}</label>
+                `;
+                checklistContainer.appendChild(div);
+            });
+        }
+
+        function updateScore(checkbox) {
+            if (checkbox.checked) {
+                incrementScore();
+            } else {
+                decrementScore();
+            }
+        }
+
+        function incrementScore() {
+            score += 10;
+            updateScoreDisplay();
+        }
+
+        function decrementScore() {
+            score = Math.max(0, score - 10);
+            updateScoreDisplay();
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Pontuação de Segurança: ${score}`;
+        }
+
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Inicialização
+        updateQuickReplies();
+        createChecklist();
+        appendMessage('Assistente', "Olá! Sou seu assistente de segurança. Como posso ajudar você hoje? 😊");
+    </script>
+</body>
+</html>
