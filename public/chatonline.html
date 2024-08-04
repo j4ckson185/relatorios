@@ -36,12 +36,26 @@
             border-bottom: 1px solid #e4e6eb;
             cursor: pointer;
             transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .chat-item:hover {
             background-color: #f0f2f5;
         }
         .chat-item.active {
             background-color: #e7f3ff;
+        }
+        .remove-chat {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .remove-chat:hover {
+            background-color: #ff3333;
         }
         .chat-container {
             flex-grow: 1;
@@ -209,11 +223,35 @@
                     const chatData = doc.data();
                     const li = document.createElement('li');
                     li.className = 'chat-item';
-                    li.textContent = chatData.motoboyEmail;
-                    li.onclick = () => loadMessages(doc.id);
+                    li.innerHTML = `
+                        <span>${chatData.motoboyEmail}</span>
+                        <button class="remove-chat" onclick="removeChat('${doc.id}')">Remover</button>
+                    `;
+                    li.onclick = (e) => {
+                        if (e.target.className !== 'remove-chat') {
+                            loadMessages(doc.id);
+                        }
+                    };
                     chatList.appendChild(li);
                 });
             });
+        }
+
+        // Função para remover chat
+        function removeChat(roomId) {
+            if (confirm('Tem certeza que deseja remover este chat?')) {
+                db.collection('chatRooms').doc(roomId).delete()
+                    .then(() => {
+                        console.log("Chat removido com sucesso");
+                        if (currentRoomId === roomId) {
+                            currentRoomId = null;
+                            messagesDiv.innerHTML = '';
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao remover chat: ", error);
+                    });
+            }
         }
 
         // Função para carregar mensagens
@@ -256,13 +294,17 @@
             if (text.trim() === '') return;
 
             if (currentUser && currentRoomId) {
-                db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
+                const newMessage = {
                     text: text,
                     sender: currentUser.email,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                messageInput.value = '';
-                updateTypingStatus(false);
+                };
+                db.collection('chatRooms').doc(currentRoomId).collection('messages').add(newMessage)
+                    .then(() => {
+                        displayMessage(newMessage);
+                        messageInput.value = '';
+                        updateTypingStatus(false);
+                    });
             }
         });
 
@@ -287,11 +329,15 @@
             const storageRef = storage.ref(`chatFiles/${file.name}`);
             storageRef.put(file).then((snapshot) => {
                 snapshot.ref.getDownloadURL().then((url) => {
-                    db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
+                    const newMessage = {
                         text: `<img src="${url}" alt="Imagem enviada" style="max-width: 200px;">`,
                         sender: currentUser.email,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    };
+                    db.collection('chatRooms').doc(currentRoomId).collection('messages').add(newMessage)
+                        .then(() => {
+                            displayMessage(newMessage);
+                        });
                 });
             });
         });
