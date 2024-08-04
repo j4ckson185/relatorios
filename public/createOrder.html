@@ -397,8 +397,29 @@
             });
         }
 
-        function showNotification(message) {
+function showNotification(message) {
             const notifications = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = 'notification';
-            notification.text
+            notification.textContent = message;
+            notifications.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    notifications.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+
+        document.getElementById('newOrderBtn').addEventListener('click', showNewOrderForm);
+        document.getElementById('orderForm').addEventListener('submit', saveOrder);
+        document.getElementById('cancelOrderBtn').addEventListener('click', hideNewOrderForm);
+
+        initMap();
+        renderOrderList();
+        renderMotoboyList();
+        updateMap();
+    </script>
+</body>
+</html>
