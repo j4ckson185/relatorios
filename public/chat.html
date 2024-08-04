@@ -131,24 +131,27 @@
         const messageInput = document.getElementById('messageInput');
 
         let currentUser;
-        let chatId = 'global'; // Usando um chat global para simplificar
+        const adminEmail = 'musculacaoatual@gmail.com';
+        let isAdmin = false;
 
         // Função para carregar mensagens
         function loadMessages() {
             messagesDiv.innerHTML = '';
-            db.collection('chatRooms').doc(chatId).collection('messages')
-                .orderBy('timestamp')
-                .onSnapshot((snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === "added") {
-                            const message = change.doc.data();
-                            displayMessage(message);
-                        }
-                    });
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                }, (error) => {
-                    console.error("Erro ao carregar mensagens:", error);
+            const query = isAdmin 
+                ? db.collection('messages').orderBy('timestamp')
+                : db.collection('messages').where('participants', 'array-contains', currentUser.email).orderBy('timestamp');
+
+            query.onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const message = change.doc.data();
+                        displayMessage(message);
+                    }
                 });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, (error) => {
+                console.error("Erro ao carregar mensagens:", error);
+            });
         }
 
         // Função para exibir mensagem
@@ -176,10 +179,11 @@
             const newMessage = {
                 text: text,
                 sender: currentUser.email,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                participants: [currentUser.email, adminEmail]
             };
             
-            db.collection('chatRooms').doc(chatId).collection('messages').add(newMessage)
+            db.collection('messages').add(newMessage)
                 .then(() => {
                     messageInput.value = '';
                 })
@@ -193,7 +197,8 @@
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
-                console.log("Usuário logado:", user.email);
+                isAdmin = (user.email === adminEmail);
+                console.log("Usuário logado:", user.email, "É admin:", isAdmin);
                 loadMessages();
             } else {
                 console.log('Usuário não autenticado');
