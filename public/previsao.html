@@ -55,6 +55,11 @@
         .escondido {
             display: none;
         }
+        #erro {
+            color: red;
+            text-align: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -63,6 +68,7 @@
         <input type="text" id="cidade" placeholder="Digite o nome da cidade" required>
         <button type="submit">Buscar</button>
     </form>
+    <div id="erro" class="escondido"></div>
     <div id="previsao" class="escondido">
         <h2>Previsão para <span id="nome-cidade"></span></h2>
         <div class="flex">
@@ -85,21 +91,25 @@
         });
 
         function buscarPrevisao(cidade) {
-            const url = `https://api.openweathermap.org/data/2.5/weather?q=${cidade}&appid=${apiKey}&units=metric&lang=pt_br`;
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cidade)},BR&appid=${apiKey}&units=metric&lang=pt_br`;
             
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Cidade não encontrada');
+                        if (response.status === 404) {
+                            throw new Error('Cidade não encontrada. Verifique a ortografia ou tente adicionar o estado (ex: São Paulo,SP)');
+                        }
+                        throw new Error('Erro ao buscar previsão. Código: ' + response.status);
                     }
                     return response.json();
                 })
                 .then(data => {
                     exibirPrevisao(data);
+                    esconderErro();
                 })
                 .catch(error => {
                     console.error('Erro ao buscar previsão:', error);
-                    alert('Erro ao buscar previsão. Verifique o nome da cidade e tente novamente.');
+                    exibirErro(error.message);
                 });
         }
 
@@ -116,6 +126,17 @@
             document.getElementById('icone-tempo').src = iconUrl;
             
             document.getElementById('previsao').classList.remove('escondido');
+        }
+
+        function exibirErro(mensagem) {
+            const erroElement = document.getElementById('erro');
+            erroElement.textContent = mensagem;
+            erroElement.classList.remove('escondido');
+            document.getElementById('previsao').classList.add('escondido');
+        }
+
+        function esconderErro() {
+            document.getElementById('erro').classList.add('escondido');
         }
     </script>
 </body>
