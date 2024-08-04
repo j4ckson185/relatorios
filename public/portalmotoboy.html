@@ -46,6 +46,16 @@
             border-radius: 3px;
             transition: width 500ms ease-in-out;
         }
+        .ranking-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .ranking-list li {
+            margin-bottom: 10px;
+        }
+        .ranking-list li span {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -69,6 +79,10 @@
             <p>Entregas Realizadas: <span id="entregasRealizadas"></span></p>
             <p>Avaliação Média: <span id="avaliacaoMedia"></span></p>
             <p>Pontos Acumulados: <span id="pontosAcumulados"></span></p>
+        </div>
+        <div id="topEntregadores" class="info-box">
+            <h2>Top Entregadores</h2>
+            <ol id="rankingList" class="ranking-list"></ol>
         </div>
         <div id="debugInfo" class="info-box">
             <h2>Informações de Depuração</h2>
@@ -107,6 +121,26 @@
             "felipeaugusto02001@gmail.com": "Felipe Augusto"
         };
 
+        // Lista de top entregadores
+        const topEntregadores = [
+            { nome: "Boaz", entregas: 186 },
+            { nome: "Giovanni", entregas: 182 },
+            { nome: "Felipe Augusto", entregas: 177 },
+            { nome: "Moisés", entregas: 159 },
+            { nome: "Felipe Matheus", entregas: 77 }
+        ];
+
+        // Função para exibir o ranking de top entregadores
+        function exibirTopEntregadores() {
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = '';
+            topEntregadores.forEach((entregador, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${index + 1}º</span> ${entregador.nome} - ${entregador.entregas} entregas`;
+                rankingList.appendChild(li);
+            });
+        }
+
         // Função para carregar dados do usuário
         function carregarDadosUsuario(email) {
             document.getElementById('authStatus').textContent = 'Autenticado';
@@ -144,6 +178,9 @@
                         // Calcular pontos acumulados (exemplo: 10 pontos por entrega)
                         const pontosAcumulados = progresso * 10;
                         document.getElementById('pontosAcumulados').textContent = pontosAcumulados;
+
+                        // Exibir o ranking de top entregadores
+                        exibirTopEntregadores();
                     } else {
                         console.error('Dados do usuário não encontrados no banco de dados');
                         alert('Erro: Dados do usuário não encontrados. Por favor, contate o suporte.');
