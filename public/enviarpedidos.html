@@ -1,302 +1,228 @@
-<!DOCTYPE html> <html lang="pt-BR"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Cabana Açaí - Sistema de Entrega</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" /> <style> body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; height: 100%; } #content { display: flex; height: 100%; } #sidebar { width: 300px; padding: 20px; background-color: #f0f0f0; overflow-y: auto; } #map { flex-grow: 1; } .order-item { margin-bottom: 10px; padding: 10px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; } .order-item.selected { background-color: #e6f3ff; } #orderForm { display: none; margin-top: 20px; } #orderForm input { width: 100%; margin-bottom: 10px; padding: 5px; } #newOrderBtn, #saveOrderBtn, #cancelOrderBtn { margin-top: 10px; padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; } #cancelOrderBtn { background-color: #f44336; } #motoboys { margin-top: 20px; } .motoboy-item { margin-bottom: 10px; padding: 5px; background-color: #e6f3ff; border: 1px solid #ddd; border-radius: 4px; } .assign-btn { margin-left: 10px; padding: 2px 5px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; } .status-pending { color: orange; } .status-assigned { color: blue; } .status-delivered { color: green; } #notifications { position: fixed; top: 20px; right: 20px; width: 300px; z-index: 1000; } .notification { background-color: #4CAF50; color: white; padding: 15px; margin-bottom: 10px; border-radius: 4px; opacity: 0.9; transition: opacity 0.5s; } .notification.fade-out { opacity: 0; } </style> </head> <body> <div id="content"> <div id="sidebar"> <h2>Pedidos</h2> <button id="newOrderBtn">Novo Pedido</button> <form id="orderForm"> <input type="text" id="clientName" placeholder="Nome do Cliente" required> <input type="text" id="street" placeholder="Rua" required> <input type="text" id="number" placeholder="Número" required> <input type="text" id="neighborhood" placeholder="Bairro" required> <button type="submit" id="saveOrderBtn">Salvar Pedido</button> <button type="button" id="cancelOrderBtn">Cancelar</button> </form> <div id="orderList"></div> <h2>Motoboys</h2> <div id="motoboyList"></div> </div> <div id="map"></div> </div>
-ini
-
-Copiar
-<div id="notifications"></div>
-
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-<script>
-    // Dados de exemplo para os pedidos (agora com status)
-    let orders = [
-        { id: 1, client: "João", street: "Rua A", number: "123", neighborhood: "Centro", status: "pending" },
-        { id: 2, client: "Maria", street: "Av. B", number: "456", neighborhood: "Potengi", status: "pending" },
-        { id: 3, client: "Pedro", street: "Praça C", number: "789", neighborhood: "Lagoa Nova", status: "pending" }
-    ];
-
-    // Lista de motoboys
-    let motoboys = [
-        { id: 1, name: "Carlos" },
-        { id: 2, name: "Ana" },
-        { id: 3, name: "Rafael" }
-    ];
-
-    let map;
-    let markers = [];
-    let selectedOrder = null;
-
-    function initMap() {
-        map = L.map('map').setView([-5.7793, -35.2009], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-    }
-
-    function updateMap() {
-        markers.forEach(marker => map.removeLayer(marker));
-        markers = [];
-        orders.forEach(order => {
-            geocodeAddress(order);
-        });
-    }
-
-    function geocodeAddress(order) {
-        const address = `${order.street}, ${order.number}, ${order.neighborhood}, Natal, RN, Brazil`;
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
-                    const marker = L.marker([lat, lon]).addTo(map);
-                    marker.bindPopup(`<b>${order.client}</b><br>${address}`);
-                    markers.push(marker);
-                    if (order === selectedOrder) {
-                        map.setView([lat, lon], 15);
-                    }
-                }
-            });
-    }
-
-    function renderOrderList() {
-        const orderList = document.getElementById('orderList');
-        orderList.innerHTML = '';
-        orders.forEach(order => {
-            const orderItem = document.createElement('div');
-            orderItem.className = 'order-item';
-            orderItem.innerHTML = `
-                <strong>Pedido #${order.id}</strong><br>
-                Cliente: ${order.client}<br>
-                Endereço: ${order.street}, ${order.number}, ${order.neighborhood}<br>
-                Status: <span class="status-${order.status}">${getStatusText(order.status)}</span>
-                <button class="editBtn" data-id="${order.id}">Editar</button>
-                ${order.status === 'pending' ? `<button class="assignBtn" data-id="${order.id}">Atribuir</button>` : ''}
-                ${order.status === 'assigned' ? `<button class="deliverBtn" data-id="${order.id}">Marcar como Entregue</button>` : ''}
-            `;
-            orderItem.addEventListener('click', () => toggleOrderSelection(order));
-            orderList.appendChild(orderItem);
-        });
-
-        // Adicionar event listeners para os botões
-        document.querySelectorAll('.editBtn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const orderId = parseInt(e.target.getAttribute('data-id'));
-                editOrder(orderId);
-            });
-        });
-
-        document.querySelectorAll('.assignBtn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const orderId = parseInt(e.target.getAttribute('data-id'));
-                showMotoboyAssignmentModal(orderId);
-            });
-        });
-
-        document.querySelectorAll('.deliverBtn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const orderId = parseInt(e.target.getAttribute('data-id'));
-                markOrderAsDelivered(orderId);
-            });
-        });
-    }
-
-    function getStatusText(status) {
-        switch(status) {
-            case 'pending': return 'Pendente';
-            case 'assigned': return 'Atribuído';
-            case 'delivered': return 'Entregue';
-            default: return 'Desconhecido';
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabana Açaí - Sistema de Entrega</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
         }
-    }
-
-    function toggleOrderSelection(order) {
-        if (selectedOrder === order) {
-            selectedOrder = null;
-        } else {
-            selectedOrder = order;
-            geocodeAddress(order);
+        header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1em;
         }
-        renderOrderList();
-    }
+        nav {
+            background-color: #333;
+            color: white;
+            padding: 0.5em;
+        }
+        nav button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        main {
+            padding: 20px;
+        }
+        .pedido {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button[type=submit] {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button[type=submit]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Cabana Açaí - Sistema de Entrega</h1>
+    </header>
+    <nav>
+        <button id="pedidosBtn">Pedidos</button>
+        <button id="novoPedidoBtn">Novo Pedido</button>
+    </nav>
+    <main>
+        <section id="pedidosSection">
+            <h2>Pedidos</h2>
+            <div id="pedidosList"></div>
+        </section>
+        <section id="novoPedidoSection" style="display:none;">
+            <h2>Novo Pedido</h2>
+            <form id="novoPedidoForm">
+                <input type="text" id="customerName" placeholder="Nome do Cliente" required>
+                <input type="text" id="address" placeholder="Endereço" required>
+                <textarea id="items" placeholder="Itens do Pedido" required></textarea>
+                <select id="motoboySelect">
+                    <option value="">Selecione um Motoboy</option>
+                </select>
+                <button type="submit">Salvar Pedido</button>
+                <button type="button" id="cancelBtn">Cancelar</button>
+            </form>
+        </section>
+    </main>
 
-    function showNewOrderForm() {
-        document.getElementById('orderForm').style.display = 'block';
-        document.getElementById('newOrderBtn').style.display = 'none';
-    }
-
-    function hideNewOrderForm() {
-        document.getElementById('orderForm').style.display = 'none';
-        document.getElementById('newOrderBtn').style.display = 'block';
-        document.getElementById('orderForm').reset();
-    }
-
-    function saveOrder(event) {
-        event.preventDefault();
-        const clientName = document.getElementById('clientName').value;
-        const street = document.getElementById('street').value;
-        const number = document.getElementById('number').value;
-        const neighborhood = document.getElementById('neighborhood').value;
-        const newOrder = {
-            id: orders.length + 1,
-            client: clientName,
-            street: street,
-            number: number,
-            neighborhood: neighborhood,
-            status: 'pending'
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDRcj2LVVHsFXgGT6zr1YCxeAqrOIPmgUU",
+            authDomain: "cabana-acai-delivery.firebaseapp.com",
+            projectId: "cabana-acai-delivery",
+            storageBucket: "cabana-acai-delivery.appspot.com",
+            messagingSenderId: "111130312815",
+            appId: "1:111130312815:web:b0f28fee3abb6bc6cdb564"
         };
-        orders.push(newOrder);
-        renderOrderList();
-        updateMap();
-        hideNewOrderForm();
-        showNotification(`Novo pedido criado para ${clientName}`);
-    }
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
 
-    function editOrder(orderId) {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
-            document.getElementById('clientName').value = order.client;
-            document.getElementById('street').value = order.street;
-            document.getElementById('number').value = order.number;
-            document.getElementById('neighborhood').value = order.neighborhood;
-            showNewOrderForm();
-            // Remove o pedido existente e adiciona o atualizado ao salvar
-            orders = orders.filter(o => o.id !== orderId);
-        }
-    }
+        let motoboys = [
+            { id: 1, name: "Moisés", email: "moises110723@gmail.com" },
+            { id: 2, name: "Giovanni", email: "giovanni.silva18@gmail.com" },
+            { id: 3, name: "Fellipe Matheus", email: "fellipeirineu90@gmail.com" },
+            { id: 4, name: "Felipe Augusto", email: "felipeaugusto02001@gmail.com" },
+            { id: 5, name: "Boaz", email: "boazd3@gmail.com" },
+            { id: 6, name: "Jackson", email: "musculacaoatual@gmail.com" }
+        ];
 
-    function showMotoboyAssignmentModal(orderId) {
-        const modal = document.createElement('div');
-        modal.style.position = 'fixed';
-        modal.style.left = '50%';
-        modal.style.top = '50%';
-        modal.style.transform = 'translate(-50%, -50%)';
-        modal.style.backgroundColor = 'white';
-        modal.style.padding = '20px';
-        modal.style.border = '1px solid black';
-        modal.style.zIndex = '1000';
+        const pedidosBtn = document.getElementById('pedidosBtn');
+        const novoPedidoBtn = document.getElementById('novoPedidoBtn');
+        const pedidosSection = document.getElementById('pedidosSection');
+        const novoPedidoSection = document.getElementById('novoPedidoSection');
+        const novoPedidoForm = document.getElementById('novoPedidoForm');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const motoboySelect = document.getElementById('motoboySelect');
 
-        modal.innerHTML = `
-            <h3>Atribuir Pedido #${orderId} a um Motoboy</h3>
-            <select id="motoboySelect">
-                ${motoboys.map(motoboy => `<option value="${motoboy.id}">${motoboy.name}</option>`).join('')}
-            </select>
-            <button id="confirmAssign">Confirmar</button>
-            <button id="cancelAssign">Cancelar</button>
-        `;
-
-        document.body.appendChild(modal);
-
-        document.getElementById('confirmAssign').addEventListener('click', () => {
-            const motoboyId = document.getElementById('motoboySelect').value;
-            assignOrderToMotoboy(orderId, parseInt(motoboyId));
-            document.body.removeChild(modal);
+        pedidosBtn.addEventListener('click', () => {
+            pedidosSection.style.display = 'block';
+            novoPedidoSection.style.display = 'none';
         });
 
-        document.getElementById('cancelAssign').addEventListener('click', () => {
-            document.body.removeChild(modal);
-        });
-    }
-
-    function assignOrderToMotoboy(orderId, motoboyId) {
-        const order = orders.find(o => o.id === orderId);
-        const motoboy = motoboys.find(m => m.id === motoboyId);
-        if (order && motoboy) {
-            order.status = 'assigned';
-            order.motoboyId = motoboyId;
-            renderOrderList();
-            updateMap();
-            showNotification(`Pedido #${orderId} atribuído a ${motoboy.name}`);
-        }
-    }
-
-    function markOrderAsDelivered(orderId) {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
-            order.status = 'delivered';
-            renderOrderList();
-            updateMap();
-            showNotification(`Pedido #${orderId} entregue com sucesso`);
-        }
-    }
-
-    function renderMotoboyList() {
-        const motoboyList = document.getElementById('motoboyList');
-        motoboyList.innerHTML = '';
-        motoboys.forEach(motoboy => {
-            const motoboyItem = document.createElement('div');
-            motoboyItem.className = 'motoboy-item';
-            motoboyItem.innerHTML = `
-                <strong>${motoboy.name}</strong>
-                <button class="viewOrdersBtn" data-id="${motoboy.id}">Ver Pedidos</button>
-            `;
-            motoboyList.appendChild(motoboyItem);
+        novoPedidoBtn.addEventListener('click', () => {
+            pedidosSection.style.display = 'none';
+            novoPedidoSection.style.display = 'block';
         });
 
-        document.querySelectorAll('.viewOrdersBtn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const motoboyId = parseInt(e.target.getAttribute('data-id'));
-                showMotoboyOrders(motoboyId);
+        cancelBtn.addEventListener('click', () => {
+            novoPedidoForm.reset();
+            pedidosSection.style.display = 'block';
+            novoPedidoSection.style.display = 'none';
+        });
+
+        function populateMotoboySelect() {
+            motoboys.forEach(motoboy => {
+                const option = document.createElement('option');
+                option.value = motoboy.id;
+                option.textContent = motoboy.name;
+                motoboySelect.appendChild(option);
             });
+        }
+
+        novoPedidoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const customerName = document.getElementById('customerName').value;
+            const address = document.getElementById('address').value;
+            const items = document.getElementById('items').value;
+            const motoboyId = motoboySelect.value;
+
+            if (!motoboyId) {
+                alert('Por favor, selecione um motoboy.');
+                return;
+            }
+
+            const motoboy = motoboys.find(m => m.id === parseInt(motoboyId));
+
+            const newPedido = {
+                customerName,
+                address,
+                items,
+                motoboyId: parseInt(motoboyId),
+                motoboyName: motoboy.name,
+                motoboyEmail: motoboy.email,
+                timestamp: Date.now()
+            };
+
+            // Salvar o pedido no Firebase
+            const newPedidoRef = database.ref('pedidos').push();
+            newPedidoRef.set(newPedido)
+                .then(() => {
+                    alert('Pedido salvo com sucesso!');
+                    novoPedidoForm.reset();
+                    pedidosSection.style.display = 'block';
+                    novoPedidoSection.style.display = 'none';
+                    loadPedidos();
+                })
+                .catch((error) => {
+                    console.error('Erro ao salvar pedido:', error);
+                    alert('Erro ao salvar pedido. Por favor, tente novamente.');
+                });
         });
-    }
 
-    function showMotoboyOrders(motoboyId) {
-        const motoboyOrders = orders.filter(order => order.motoboyId === motoboyId && order.status === 'assigned');
-        const modal = document.createElement('div');
-        modal.style.position = 'fixed';
-        modal.style.left = '50%';
-        modal.style.top = '50%';
-        modal.style.transform = 'translate(-50%, -50%)';
-        modal.style.backgroundColor = 'white';
-        modal.style.padding = '20px';
-        modal.style.border = '1px solid black';
-        modal.style.zIndex = '1000';
+        function loadPedidos() {
+            const pedidosList = document.getElementById('pedidosList');
+            pedidosList.innerHTML = '';
 
-        modal.innerHTML = `
-            <h3>Pedidos do Motoboy ${motoboys.find(m => m.id === motoboyId).name}</h3>
-            <ul>
-                ${motoboyOrders.map(order => `
-                    <li>
-                        Pedido #${order.id}: ${order.client} - ${order.street}, ${order.number}, ${order.neighborhood}
-                    </li>
-                `).join('')}
-            </ul>
-            <button id="closeModal">Fechar</button>
-        `;
+            database.ref('pedidos').on('value', (snapshot) => {
+                pedidosList.innerHTML = '';
+                snapshot.forEach((childSnapshot) => {
+                    const pedido = childSnapshot.val();
+                    const pedidoElement = document.createElement('div');
+                    pedidoElement.className = 'pedido';
+                    pedidoElement.innerHTML = `
+                        <p><strong>Cliente:</strong> ${pedido.customerName}</p>
+                        <p><strong>Endereço:</strong> ${pedido.address}</p>
+                        <p><strong>Itens:</strong> ${pedido.items}</p>
+                        <p><strong>Motoboy:</strong> ${pedido.motoboyName}</p>
+                    `;
+                    pedidosList.appendChild(pedidoElement);
+                });
+            });
+        }
 
-        document.body.appendChild(modal);
-
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.body.removeChild(modal);
-        });
-    }
-function showNotification(message) {
-const notifications = document.getElementById('notifications');
-const notification = document.createElement('div');
-notification.className = 'notification';
-notification.textContent = message;
-notifications.appendChild(notification);
-
-scheme
-
-Copiar
-        setTimeout(() => {
-            notification.classList.add('fade-out');
-            setTimeout(() => {
-                notifications.removeChild(notification);
-            }, 500);
-        }, 3000);
-    }
-
-    document.getElementById('newOrderBtn').addEventListener('click', showNewOrderForm);
-    document.getElementById('orderForm').addEventListener('submit', saveOrder);
-    document.getElementById('cancelOrderBtn').addEventListener('click', hideNewOrderForm);
-
-    initMap();
-    renderOrderList();
-    renderMotoboyList();
-    updateMap();
-</script>
-</body> </html>
+        // Inicialização
+        populateMotoboySelect();
+        loadPedidos();
+    </script>
+</body>
+</html>
