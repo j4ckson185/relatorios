@@ -6,7 +6,57 @@
     <title>Cabana Açaí - Sistema de Entrega</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        /* ... (estilos anteriores permanecem os mesmos) ... */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+        }
+        #content {
+            display: flex;
+            height: 100%;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            overflow-y: auto;
+        }
+        #map {
+            flex-grow: 1;
+        }
+        .order-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .order-item.selected {
+            background-color: #e6f3ff;
+        }
+        #orderForm {
+            display: none;
+            margin-top: 20px;
+        }
+        #orderForm input {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        #newOrderBtn, #saveOrderBtn, #cancelOrderBtn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #cancelOrderBtn {
+            background-color: #f44336;
+        }
         #motoboys {
             margin-top: 20px;
         }
@@ -38,13 +88,17 @@
     </style>
 </head>
 <body>
-    <!-- ... (estrutura HTML anterior permanece a mesma) ... -->
     <div id="content">
         <div id="sidebar">
             <h2>Pedidos</h2>
             <button id="newOrderBtn">Novo Pedido</button>
             <form id="orderForm">
-                <!-- ... (campos do formulário permanecem os mesmos) ... -->
+                <input type="text" id="clientName" placeholder="Nome do Cliente" required>
+                <input type="text" id="street" placeholder="Rua" required>
+                <input type="text" id="number" placeholder="Número" required>
+                <input type="text" id="neighborhood" placeholder="Bairro" required>
+                <button type="submit" id="saveOrderBtn">Salvar Pedido</button>
+                <button type="button" id="cancelOrderBtn">Cancelar</button>
             </form>
             <div id="orderList"></div>
             <h2>Motoboys</h2>
@@ -69,9 +123,43 @@
             { id: 3, name: "Rafael" }
         ];
 
-        // ... (código do mapa e outras funções permanecem os mesmos) ...
+        let map;
+        let markers = [];
+        let selectedOrder = null;
 
-        // Função para renderizar a lista de pedidos (atualizada)
+        function initMap() {
+            map = L.map('map').setView([-5.7793, -35.2009], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateMap() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            orders.forEach(order => {
+                geocodeAddress(order);
+            });
+        }
+
+        function geocodeAddress(order) {
+            const address = `${order.street}, ${order.number}, ${order.neighborhood}, Natal, RN, Brazil`;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        const marker = L.marker([lat, lon]).addTo(map);
+                        marker.bindPopup(`<b>${order.client}</b><br>${address}`);
+                        markers.push(marker);
+                        if (order === selectedOrder) {
+                            map.setView([lat, lon], 15);
+                        }
+                    }
+                });
+        }
+
         function renderOrderList() {
             const orderList = document.getElementById('orderList');
             orderList.innerHTML = '';
@@ -117,7 +205,6 @@
             });
         }
 
-        // Função para obter o texto do status
         function getStatusText(status) {
             switch(status) {
                 case 'pending': return 'Pendente';
@@ -127,7 +214,60 @@
             }
         }
 
-        // Função para mostrar modal de atribuição de motoboy
+        function toggleOrderSelection(order) {
+            if (selectedOrder === order) {
+                selectedOrder = null;
+            } else {
+                selectedOrder = order;
+                geocodeAddress(order);
+            }
+            renderOrderList();
+        }
+
+        function showNewOrderForm() {
+            document.getElementById('orderForm').style.display = 'block';
+            document.getElementById('newOrderBtn').style.display = 'none';
+        }
+
+        function hideNewOrderForm() {
+            document.getElementById('orderForm').style.display = 'none';
+            document.getElementById('newOrderBtn').style.display = 'block';
+            document.getElementById('orderForm').reset();
+        }
+
+        function saveOrder(event) {
+            event.preventDefault();
+            const clientName = document.getElementById('clientName').value;
+            const street = document.getElementById('street').value;
+            const number = document.getElementById('number').value;
+            const neighborhood = document.getElementById('neighborhood').value;
+            const newOrder = {
+                id: orders.length + 1,
+                client: clientName,
+                street: street,
+                number: number,
+                neighborhood: neighborhood,
+                status: 'pending'
+            };
+            orders.push(newOrder);
+            renderOrderList();
+            updateMap();
+            hideNewOrderForm();
+        }
+
+        function editOrder(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                document.getElementById('clientName').value = order.client;
+                document.getElementById('street').value = order.street;
+                document.getElementById('number').value = order.number;
+                document.getElementById('neighborhood').value = order.neighborhood;
+                showNewOrderForm();
+                // Remove o pedido existente e adiciona o atualizado ao salvar
+                orders = orders.filter(o => o.id !== orderId);
+            }
+        }
+
         function showMotoboyAssignmentModal(orderId) {
             const modal = document.createElement('div');
             modal.style.position = 'fixed';
@@ -161,7 +301,6 @@
             });
         }
 
-        // Função para atribuir pedido a um motoboy
         function assignOrderToMotoboy(orderId, motoboyId) {
             const order = orders.find(o => o.id === orderId);
             if (order) {
@@ -172,7 +311,6 @@
             }
         }
 
-        // Função para marcar pedido como entregue
         function markOrderAsDelivered(orderId) {
             const order = orders.find(o => o.id === orderId);
             if (order) {
@@ -182,7 +320,6 @@
             }
         }
 
-        // Função para renderizar a lista de motoboys
         function renderMotoboyList() {
             const motoboyList = document.getElementById('motoboyList');
             motoboyList.innerHTML = '';
@@ -204,7 +341,6 @@
             });
         }
 
-        // Função para mostrar os pedidos de um motoboy
         function showMotoboyOrders(motoboyId) {
             const motoboyOrders = orders.filter(order => order.motoboyId === motoboyId && order.status === 'assigned');
             const modal = document.createElement('div');
@@ -236,9 +372,12 @@
             });
         }
 
-        // ... (restante do código JavaScript permanece o mesmo) ...
+        document.getElementById('newOrderBtn').addEventListener('click', showNewOrderForm);
+        document.getElementById('cancelOrderBtn').addEventListener('click', hideNewOrderForm);
+        document.getElementById('orderForm').addEventListener('submit', saveOrder);
 
         // Inicializar a lista de pedidos, motoboys e o mapa
+        initMap();
         renderOrderList();
         renderMotoboyList();
         updateMap();
