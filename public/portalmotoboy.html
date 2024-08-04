@@ -56,11 +56,24 @@
         .ranking-list li span {
             font-weight: bold;
         }
+        #voltarMenu {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #voltarMenu:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Portal do Motoboy</h1>
+        <button id="voltarMenu" onclick="voltarAoMenu()">Voltar ao Menu</button>
         <div id="userInfo" class="info-box">
             <h2>Suas Informações</h2>
             <p>Nome: <span id="nomeUsuario"></span></p>
@@ -203,6 +216,11 @@
                 console.log('Usuário não está autenticado');
             }
         });
+
+        // Função para voltar ao menu
+        function voltarAoMenu() {
+            window.location.href = 'menu.html';
+        }
     </script>
 </body>
 </html>
