@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Rota e Combustível para Motoboys</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #resultado {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora de Rota e Combustível</h1>
+        <label for="distancia">Distância da rota (km):</label>
+        <input type="number" id="distancia" step="0.1" required>
+        
+        <label for="consumo">Consumo da moto (km/l):</label>
+        <input type="number" id="consumo" step="0.1" required>
+        
+        <label for="preco">Preço do combustível (R$/l):</label>
+        <input type="number" id="preco" step="0.01" required>
+        
+        <button onclick="calcular()">Calcular</button>
+        
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function calcular() {
+            const distancia = parseFloat(document.getElementById('distancia').value);
+            const consumo = parseFloat(document.getElementById('consumo').value);
+            const preco = parseFloat(document.getElementById('preco').value);
+            
+            if (isNaN(distancia) || isNaN(consumo) || isNaN(preco)) {
+                alert('Por favor, preencha todos os campos com valores válidos.');
+                return;
+            }
+            
+            const litrosNecessarios = distancia / consumo;
+            const custoTotal = litrosNecessarios * preco;
+            
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = `
+                <p>Distância total: ${distancia.toFixed(2)} km</p>
+                <p>Combustível necessário: ${litrosNecessarios.toFixed(2)} litros</p>
+                <p>Custo estimado: R$ ${custoTotal.toFixed(2)}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
