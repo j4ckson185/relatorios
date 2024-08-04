@@ -124,6 +124,12 @@
         #removeChat:hover {
             background-color: #c82333;
         }
+        #chatList {
+            margin-top: 20px;
+        }
+        #chatList button {
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
@@ -146,6 +152,7 @@
                 <span class="emoji" onclick="addEmoji('🏍️')">🏍️</span>
             </div>
         </div>
+        <div id="chatList"></div>
     </div>
 
     <audio id="notificationSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alert-quick-chime-766.mp3"></audio>
@@ -174,6 +181,7 @@
         const typingIndicator = document.getElementById('typingIndicator');
         const removeChatButton = document.getElementById('removeChat');
         const notificationSound = document.getElementById('notificationSound');
+        const chatListDiv = document.getElementById('chatList');
 
         let currentUser;
         let chatId;
@@ -193,7 +201,7 @@
                             isNewMessage = true;
                         }
                     });
-                    if (isNewMessage && isAdmin) {
+                    if (isNewMessage && isAdmin && message.sender !== currentUser.email) {
                         notificationSound.play();
                     }
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -289,7 +297,9 @@
                     db.collection('chatRooms').doc(chatId).delete()
                         .then(() => {
                             alert('Chat removido com sucesso.');
-                            // Redirecionar ou atualizar a página após remover o chat
+                            chatId = null;
+                            messagesDiv.innerHTML = '';
+                            loadAdminChats();
                         })
                         .catch((error) => {
                             console.error("Erro ao remover chat: ", error);
@@ -310,7 +320,6 @@
                         if (doc.exists && doc.data().isAdmin) {
                             isAdmin = true;
                             removeChatButton.style.display = 'block';
-                            // Lógica para carregar todos os chats para o administrador
                             loadAdminChats();
                         } else {
                             // Lógica para carregar o chat do motoboy
@@ -333,9 +342,19 @@
 
         // Função para carregar chats do administrador
         function loadAdminChats() {
-            // Aqui você pode implementar a lógica para carregar e exibir todos os chats
-            // para o administrador, por exemplo, uma lista de chats ativos
-            console.log('Carregando chats para o administrador');
+            chatListDiv.innerHTML = '';
+            db.collection('chatRooms').get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const chatData = doc.data();
+                    const chatButton = document.createElement('button');
+                    chatButton.textContent = `Chat com ${chatData.motoboyEmail}`;
+                    chatButton.onclick = () => {
+                        chatId = doc.id;
+                        loadMessages();
+                    };
+                    chatListDiv.appendChild(chatButton);
+                });
+            });
         }
 
         // Limpar status ao fechar a página
