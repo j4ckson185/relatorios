@@ -13,7 +13,7 @@
             background-color: #f4f4f4;
         }
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             background-color: #fff;
             padding: 20px;
@@ -28,7 +28,7 @@
             display: block;
             margin-top: 10px;
         }
-        input[type="number"] {
+        input[type="text"], input[type="number"] {
             width: 100%;
             padding: 8px;
             margin-top: 5px;
@@ -51,13 +51,21 @@
             margin-top: 20px;
             font-weight: bold;
         }
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Calculadora de Rota e Combustível</h1>
-        <label for="distancia">Distância da rota (km):</label>
-        <input type="number" id="distancia" step="0.1" required>
+        <label for="origem">Endereço de origem:</label>
+        <input type="text" id="origem" required>
+        
+        <label for="destino">Endereço de destino:</label>
+        <input type="text" id="destino" required>
         
         <label for="consumo">Consumo da moto (km/l):</label>
         <input type="number" id="consumo" step="0.1" required>
@@ -65,31 +73,66 @@
         <label for="preco">Preço do combustível (R$/l):</label>
         <input type="number" id="preco" step="0.01" required>
         
-        <button onclick="calcular()">Calcular</button>
+        <button onclick="calcularRota()">Calcular Rota</button>
         
+        <div id="map"></div>
         <div id="resultado"></div>
     </div>
 
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E
+&callback=initMap" async defer></script>
     <script>
-        function calcular() {
-            const distancia = parseFloat(document.getElementById('distancia').value);
+        let map;
+        let directionsService;
+        let directionsRenderer;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: {lat: -14.235, lng: -51.9253},
+                zoom: 4
+            });
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+        }
+
+        function calcularRota() {
+            const origem = document.getElementById('origem').value;
+            const destino = document.getElementById('destino').value;
             const consumo = parseFloat(document.getElementById('consumo').value);
             const preco = parseFloat(document.getElementById('preco').value);
-            
-            if (isNaN(distancia) || isNaN(consumo) || isNaN(preco)) {
+
+            if (!origem || !destino || isNaN(consumo) || isNaN(preco)) {
                 alert('Por favor, preencha todos os campos com valores válidos.');
                 return;
             }
-            
-            const litrosNecessarios = distancia / consumo;
-            const custoTotal = litrosNecessarios * preco;
-            
-            const resultado = document.getElementById('resultado');
-            resultado.innerHTML = `
-                <p>Distância total: ${distancia.toFixed(2)} km</p>
-                <p>Combustível necessário: ${litrosNecessarios.toFixed(2)} litros</p>
-                <p>Custo estimado: R$ ${custoTotal.toFixed(2)}</p>
-            `;
+
+            const request = {
+                origin: origem,
+                destination: destino,
+                travelMode: 'DRIVING'
+            };
+
+            directionsService.route(request, function(result, status) {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    const distancia = result.routes[0].legs[0].distance.value / 1000; // converte metros para km
+                    const duracao = result.routes[0].legs[0].duration.text;
+
+                    const litrosNecessarios = distancia / consumo;
+                    const custoTotal = litrosNecessarios * preco;
+
+                    const resultado = document.getElementById('resultado');
+                    resultado.innerHTML = `
+                        <p>Distância total: ${distancia.toFixed(2)} km</p>
+                        <p>Tempo estimado: ${duracao}</p>
+                        <p>Combustível necessário: ${litrosNecessarios.toFixed(2)} litros</p>
+                        <p>Custo estimado: R$ ${custoTotal.toFixed(2)}</p>
+                    `;
+                } else {
+                    alert('Não foi possível calcular a rota. Por favor, verifique os endereços.');
+                }
+            });
         }
     </script>
 </body>
