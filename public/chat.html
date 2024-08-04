@@ -236,6 +236,7 @@
                 sender: currentUser.email,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
+            
             db.collection('chatRooms').doc(chatId).collection('messages').add(newMessage)
                 .then(() => {
                     messageInput.value = '';
@@ -243,6 +244,7 @@
                 })
                 .catch((error) => {
                     console.error("Erro ao enviar mensagem: ", error);
+                    alert("Erro ao enviar mensagem. Por favor, tente novamente.");
                 });
         });
 
