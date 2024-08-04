@@ -5,108 +5,203 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistente de Segurança para Motoboys</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; transition: background-color 0.3s, color 0.3s; }
-        #chat-container { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-        #user-input { width: 70%; padding: 5px; }
-        button { padding: 5px 10px; margin: 2px; }
-        .quick-replies { margin-top: 10px; }
-        .quick-reply-btn { margin-right: 5px; margin-bottom: 5px; }
-        .checklist-item { display: flex; align-items: center; margin-bottom: 5px; }
-        .checklist-item input { margin-right: 5px; }
-        #score-display { margin-top: 10px; font-weight: bold; }
-        #user-profile { margin-bottom: 10px; }
-        #daily-tip { margin-bottom: 10px; font-style: italic; }
-        #night-mode-toggle { position: absolute; top: 10px; right: 10px; }
-        #emergency-button { background-color: red; color: white; font-weight: bold; }
-        .achievement { display: inline-block; margin: 5px; padding: 5px; border: 1px solid gold; border-radius: 5px; }
-        body.night-mode { background-color: #333; color: #fff; }
-        body.night-mode #chat-container { background-color: #222; border-color: #555; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #E3F2FD;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #F1F1F1;
+        }
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 10px;
+            gap: 5px;
+        }
+        .quick-reply {
+            background-color: #E3F2FD;
+            border: none;
+            border-radius: 15px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .score {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <h1>Assistente de Segurança para Motoboys 🏍️</h1>
-    <button id="night-mode-toggle" onclick="toggleNightMode()">🌙</button>
-    <div id="user-profile"></div>
-    <div id="daily-tip"></div>
-    <div id="chat-container"></div>
-    <input type="text" id="user-input" placeholder="Digite sua pergunta...">
-    <button onclick="sendMessage()">Enviar</button>
-    <button id="emergency-button" onclick="showEmergencyInfo()">EMERGÊNCIA</button>
-    <div class="quick-replies" id="quick-replies"></div>
-    <div id="checklist-container"></div>
-    <div id="score-display">Pontuação de Segurança: 0</div>
-    <div id="achievements"></div>
-    <button onclick="showWeatherInfo()">Ver Previsão do Tempo</button>
+    <div class="chat-container">
+        <div class="chat-header">Assistente de Segurança para Motoboys</div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="quick-replies" id="quick-replies"></div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Digite sua mensagem...">
+            <button id="send-button">Enviar</button>
+        </div>
+        <div class="score" id="score">Pontuação: 0</div>
+    </div>
 
     <script>
-        const chatContainer = document.getElementById('chat-container');
+        const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
-        const quickRepliesContainer = document.getElementById('quick-replies');
-        const checklistContainer = document.getElementById('checklist-container');
-        const scoreDisplay = document.getElementById('score-display');
-        const userProfileDiv = document.getElementById('user-profile');
-        const dailyTipDiv = document.getElementById('daily-tip');
-        const achievementsDiv = document.getElementById('achievements');
+        const sendButton = document.getElementById('send-button');
+        const quickReplies = document.getElementById('quick-replies');
+        const scoreElement = document.getElementById('score');
+
         let score = 0;
-        let userProfile = { name: '', motoType: '', workRoutine: '' };
-        let achievements = [];
 
         const knowledgeBase = {
-            "clima": "🌦️ Verifique sempre a previsão do tempo antes de sair. Em caso de chuva, redobre a atenção e use equipamentos adequados.",
-            "equipamento": "🦺 Use sempre capacete, jaqueta de proteção, luvas e botas. Certifique-se de que estão em bom estado.",
-            "manutenção": "🔧 Faça a manutenção regular da sua moto. Verifique freios, pneus e luzes antes de cada jornada.",
-            "trânsito": "🚦 Fique atento ao trânsito, respeite as leis e sinalizações. Mantenha uma distância segura dos outros veículos.",
-            "descanso": "😴 Faça pausas regulares, especialmente em jornadas longas. O descanso é essencial para manter a atenção.",
-            "visibilidade": "👀 Use roupas e acessórios refletivos para aumentar sua visibilidade, especialmente à noite.",
-            "direção defensiva": "🛡️ Pratique a direção defensiva. Antecipe-se às ações dos outros motoristas e pedestres.",
-            "emergência": "🚨 Em caso de emergência, mantenha a calma. Tenha sempre os números de emergência à mão.",
-            "hidratação": "💧 Mantenha-se hidratado, especialmente em dias quentes. Leve sempre água consigo.",
-            "planejamento": "🗺️ Planeje suas rotas com antecedência, evitando áreas conhecidas por serem perigosas ou congestionadas."
+            "capacete": "O uso do capacete é obrigatório e essencial para sua segurança. Ele reduz o risco de lesões graves na cabeça em caso de acidente.",
+            "luvas": "Luvas são importantes para proteger suas mãos em caso de queda e melhorar o controle da moto.",
+            "jaqueta": "Uma jaqueta adequada protege contra abrasões e intempéries, além de aumentar sua visibilidade no trânsito.",
+            "calça": "Calças resistentes, como as de couro ou com proteção, são fundamentais para proteger suas pernas em caso de acidente.",
+            "bota": "Botas adequadas protegem seus pés e tornozelos, além de proporcionar melhor aderência aos pedais da moto.",
+            "manutenção": "Realizar manutenção regular na sua moto é crucial para evitar problemas mecânicos e acidentes.",
+            "visibilidade": "Use roupas e acessórios refletivos para aumentar sua visibilidade, especialmente à noite.",
+            "clima": "Esteja preparado para diferentes condições climáticas. Chuva e frio podem afetar sua segurança e desempenho.",
+            "trânsito": "Fique atento ao trânsito, respeite as leis e sinalizações, e sempre pilote defensivamente.",
+            "descanso": "Descanse adequadamente entre as entregas. Fadiga pode diminuir seus reflexos e aumentar o risco de acidentes."
         };
 
-        const quickReplies = [
-            "Como me preparar para chuva?",
-            "Quais equipamentos são essenciais?",
-            "Dicas de manutenção da moto",
-            "Como praticar direção defensiva?"
+        const unknownResponses = [
+            "Eita, essa pergunta me pegou de surpresa! 😅 Que tal me perguntar sobre equipamentos de segurança?",
+            "Hmm, não tenho certeza sobre isso. Mas ei, você sabia que usar capacete reduz em 40% o risco de morte em acidentes?",
+            "Opa, essa informação escapou do meu banco de dados! 🏃‍♂️💨 Que tal me contar como foi seu dia de trabalho hoje?",
+            "Nossa, essa é difícil! 🤔 Enquanto penso, me diz aí: você prefere entregas de dia ou de noite?",
+            "Caramba, você me pegou! 😱 Mas falando em pegar, você sempre pega seu capacete antes de sair, né?",
+            "Uau, você faz perguntas interessantes! 🧐 Mas e aí, qual foi a entrega mais inusitada que você já fez?",
+            "Essa pergunta é mais complicada que trânsito em horário de pico! 😄 Melhor mudarmos de assunto. Como está sua moto hoje?",
+            "Hum... não sei responder isso, mas posso te contar uma piada de motoboy. Quer ouvir?",
+            "Opa, acho que meu GPS mental se perdeu nessa pergunta! 🗺️ Que tal me perguntar sobre dicas de segurança no trânsito?",
+            "Eita, acho que preciso de uma atualização de software pra essa! 🖥️ Enquanto isso, me conta: qual seu lanche favorito durante as entregas?"
         ];
 
-        const dailyChecklist = [
-            "Verificar pneus",
-            "Testar freios",
-            "Checar luzes",
-            "Usar equipamentos de proteção",
-            "Verificar previsão do tempo"
+        const questions = [
+            "E aí, motoboy, qual foi a situação mais engraçada que você já passou numa entrega? 😂",
+            "Se sua moto pudesse falar, o que você acha que ela diria pra você? 🏍️",
+            "Qual superpoder você gostaria de ter para fazer entregas? 🦸‍♂️",
+            "Se você pudesse dar um conselho pro seu eu do passado sobre ser motoboy, qual seria? 🤔",
+            "Qual é o item mais estranho que você já teve que entregar? 📦",
+            "Se existisse um Oscar para motoboys, em qual categoria você ganharia? 🏆",
+            "Qual é o seu truque secreto para lidar com clientes impacientes? 🤫",
+            "Se você pudesse inventar um acessório incrível para motoboys, o que seria? 🛠️",
+            "Qual é a sua teoria sobre por que os semáforos sempre ficam vermelhos quando você está com pressa? 🚦",
+            "Se você fosse escrever um livro sobre suas aventuras como motoboy, qual seria o título? 📚"
         ];
 
-        const dailyTips = [
-            "Sempre use capacete, mesmo em trajetos curtos.",
-            "Mantenha uma distância segura dos veículos à sua frente.",
-            "Faça pausas regulares em viagens longas para evitar fadiga.",
-            "Verifique a pressão dos pneus regularmente.",
-            "Use roupas de cores vivas ou refletivas para aumentar sua visibilidade.",
-            "Evite pontos cegos de outros veículos.",
-            "Não use o celular enquanto pilota, nem mesmo com fones de ouvido."
-        ];
-
-        function sendMessage() {
-            const userMessage = userInput.value;
-            if (userMessage.trim() === '') return;
-
-            appendMessage('Você', userMessage);
-            const botResponse = getBotResponse(userMessage);
-            appendMessage('Assistente', botResponse);
-
-            userInput.value = '';
-            updateQuickReplies();
-        }
-
-        function appendMessage(sender, message) {
-            const messageElement = document.createElement('p');
-            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
-            chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
+        const interactiveResponses = {
+            "engraçada": [
+                "Nossa, essa deve ter sido hilária! 😂 Aposto que você tem várias histórias pra contar num show de stand-up de motoboys!",
+                "Caramba, dá pra fazer um filme de comédia com essas histórias! 🎬 Já pensou em escrever um roteiro?",
+                "Hahahaha! 🤣 É por isso que adoro conversar com motoboys, vocês sempre têm as melhores histórias!"
+            ],
+            "falar": [
+                "Rapaz, se minha moto falasse, ela provavelmente diria: 'Por favor, menos buracos e mais revisões!' 😅",
+                "Ah, aposto que ela pediria uma lavagem e um posto de gasolina com desconto! 🧼⛽",
+                "Ela provavelmente reclamaria do seu gosto musical nas entregas! 🎵 Mas quem liga? O piloto é você! 😎"
+            ],
+            "superpoder": [
+                "Uau, esse superpoder seria incrível! 🦸‍♂️ Imagina quantas entregas você faria num piscar de olhos!",
+                "Caramba, com esse poder você seria o motoboy mais rápido do Oeste! 🤠 Ou do Leste, ou de onde você for!",
+                "Esse superpoder é maneiro demais! Mas lembra, 'com grandes poderes vem grandes responsabilidades'... e mais gorjetas! 💰"
+            ],
+            "conselho": [
+                "Esse é um conselho e tanto! 👏 Se todos os motoboys novatos ouvissem isso, as ruas seriam muito mais seguras!",
+                "Uau, você é tipo um guru dos motoboys! 🧘‍♂️ Devia abrir um curso online 'Sabedoria das Duas Rodas'!",
+                "Sábias palavras, meu amigo! 🦉 Com esse conselho, você podia ser o Yoda dos motoboys. Que a força do trânsito esteja com você!"
+            ],
+            "estranho": [
+                "Minha nossa! 😱 E eu achando que entregar pizza de abacaxi era estranho! Você ganhou!",
+                "Caramba, isso é mais inusitado que pneu quadrado! 😂 Você devia escrever um livro 'As Entregas Mais Loucas'!",
+                "Uau! Depois dessa entrega, nada mais te assusta, né? 💪 Você é oficialmente um motoboy de elite!"
+            ],
+            "Oscar": [
+                "Haha, adorei! 🏆 Você merece não só um Oscar, mas um Tony, um Emmy e um Grammy também!",
+                "Essa categoria é perfeita pra você! Já consigo até ver seu discurso de agradecimento na TV! 📺",
+                "Olha só, temos uma estrela das entregas aqui! 🌟 Quando for pra Hollywood, não esquece da gente, viu?"
+            ],
+            "truque": [
+                "Esse truque é genial! 🧙‍♂️ Você devia dar palestras de 'Como Encantar Clientes Sem Usar Mágica'!",
+                "Uau, você é tipo um ninja da paciência! 🥷 Esse truque devia ser ensinado em todas as escolas de motoboys!",
+                "Cara, com esse truque você podia ser diplomata! 🤝 Imagina resolver conflitos internacionais entre uma entrega e outra?"
+            ],
+            "acessório": [
+                "Caramba, essa invenção é incrível! 🚀 Já pensou em participar do 'Shark Tank: Edição Motoboy'?",
+                "Uau! Com esse acessório, você seria tipo o 'Tony Stark' dos motoboys! 🦾 Quando começa a produção em massa?",
+                "Genial! 💡 Isso revolucionaria o mundo das entregas! Você devia patentear essa ideia antes que eu roube! 😉"
+            ],
+            "semáforos": [
+                "Essa teoria é hilária! 😂 Acho que os semáforos têm um complô secreto contra os motoboys apressados!",
+                "Hahaha! Talvez os semáforos sejam controlados por alienígenas que adoram ver motoboys impacientes! 👽🛸",
+                "Boa teoria! Eu acho que os semáforos são na verdade câmeras escondidas de um reality show 'Motoboys Pistolas'! 📺😠"
+            ],
+            "livro": [
+                "Esse título é sensacional! 📚 Já consigo ver ele no topo da lista dos mais vendidos!",
+                "Hahaha, adorei! 😂 Esse livro seria um best-seller instantâneo no mundo dos motoboys!",
+                "Cara, com um título desses, seu livro vai virar filme! 🎬 Quem você quer que interprete você no cinema?"
+            ]
+        };
 
         function getBotResponse(userMessage) {
             userMessage = userMessage.toLowerCase();
@@ -116,155 +211,59 @@
                     return response;
                 }
             }
-            return "Desculpe, não tenho informações específicas sobre isso. Para sua segurança, sempre siga as leis de trânsito e use equipamentos de proteção adequados. 🛑";
+            return getRandomUnknownResponse();
         }
 
-        function updateQuickReplies() {
-            quickRepliesContainer.innerHTML = '';
-            quickReplies.forEach(reply => {
-                const button = document.createElement('button');
-                button.textContent = reply;
-                button.classList.add('quick-reply-btn');
-                button.onclick = () => {
-                    userInput.value = reply;
-                    sendMessage();
-                };
-                quickRepliesContainer.appendChild(button);
-            });
+        function getRandomUnknownResponse() {
+            const randomIndex = Math.floor(Math.random() * unknownResponses.length);
+            return unknownResponses[randomIndex];
         }
 
-        function createChecklist() {
-            checklistContainer.innerHTML = '<h3>Checklist Diário de Segurança:</h3>';
-            dailyChecklist.forEach(item => {
-                const div = document.createElement('div');
-                div.classList.add('checklist-item');
-                div.innerHTML = `
-                    <input type="checkbox" id="${item}" onchange="updateScore(this)">
-                    <label for="${item}">${item}</label>
-                `;
-                checklistContainer.appendChild(div);
-            });
+        function askQuestion() {
+            const randomIndex = Math.floor(Math.random() * questions.length);
+            const question = questions[randomIndex];
+            appendMessage('Assistente', question);
         }
 
-        function updateScore(checkbox) {
-            if (checkbox.checked) {
-                incrementScore();
+        function getInteractiveResponse(userMessage) {
+            for (const [keyword, responses] of Object.entries(interactiveResponses)) {
+                if (userMessage.toLowerCase().includes(keyword)) {
+                    const randomIndex = Math.floor(Math.random() * responses.length);
+                    return responses[randomIndex];
+                }
+            }
+            return null;
+        }
+
+        let lastMessageWasQuestion = false;
+
+        function sendMessage() {
+            const userMessage = userInput.value;
+            if (userMessage.trim() === '') return;
+
+            appendMessage('Você', userMessage);
+            let botResponse;
+
+            if (lastMessageWasQuestion) {
+                botResponse = getInteractiveResponse(userMessage) || getBotResponse(userMessage);
+                lastMessageWasQuestion = false;
             } else {
-                decrementScore();
+                botResponse = getBotResponse(userMessage);
+                if (Math.random() < 0.3) {  // 30% de chance de fazer uma pergunta
+                    askQuestion();
+                    lastMessageWasQuestion = true;
+                }
             }
+
+            appendMessage('Assistente', botResponse);
+
+            userInput.value = '';
+            updateQuickReplies();
         }
 
-        function incrementScore() {
-            score += 10;
-            updateScoreDisplay();
-            checkAchievements();
-        }
-
-        function decrementScore() {
-            score = Math.max(0, score - 10);
-            updateScoreDisplay();
-        }
-
-        function updateScoreDisplay() {
-            scoreDisplay.textContent = `Pontuação de Segurança: ${score}`;
-        }
-
-        function createUserProfile() {
-            userProfile.name = prompt("Qual é o seu nome?") || "Amigo Motoboy";
-            userProfile.motoType = prompt("Qual o tipo da sua moto?") || "Não especificado";
-            userProfile.workRoutine = prompt("Qual sua rotina de trabalho? (ex: diurno, noturno, misto)") || "Não especificado";
-            updateUserProfileDisplay();
-        }
-
-        function updateUserProfileDisplay() {
-            userProfileDiv.innerHTML = `
-                <h3>Perfil do Usuário:</h3>
-                <p>Nome: ${userProfile.name}</p>
-                <p>Tipo de Moto: ${userProfile.motoType}</p>
-                <p>Rotina de Trabalho: ${userProfile.workRoutine}</p>
-            `;
-        }
-
-        function showDailyTip() {
-            const tipIndex = Math.floor(Math.random() * dailyTips.length);
-            dailyTipDiv.textContent = `Dica do Dia: ${dailyTips[tipIndex]}`;
-        }
-
-        function toggleNightMode() {
-            document.body.classList.toggle('night-mode');
-            const button = document.getElementById('night-mode-toggle');
-            button.textContent = document.body.classList.contains('night-mode') ? '☀️' : '🌙';
-        }
-
-        function showEmergencyInfo() {
-            alert("INFORMAÇÕES DE EMERGÊNCIA:\n\n" +
-                  "- Polícia: 190\n" +
-                  "- Bombeiros: 193\n" +
-                  "- SAMU: 192\n" +
-                  "- Mantenha a calma\n" +
-                  "- Se possível, saia da via\n" +
-                  "- Ligue a sinalização de emergência\n" +
-                  "- Se houver feridos, não os mova, exceto se houver risco imediato");
-        }
-
-        function checkAchievements() {
-            if (score >= 50 && !achievements.includes("Iniciante Seguro")) {
-                achievements.push("Iniciante Seguro");
-                showAchievement("Iniciante Seguro");
-            }
-            if (score >= 100 && !achievements.includes("Mestre da Segurança")) {
-                achievements.push("Mestre da Segurança");
-                showAchievement("Mestre da Segurança");
-            }
-        }
-
-        function showAchievement(achievement) {
-            const achievementElement = document.createElement('div');
-            achievementElement.classList.add('achievement');
-            achievementElement.textContent = `🏆 ${achievement}`;
-            achievementsDiv.appendChild(achievementElement);
-            alert(`Parabéns! Você desbloqueou a conquista: ${achievement}`);
-        }
-
-        function showWeatherInfo() {
-            // Simulating weather API call
-            const weatherConditions = ["Ensolarado", "Nublado", "Chuvoso", "Ventoso"];
-            const randomWeather = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-            const temperature = Math.floor(Math.random() * 15) + 20; // Random temperature between 20-35°C
-            alert(`Previsão do tempo para hoje:\nCondição: ${randomWeather}\nTemperatura: ${temperature}°C`);
-        }
-
-        // Inicialização
-        updateQuickReplies();
-        createChecklist();
-        createUserProfile();
-        showDailyTip();
-        appendMessage('Assistente', `Olá ${userProfile.name}! Sou seu assistente de segurança. Como posso ajudar você hoje? 😊`);
-
-        // Notificações Push (simulado)
-        setTimeout(() => {
-            if (Notification.permission === "granted") {
-                new Notification("Lembrete de Segurança", {
-                    body: "Não se esqueça de verificar sua moto antes de sair!",
-                    icon: "https://example.com/icon.png"
-                });
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        new Notification("Lembrete de Segurança", {
-                            body: "Não se esqueça de verificar sua moto antes de sair!",
-                            icon: "https://example.com/icon.png"
-                        });
-                    }
-                });
-            }
-        }, 10000);
-
-        userInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-    </script>
-</body>
-</html>
+        function appendMessage(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender === 'Você' ? 'user-message' : 'bot-message');
+            messageElement.textContent = `${sender}: ${message}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
