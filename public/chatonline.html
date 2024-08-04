@@ -1,47 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Online - Administração</title>
-    <link rel="stylesheet" href="style.css">
+  <title>Chat Administração</title>
+  <style>
+    #chat-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      background-color: #f9f9f9;
+    }
+
+    #messages {
+      height: 300px;
+      overflow-y: scroll;
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h2>Admin Chat</h2>
-        </div>
-        <div class="chat-messages" id="chat-messages"></div>
-    </div>
+  <div id="chat-container">
+    <div id="messages"></div>
+  </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId: "706144237954",
-            appId: "1:706144237954:web:345c10370972486afc779b",
-            measurementId: "G-96Y337GYT8"
-        };
+  <!-- Firebase Configuration -->
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-storage.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+      authDomain: "cabana-8d55e.firebaseapp.com",
+      databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+      projectId: "cabana-8d55e",
+      storageBucket: "cabana-8d55e.appspot.com",
+      messagingSenderId: "706144237954",
+      appId: "1:706144237954:web:345c10370972486afc779b",
+      measurementId: "G-96Y337GYT8"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-        firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const messagesRef = db.ref('messages');
 
-        const db = firebase.database();
-        const chatMessages = document.getElementById('chat-messages');
-
-        // Receber mensagens em tempo real
-        db.ref('messages').on('child_added', (snapshot) => {
-            const message = snapshot.val();
-            const messageElement = document.createElement('div');
-            messageElement.textContent = `${message.sender}: ${message.message}`;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        });
-    </script>
+    messagesRef.on('child_added', (snapshot) => {
+      const message = snapshot.val();
+      const messageElement = document.createElement('div');
+      if (message.text) {
+        messageElement.textContent = message.sender + ': ' + message.text;
+      } else if (message.audio) {
+        const audioElement = document.createElement('audio');
+        audioElement.controls = true;
+        audioElement.src = message.audio;
+        messageElement.appendChild(audioElement);
+      }
+      document.getElementById('messages').appendChild(messageElement);
+    });
+  </script>
 </body>
 </html>
