@@ -79,12 +79,13 @@
         <div id="resultado"></div>
     </div>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E
-&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&libraries=places"></script>
     <script>
         let map;
         let directionsService;
         let directionsRenderer;
+        let autocompleteOrigem;
+        let autocompleteDestino;
 
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
@@ -94,6 +95,15 @@
             directionsService = new google.maps.DirectionsService();
             directionsRenderer = new google.maps.DirectionsRenderer();
             directionsRenderer.setMap(map);
+
+            autocompleteOrigem = new google.maps.places.Autocomplete(
+                document.getElementById('origem'),
+                {types: ['geocode']}
+            );
+            autocompleteDestino = new google.maps.places.Autocomplete(
+                document.getElementById('destino'),
+                {types: ['geocode']}
+            );
         }
 
         function calcularRota() {
@@ -134,6 +144,8 @@
                 }
             });
         }
+
+        initMap();
     </script>
 </body>
 </html>
