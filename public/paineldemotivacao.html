@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Motivação - Açaí Express</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .header {
+            background-color: #8E4585;
+            color: white;
+            text-align: center;
+            padding: 1em;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1em;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1em;
+            margin-bottom: 1em;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background-color: #8E4585;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .progress-bar {
+            background-color: #e0e0e0;
+            height: 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .progress {
+            background-color: #4CAF50;
+            height: 100%;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+        }
+        #motivationalQuote {
+            font-style: italic;
+            text-align: center;
+        }
+        .leaderboard {
+            list-style-type: none;
+            padding: 0;
+        }
+        .leaderboard li {
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Painel de Motivação - Açaí Express</h1>
+    </div>
+    <div class="container">
+        <div class="card">
+            <h2>Frase do Dia</h2>
+            <p id="motivationalQuote">Carregando...</p>
+        </div>
+        <div class="card">
+            <h2>Desafio da Semana</h2>
+            <p>Faça 50 entregas até sexta-feira!</p>
+            <div class="progress-bar">
+                <div id="challengeProgress" class="progress"></div>
+            </div>
+            <p>Progresso: <span id="progressText">0</span>/50 entregas</p>
+            <button onclick="updateProgress()" class="button">Atualizar Progresso</button>
+        </div>
+        <div class="card">
+            <h2>Top 5 Entregadores da Semana</h2>
+            <ol id="leaderboard" class="leaderboard">
+            </ol>
+        </div>
+        <div class="card">
+            <h2>Dica do Dia</h2>
+            <p id="dailyTip">Carregando...</p>
+        </div>
+    </div>
+
+    <script>
+        const quotes = [
+            "A persistência é o caminho do êxito.",
+            "O sucesso nasce do querer, da determinação e persistência em se chegar a um objetivo.",
+            "Motivação é a arte de fazer as pessoas fazerem o que você quer que elas façam porque elas o querem fazer.",
+            "Toda ação humana, quer se torne positiva ou negativa, precisa depender de motivação.",
+            "A verdadeira motivação vem de realização, desenvolvimento pessoal, satisfação no trabalho e reconhecimento."
+        ];
+
+        const tips = [
+            "Mantenha sua moto sempre em boas condições para evitar problemas durante as entregas.",
+            "Hidrate-se bem durante o dia, especialmente em dias quentes.",
+            "Planeje suas rotas com antecedência para otimizar o tempo de entrega.",
+            "Sempre verifique se o pedido está completo antes de sair para a entrega.",
+            "Um sorriso e uma atitude positiva podem fazer toda a diferença para o cliente!"
+        ];
+
+        const topEntregadores = [
+            { nome: "Boaz", entregas: 186 },
+            { nome: "Giovanni", entregas: 182 },
+            { nome: "Felipe Augusto", entregas: 177 },
+            { nome: "Moisés", entregas: 159 },
+            { nome: "Felipe Matheus", entregas: 77 }
+        ];
+
+        function getRandomItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function atualizarLeaderboard() {
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = ''; // Limpa a lista existente
+            topEntregadores.forEach(entregador => {
+                const li = document.createElement('li');
+                li.textContent = `${entregador.nome} - ${entregador.entregas} entregas`;
+                leaderboard.appendChild(li);
+            });
+        }
+
+        document.getElementById('motivationalQuote').textContent = getRandomItem(quotes);
+        document.getElementById('dailyTip').textContent = getRandomItem(tips);
+
+        let progress = 0;
+        function updateProgress() {
+            progress += 1;
+            if (progress > 50) progress = 50;
+            const progressBar = document.getElementById('challengeProgress');
+            const progressText = document.getElementById('progressText');
+            progressBar.style.width = (progress * 2) + '%';
+            progressText.textContent = progress;
+        }
+
+        // Inicializa o leaderboard
+        atualizarLeaderboard();
+    </script>
+</body>
+</html>
