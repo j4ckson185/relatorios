@@ -64,6 +64,21 @@
             padding: 10px;
             margin-bottom: 10px;
         }
+        .audio-recording {
+            display: flex;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 20px;
+            margin-top: 10px;
+        }
+        .audio-recording-time {
+            margin-right: 10px;
+        }
+        .audio-recording-cancel {
+            margin-left: auto;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +98,11 @@
             <input type="text" id="messageInput" placeholder="Digite uma mensagem...">
             <button id="sendButton">Enviar</button>
             <button id="recordButton">Gravar Áudio</button>
+        </div>
+        <div class="audio-recording" id="audioRecording" style="display: none;">
+            <span class="audio-recording-time" id="audioRecordingTime">00:00</span>
+            <span>Gravando áudio...</span>
+            <span class="audio-recording-cancel" id="audioRecordingCancel">X</span>
         </div>
     </div>
 
@@ -111,12 +131,18 @@
         const sendButton = document.getElementById('sendButton');
         const recordButton = document.getElementById('recordButton');
         const userSelect = document.getElementById('userSelect');
+        const audioRecording = document.getElementById('audioRecording');
+        const audioRecordingTime = document.getElementById('audioRecordingTime');
+        const audioRecordingCancel = document.getElementById('audioRecordingCancel');
 
         let mediaRecorder;
         let audioChunks = [];
+        let startTime;
+        let timerInterval;
 
         sendButton.addEventListener('click', sendMessage);
         recordButton.addEventListener('click', toggleRecording);
+        audioRecordingCancel.addEventListener('click', cancelRecording);
 
         function sendMessage() {
             const message = messageInput.value.trim();
@@ -135,26 +161,56 @@
 
         function toggleRecording() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    audioChunks = [];
+                    startTime = Date.now();
+                    updateRecordingTime();
+                    timerInterval = setInterval(updateRecordingTime, 1000);
+                    recordButton.textContent = 'Parar Gravação';
+                    audioRecording.style.display = 'flex';
+
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener('stop', () => {
+                        clearInterval(timerInterval);
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        uploadAudio(audioBlob);
+                    });
+                });
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            recordButton.textContent = 'Gravar Áudio';
+            audioRecording.style.display = 'none';
+        }
+
+        function cancelRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
                 recordButton.textContent = 'Gravar Áudio';
-            } else {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        mediaRecorder = new MediaRecorder(stream);
-                        mediaRecorder.start();
-                        recordButton.textContent = 'Parar Gravação';
-
-                        mediaRecorder.addEventListener('dataavailable', event => {
-                            audioChunks.push(event.data);
-                        });
-
-                        mediaRecorder.addEventListener('stop', () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                            audioChunks = [];
-                            uploadAudio(audioBlob);
-                        });
-                    });
+                audioRecording.style.display = 'none';
+                clearInterval(timerInterval);
             }
+        }
+
+        function updateRecordingTime() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            audioRecordingTime.textContent = `${minutes}:${seconds}`;
         }
 
         function uploadAudio(audioBlob) {
