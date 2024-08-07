@@ -19,12 +19,12 @@
     <div id="debugInfo"></div>
 
     <script>
-        const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
+        const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
 
         function formatDate(date) {
-            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+            return date.toISOString().slice(0, 19).replace('T', ' ') + '-03:00';
         }
 
         async function fetchOrders() {
@@ -32,8 +32,8 @@
             const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 hours ago
             const endDate = formatDate(now);
             
-            let url = `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-            const fullUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+            const apiUrl = `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+            const fullUrl = `${proxyUrl}?url=${encodeURIComponent(apiUrl)}`;
 
             console.log('Requesting URL:', fullUrl);
             document.getElementById('debugInfo').innerHTML = `<p>Requesting URL: ${fullUrl}</p>`;
