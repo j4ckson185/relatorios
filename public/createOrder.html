@@ -19,45 +19,27 @@
     <div id="debugInfo"></div>
 
     <script>
-        const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy';
-        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
-        const authToken = '8d7c77946d534444a168bb7da794febf';
-
-        function formatDate(date) {
-            return date.toISOString().slice(0, 19).replace('T', ' ') + '-03:00';
-        }
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
 
         async function fetchOrders() {
-            const now = new Date();
-            const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 hours ago
-            const endDate = formatDate(now);
-            
-            const apiUrl = `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-            const fullUrl = `${proxyUrl}?url=${encodeURIComponent(apiUrl)}`;
-
-            console.log('Requesting URL:', fullUrl);
-            document.getElementById('debugInfo').innerHTML = `<p>Requesting URL: ${fullUrl}</p>`;
+            console.log('Fetching orders...');
+            document.getElementById('debugInfo').innerHTML = '<p>Fetching orders...</p>';
 
             try {
-                const response = await axios.get(fullUrl, {
-                    headers: {
-                        'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
-                    }
-                });
+                const response = await axios.get(firebaseFunctionUrl);
                 console.log('Response:', response.data);
                 document.getElementById('debugInfo').innerHTML += `<p>Response received. Status: ${response.status}</p>`;
                 displayOrders(response.data);
             } catch (error) {
-                console.error('Erro ao buscar pedidos:', error);
-                let errorMessage = 'Erro ao carregar pedidos. ';
+                console.error('Error fetching orders:', error);
+                let errorMessage = 'Error loading orders. ';
                 if (error.response) {
                     errorMessage += `Status: ${error.response.status}. `;
                     if (error.response.data) {
-                        errorMessage += `Mensagem: ${JSON.stringify(error.response.data)}`;
+                        errorMessage += `Message: ${JSON.stringify(error.response.data)}`;
                     }
                 } else if (error.request) {
-                    errorMessage += 'Sem resposta do servidor.';
+                    errorMessage += 'No response from server.';
                 } else {
                     errorMessage += error.message;
                 }
@@ -71,7 +53,7 @@
             orderResults.innerHTML = '';
 
             if (!Array.isArray(orders) || orders.length === 0) {
-                orderResults.innerHTML = '<p>Nenhum pedido encontrado para o período.</p>';
+                orderResults.innerHTML = '<p>No orders found for the period.</p>';
                 return;
             }
 
@@ -79,21 +61,21 @@
                 const orderElement = document.createElement('div');
                 orderElement.className = 'order';
                 orderElement.innerHTML = `
-                    <h3>Pedido #${order.id}</h3>
+                    <h3>Order #${order.id}</h3>
                     <p>Status: ${order.status}</p>
                     <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
-                    <p>Cliente: ${order.customer.customerName}</p>
-                    <p>Data: ${new Date(order.date).toLocaleString()}</p>
-                    <p>Endereço: ${order.deliveryPoint.address}</p>
+                    <p>Customer: ${order.customer.customerName}</p>
+                    <p>Date: ${new Date(order.date).toLocaleString()}</p>
+                    <p>Address: ${order.deliveryPoint.address}</p>
                 `;
                 orderResults.appendChild(orderElement);
             });
         }
 
-        // Busca pedidos inicialmente
+        // Fetch orders initially
         fetchOrders();
 
-        // Atualiza a cada 30 segundos
+        // Update every 30 seconds
         setInterval(fetchOrders, 30000);
     </script>
 </body>
