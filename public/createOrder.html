@@ -8,14 +8,15 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         h1 { color: #333; }
-        #orderResults { margin-top: 20px; }
-        .order { background-color: #f0f0f0; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        #orderResults, #debugInfo { margin-top: 20px; padding: 10px; background-color: #f0f0f0; }
+        .order { background-color: #fff; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
         .error { color: red; }
     </style>
 </head>
 <body>
     <h1>Pedidos em Tempo Real - Foody Delivery</h1>
     <div id="orderResults"></div>
+    <div id="debugInfo"></div>
 
     <script>
         const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
@@ -23,15 +24,7 @@
         const authToken = '8d7c77946d534444a168bb7da794febf';
 
         function formatDate(date) {
-            const pad = (num) => num.toString().padStart(2, '0');
-            const offset = -date.getTimezoneOffset();
-            const offsetSign = offset >= 0 ? '+' : '-';
-            const offsetHours = pad(Math.floor(Math.abs(offset) / 60));
-            const offsetMinutes = pad(Math.abs(offset) % 60);
-            
-            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T` +
-                   `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
-                   `${offsetSign}${offsetHours}:${offsetMinutes}`;
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
         async function fetchOrders() {
@@ -40,15 +33,20 @@
             const endDate = formatDate(now);
             
             let url = `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-            url = `${proxyUrl}${encodeURIComponent(url)}`;
+            const fullUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+
+            console.log('Requesting URL:', fullUrl);
+            document.getElementById('debugInfo').innerHTML = `<p>Requesting URL: ${fullUrl}</p>`;
 
             try {
-                const response = await axios.get(url, {
+                const response = await axios.get(fullUrl, {
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
                     }
                 });
+                console.log('Response:', response.data);
+                document.getElementById('debugInfo').innerHTML += `<p>Response received. Status: ${response.status}</p>`;
                 displayOrders(response.data);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -64,6 +62,7 @@
                     errorMessage += error.message;
                 }
                 document.getElementById('orderResults').innerHTML = `<p class="error">${errorMessage}</p>`;
+                document.getElementById('debugInfo').innerHTML += `<p class="error">${errorMessage}</p>`;
             }
         }
 
