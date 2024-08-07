@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos em Tempo Real - Foody Delivery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        h1 { color: #333; }
+        #orderResults { margin-top: 20px; }
+        .order { background-color: #f0f0f0; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Pedidos em Tempo Real - Foody Delivery</h1>
+    <div id="orderResults"></div>
+
+    <script>
+        const proxyUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/proxy?url=';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+
+        function formatDate(date) {
+            const pad = (num) => num.toString().padStart(2, '0');
+            const offset = -date.getTimezoneOffset();
+            const offsetSign = offset >= 0 ? '+' : '-';
+            const offsetHours = pad(Math.floor(Math.abs(offset) / 60));
+            const offsetMinutes = pad(Math.abs(offset) % 60);
+            
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T` +
+                   `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+                   `${offsetSign}${offsetHours}:${offsetMinutes}`;
+        }
+
+        async function fetchOrders() {
+            const now = new Date();
+            const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 hours ago
+            const endDate = formatDate(now);
+            
+            let url = `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+            url = `${proxyUrl}${encodeURIComponent(url)}`;
+
+            try {
+                const response = await axios.get(url, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    }
+                });
+                displayOrders(response.data);
+            } catch (error) {
+                console.error('Erro ao buscar pedidos:', error);
+                let errorMessage = 'Erro ao carregar pedidos. ';
+                if (error.response) {
+                    errorMessage += `Status: ${error.response.status}. `;
+                    if (error.response.data) {
+                        errorMessage += `Mensagem: ${JSON.stringify(error.response.data)}`;
+                    }
+                } else if (error.request) {
+                    errorMessage += 'Sem resposta do servidor.';
+                } else {
+                    errorMessage += error.message;
+                }
+                document.getElementById('orderResults').innerHTML = `<p class="error">${errorMessage}</p>`;
+            }
+        }
+
+        function displayOrders(orders) {
+            const orderResults = document.getElementById('orderResults');
+            orderResults.innerHTML = '';
+
+            if (!Array.isArray(orders) || orders.length === 0) {
+                orderResults.innerHTML = '<p>Nenhum pedido encontrado para o período.</p>';
+                return;
+            }
+
+            orders.forEach(order => {
+                const orderElement = document.createElement('div');
+                orderElement.className = 'order';
+                orderElement.innerHTML = `
+                    <h3>Pedido #${order.id}</h3>
+                    <p>Status: ${order.status}</p>
+                    <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
+                    <p>Cliente: ${order.customer.customerName}</p>
+                    <p>Data: ${new Date(order.date).toLocaleString()}</p>
+                    <p>Endereço: ${order.deliveryPoint.address}</p>
+                `;
+                orderResults.appendChild(orderElement);
+            });
+        }
+
+        // Busca pedidos inicialmente
+        fetchOrders();
+
+        // Atualiza a cada 30 segundos
+        setInterval(fetchOrders, 30000);
+    </script>
+</body>
+</html>
