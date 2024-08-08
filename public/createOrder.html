@@ -23,6 +23,7 @@
         button:hover { background-color: #45a049; }
         .order-options { position: absolute; right: 10px; top: 10px; }
         .order-options i { cursor: pointer; margin-left: 5px; }
+        .error { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -55,9 +56,10 @@
         const db = firebase.firestore();
         let map;
         let markers = {};
-        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
-        const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking';
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
         const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
@@ -80,8 +82,12 @@
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: foodyApiUrl
                     }
                 });
+                console.log('Response:', response.data);
                 const filteredOrders = response.data.filter(order => 
                     ['onGoing', 'ready', 'dispatched', 'accepted'].includes(order.status)
                 );
@@ -89,6 +95,16 @@
                 updateMap(filteredOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
+                if (error.response) {
+                    console.error('Error response:', error.response.data);
+                    console.error('Error status:', error.response.status);
+                    console.error('Error headers:', error.response.headers);
+                } else if (error.request) {
+                    console.error('Error request:', error.request);
+                } else {
+                    console.error('Error message:', error.message);
+                }
+                document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
             }
         }
 
@@ -140,10 +156,13 @@
 
         async function updateCourierLocation(order) {
             try {
-                const response = await axios.get(`${trackingUrl}?orderUid=${order.uid}`, {
+                const response = await axios.get(trackingUrl, {
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        orderUid: order.uid
                     }
                 });
                 const tracking = response.data;
