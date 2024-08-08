@@ -213,7 +213,7 @@
                     <div>
                         <h3>Motoboy - Pedido #${order.id}</h3>
                         <p>Nome: ${order.courier.courierName}</p>
-                        <p>Status: ${getStatusDisplay(order.status)}</p>
+                        <p>Status: ${tracking.status}</p>
                         ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
                             `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
                     </div>
