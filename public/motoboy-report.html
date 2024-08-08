@@ -52,6 +52,11 @@
             width: 100%;
             margin-bottom: 20px;
         }
+        .pie-chart-container {
+            height: 200px;
+            width: 200px;
+            margin: 0 auto;
+        }
         .date-filter {
             margin-bottom: 20px;
         }
@@ -134,7 +139,7 @@
                             completedOrders: 0,
                             ongoingOrders: 0,
                             totalEarnings: 0,
-                            deliveryTimes: [],
+                            totalDeliveryTime: 0,
                             statusCounts: {},
                             deliveriesPerHour: Array(24).fill(0)
                         };
@@ -149,7 +154,7 @@
 
                         if (order.onGoingDate && order.closedDate) {
                             const deliveryTime = new Date(order.closedDate) - new Date(order.onGoingDate);
-                            motoboyStats[motoboyName].deliveryTimes.push(deliveryTime);
+                            motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
                             const deliveryHour = new Date(order.closedDate).getHours();
                             motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
                         }
@@ -160,9 +165,8 @@
             });
 
             Object.values(motoboyStats).forEach(stats => {
-                if (stats.deliveryTimes.length > 0) {
-                    const totalTime = stats.deliveryTimes.reduce((sum, time) => sum + time, 0);
-                    stats.averageDeliveryTime = totalTime / stats.deliveryTimes.length / (1000 * 60); // Converte para minutos
+                if (stats.completedOrders > 0) {
+                    stats.averageDeliveryTime = stats.totalDeliveryTime / stats.completedOrders / (1000 * 60); // Converte para minutos
                 }
             });
 
@@ -183,7 +187,7 @@
                     <div class="metric">Pedidos em Andamento: <span>${stats.ongoingOrders}</span></div>
                     <div class="metric">Ganhos Totais: <span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
                     <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime ? stats.averageDeliveryTime.toFixed(2) + ' min' : 'N/A'}</span></div>
-                    <div class="chart-container">
+                    <div class="pie-chart-container">
                         <canvas id="status-chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
                     </div>
                     <div class="chart-container">
@@ -207,6 +211,7 @@
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         title: {
                             display: true,
                             text: 'Distribuição de Status dos Pedidos'
@@ -228,6 +233,7 @@
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         title: {
                             display: true,
                             text: 'Entregas por Hora'
