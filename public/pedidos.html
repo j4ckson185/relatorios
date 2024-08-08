@@ -8,17 +8,19 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4; }
         .container { width: 80%; margin: auto; overflow: hidden; padding: 20px; }
         h1 { color: #333; text-align: center; }
         .order-item { background: #fff; margin-bottom: 20px; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         select, button { padding: 10px; margin: 5px 0; }
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #45a049; }
+        #userInfo { text-align: right; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div id="userInfo"></div>
         <h1>Meus Pedidos</h1>
         <div id="ordersList"></div>
     </div>
@@ -43,9 +45,10 @@
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
+                document.getElementById('userInfo').textContent = `Logado como: ${user.email}`;
                 loadOrders();
             } else {
-                window.location.href = 'index.html'; // Redireciona para a página de login se não estiver autenticado
+                window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
             }
         });
 
@@ -71,10 +74,10 @@
                 <p>Cliente: ${order.customer.customerName}</p>
                 <p>Endereço: ${order.deliveryPoint.address}</p>
                 <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
-                <p>Status: <span id="status-${orderId}">${order.status}</span></p>
+                <p>Status: <span id="status-${orderId}">${getStatusDisplay(order.status)}</span></p>
                 <select id="status-select-${orderId}">
-                    <option value="pending">Pendente</option>
-                    <option value="inProgress">Em Andamento</option>
+                    <option value="assigned">Atribuído</option>
+                    <option value="onGoing">A Caminho</option>
                     <option value="delivered">Entregue</option>
                 </select>
                 <button onclick="updateOrderStatus('${orderId}')">Atualizar Status</button>
@@ -82,12 +85,21 @@
             return orderDiv;
         }
 
+        function getStatusDisplay(status) {
+            switch(status) {
+                case 'assigned': return 'Atribuído';
+                case 'onGoing': return 'A Caminho';
+                case 'delivered': return 'Entregue';
+                default: return status;
+            }
+        }
+
         function updateOrderStatus(orderId) {
             const newStatus = document.getElementById(`status-select-${orderId}`).value;
             db.collection('orders').doc(orderId).update({
                 status: newStatus
             }).then(() => {
-                document.getElementById(`status-${orderId}`).textContent = newStatus;
+                document.getElementById(`status-${orderId}`).textContent = getStatusDisplay(newStatus);
                 console.log(`Status do pedido ${orderId} atualizado para ${newStatus}`);
             }).catch((error) => {
                 console.error("Erro ao atualizar status: ", error);
