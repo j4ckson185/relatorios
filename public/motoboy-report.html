@@ -51,11 +51,24 @@
             height: 200px;
             width: 100%;
         }
+        .date-filter {
+            margin-bottom: 20px;
+        }
+        .date-filter label, .date-filter input {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Relatório de Motoboys</h1>
+        <div class="date-filter">
+            <label for="startDate">Data Inicial:</label>
+            <input type="date" id="startDate">
+            <label for="endDate">Data Final:</label>
+            <input type="date" id="endDate">
+            <button onclick="updateReports()">Filtrar</button>
+        </div>
         <div id="motoboyReports"></div>
     </div>
 
@@ -78,23 +91,27 @@
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
+        // Configurar a data inicial como 8 de agosto de 2024
+        const initialDate = new Date('2024-08-08T00:00:00-03:00');
+        document.getElementById('startDate').valueAsDate = initialDate;
+        document.getElementById('endDate').valueAsDate = new Date();
+
         function formatDate(date) {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
         async function fetchOrders() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
             try {
-                const now = new Date();
-                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 horas atrás
-                const endDate = formatDate(now);
-                
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
                     },
                     params: {
-                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}T00:00:00-03:00&endDate=${encodeURIComponent(endDate)}T23:59:59-03:00`
                     }
                 });
                 return response.data;
@@ -117,7 +134,8 @@
                             ongoingOrders: 0,
                             totalEarnings: 0,
                             averageDeliveryTime: 0,
-                            statusCounts: {}
+                            statusCounts: {},
+                            deliveriesPerHour: Array(24).fill(0)
                         };
                     }
 
@@ -127,10 +145,11 @@
                     if (order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += order.courierFee || 0;
-                        // Calcula o tempo de entrega (assumindo que temos campos de data de criação e entrega)
                         if (order.creationDate && order.deliveryDate) {
                             const deliveryTime = new Date(order.deliveryDate) - new Date(order.creationDate);
                             motoboyStats[motoboyName].averageDeliveryTime += deliveryTime;
+                            const deliveryHour = new Date(order.deliveryDate).getHours();
+                            motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
                         }
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
@@ -138,7 +157,6 @@
                 }
             });
 
-            // Calcula a média do tempo de entrega
             Object.values(motoboyStats).forEach(stats => {
                 if (stats.completedOrders > 0) {
                     stats.averageDeliveryTime = stats.averageDeliveryTime / stats.completedOrders / (1000 * 60); // Converte para minutos
@@ -163,25 +181,24 @@
                     <div class="metric">Ganhos Totais: <span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
                     <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime.toFixed(2)} min</span></div>
                     <div class="chart-container">
-                        <canvas id="chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
+                        <canvas id="status-chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="hourly-chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
                     </div>
                 `;
                 reportsContainer.appendChild(reportDiv);
 
-                // Cria o gráfico de status dos pedidos
-                const ctx = document.getElementById(`chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
-                new Chart(ctx, {
+                // Gráfico de status dos pedidos
+                const statusCtx = document.getElementById(`status-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
+                new Chart(statusCtx, {
                     type: 'pie',
                     data: {
                         labels: Object.keys(stats.statusCounts),
                         datasets: [{
                             data: Object.values(stats.statusCounts),
                             backgroundColor: [
-                                '#FF6384',
-                                '#36A2EB',
-                                '#FFCE56',
-                                '#4BC0C0',
-                                '#9966FF'
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
                             ]
                         }]
                     },
@@ -190,6 +207,34 @@
                         title: {
                             display: true,
                             text: 'Distribuição de Status dos Pedidos'
+                        }
+                    }
+                });
+
+                // Gráfico de entregas por hora
+                const hourlyCtx = document.getElementById(`hourly-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
+                new Chart(hourlyCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Array.from({length: 24}, (_, i) => `${i}h`),
+                        datasets: [{
+                            label: 'Entregas por Hora',
+                            data: stats.deliveriesPerHour,
+                            backgroundColor: '#36A2EB'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        title: {
+                            display: true,
+                            text: 'Entregas por Hora'
+                        },
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
                         }
                     }
                 });
