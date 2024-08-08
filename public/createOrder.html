@@ -56,6 +56,7 @@
         let map;
         let markers = {};
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
+        const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
 
         function initMap() {
@@ -110,11 +111,11 @@
             });
         }
 
-        function updateMap(orders) {
+        async function updateMap(orders) {
             Object.values(markers).forEach(marker => marker.setMap(null));
             markers = {};
 
-            orders.forEach(order => {
+            for (const order of orders) {
                 if (order.deliveryPoint && order.deliveryPoint.coordinates) {
                     const { lat, lng } = order.deliveryPoint.coordinates;
                     const marker = new google.maps.Marker({
@@ -131,8 +132,23 @@
                     });
                 }
 
-                if (order.status === 'onGoing' && order.courier && order.courier.coordinates) {
-                    const { lat, lng } = order.courier.coordinates;
+                if (order.status === 'onGoing') {
+                    await updateCourierLocation(order);
+                }
+            }
+        }
+
+        async function updateCourierLocation(order) {
+            try {
+                const response = await axios.get(`${trackingUrl}${order.uid}`, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    }
+                });
+                const tracking = response.data;
+                if (tracking.courierLocationCoordinates) {
+                    const { lat, lng } = tracking.courierLocationCoordinates;
                     const courierMarker = new google.maps.Marker({
                         position: { lat, lng },
                         map: map,
@@ -146,14 +162,16 @@
                     markers[`courier-${order.uid}`] = courierMarker;
 
                     courierMarker.addListener('click', () => {
-                        showCourierDetails(order);
+                        showCourierDetails(order, tracking);
                     });
                 }
-            });
+            } catch (error) {
+                console.error(`Erro ao buscar localização do motoboy para o pedido ${order.uid}:`, error);
+            }
         }
 
         function centerOrderOnMap(orderUid) {
-            const marker = markers[orderUid];
+            const marker = markers[orderUid] || markers[`courier-${orderUid}`];
             if (marker) {
                 map.setCenter(marker.getPosition());
                 map.setZoom(16);
@@ -189,13 +207,15 @@
             }
         }
 
-        function showCourierDetails(order) {
+        function showCourierDetails(order, tracking) {
             const infoWindow = new google.maps.InfoWindow({
                 content: `
                     <div>
                         <h3>Motoboy - Pedido #${order.id}</h3>
                         <p>Nome: ${order.courier.courierName}</p>
                         <p>Status: ${getStatusDisplay(order.status)}</p>
+                        ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
+                            `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
                     </div>
                 `
             });
