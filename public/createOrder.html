@@ -55,24 +55,34 @@
         const db = firebase.firestore();
         let map;
         let markers = {};
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
         const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
 
         function initMap() {
-            const centerAddress = { lat: -5.750636, lng: -35.254625 };
+            const centerAddress = { lat: -5.750636, lng: -35.254625 }; // Coordenadas aproximadas de Rua Serra do Mar, 1216, Potengi
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
-                zoom: 12
+                zoom: 16 // Zoom aumentado para mostrar apenas as proximidades
+            });
+
+            // Adicionar marcador para o endereço central
+            new google.maps.Marker({
+                position: centerAddress,
+                map: map,
+                title: "Rua Serra do Mar, 1216, Potengi",
+                icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
             });
         }
 
         async function fetchOrders() {
             try {
-                const response = await axios.get(firebaseFunctionUrl, {
+                const response = await axios.get(`${proxyUrl}${firebaseFunctionUrl}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 const filteredOrders = response.data.filter(order => 
@@ -133,10 +143,11 @@
 
         async function updateCourierLocation(orderUid) {
             try {
-                const response = await axios.get(`${trackingUrl}${orderUid}`, {
+                const response = await axios.get(`${proxyUrl}${trackingUrl}${orderUid}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 const tracking = response.data;
@@ -173,7 +184,7 @@
             const marker = markers[orderUid];
             if (marker) {
                 map.setCenter(marker.getPosition());
-                map.setZoom(15);
+                map.setZoom(16);
             }
         }
 
