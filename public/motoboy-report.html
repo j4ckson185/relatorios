@@ -117,7 +117,7 @@
         }
 
         function formatDate(date) {
-            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+            return date ? date.toISOString().replace(/\.\d{3}Z$/, '-03:00') : 'undefined';
         }
 
         function parseDate(dateString) {
@@ -183,7 +183,7 @@
                     const closedDate = parseDate(order.closedDate);
                     const deliveredDate = parseDate(order.deliveredDate);
 
-                    debug(`Pedido ${order.id} - Status: ${order.status}, onGoingDate: ${order.onGoingDate}, closedDate: ${order.closedDate}, deliveredDate: ${order.deliveredDate}`);
+                    debug(`${motoboyName}: Pedido ${order.id} - Status: ${order.status}, onGoingDate: ${formatDate(onGoingDate)}, closedDate: ${formatDate(closedDate)}, deliveredDate: ${formatDate(deliveredDate)}`);
 
                     if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
@@ -201,7 +201,7 @@
                                 debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido (${deliveryTime} ms)`);
                             }
                         } else {
-                            debug(`${motoboyName}: Pedido ${order.id} - Dados de tempo incompletos`);
+                            debug(`${motoboyName}: Pedido ${order.id} - Dados de tempo incompletos para pedido concluído`);
                         }
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
@@ -213,12 +213,16 @@
                                 motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
                                 debug(`${motoboyName}: Pedido ${order.id} (em andamento) - Tempo até agora: ${deliveryTime / 60000} minutos`);
                             } else {
-                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido (${deliveryTime} ms)`);
+                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido para pedido em andamento (${deliveryTime} ms)`);
                             }
                         } else {
-                            debug(`${motoboyName}: Pedido ${order.id} - Sem data de início válida`);
+                            debug(`${motoboyName}: Pedido ${order.id} - Sem data de início válida para pedido em andamento`);
                         }
+                    } else {
+                        debug(`${motoboyName}: Pedido ${order.id} - Status não processado: ${order.status}`);
                     }
+                } else {
+                    debug(`Pedido ${order.id} - Sem informações de motoboy`);
                 }
             });
 
