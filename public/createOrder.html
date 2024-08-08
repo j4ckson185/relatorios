@@ -58,6 +58,7 @@
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
         const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
+        const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/';
 
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
@@ -76,15 +77,18 @@
 
         async function fetchOrders() {
             try {
-                const response = await axios.get(firebaseFunctionUrl, {
+                const response = await axios.get(`${corsProxyUrl}${firebaseFunctionUrl}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
-                const orders = response.data;
-                updateOrderList(orders);
-                updateMap(orders);
+                const filteredOrders = response.data.filter(order => 
+                    ['onGoing', 'ready', 'dispatched', 'accepted'].includes(order.status)
+                );
+                updateOrderList(filteredOrders);
+                updateMap(filteredOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
             }
@@ -130,7 +134,7 @@
                     });
                 }
 
-                if (order.status === 'onGoing' && order.courier) {
+                if (order.status === 'onGoing') {
                     await updateCourierLocation(order.uid);
                 }
             }
@@ -138,10 +142,11 @@
 
         async function updateCourierLocation(orderUid) {
             try {
-                const response = await axios.get(`${trackingUrl}${orderUid}`, {
+                const response = await axios.get(`${corsProxyUrl}${trackingUrl}${orderUid}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 const tracking = response.data;
