@@ -58,9 +58,10 @@
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
         const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
+        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 
         function initMap() {
-            const centerAddress = { lat: -5.750636, lng: -35.254625 }; // Coordenadas aproximadas de Rua Serra do Mar, 1216, Potengi
+            const centerAddress = { lat: -5.750636, lng: -35.254625 };
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
                 zoom: 16
@@ -76,10 +77,11 @@
 
         async function fetchOrders() {
             try {
-                const response = await axios.get(firebaseFunctionUrl, {
+                const response = await axios.get(`${corsProxy}${firebaseFunctionUrl}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 const filteredOrders = response.data.filter(order => 
@@ -112,7 +114,6 @@
         }
 
         async function updateMap(orders) {
-            // Limpar marcadores existentes
             Object.values(markers).forEach(marker => marker.setMap(null));
             markers = {};
 
@@ -140,17 +141,17 @@
 
         async function updateCourierLocation(orderUid) {
             try {
-                const response = await axios.get(`${trackingUrl}${orderUid}`, {
+                const response = await axios.get(`${corsProxy}${trackingUrl}${orderUid}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 const tracking = response.data;
                 if (tracking.courierLocationCoordinates) {
                     const { lat, lng } = tracking.courierLocationCoordinates;
                     
-                    // Criar ou atualizar o marcador do motoboy
                     if (markers[`courier-${orderUid}`]) {
                         markers[`courier-${orderUid}`].setPosition({ lat, lng });
                     } else {
@@ -231,11 +232,8 @@
             }
         }
 
-        // Inicializar o mapa e buscar pedidos
         initMap();
         fetchOrders();
-
-        // Atualiza a cada 10 segundos
         setInterval(fetchOrders, 10000);
     </script>
 </body>
