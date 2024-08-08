@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Pedidos - Foody Delivery</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { width: 80%; margin: auto; overflow: hidden; padding: 20px; }
+        h1 { color: #333; text-align: center; }
+        .order-item { background: #fff; margin-bottom: 20px; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        select, button { padding: 10px; margin: 5px 0; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Meus Pedidos</h1>
+        <div id="ordersList"></div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const db = firebase.firestore();
+        let currentUser;
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                loadOrders();
+            } else {
+                window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
+            }
+        });
+
+        function loadOrders() {
+            db.collection('orders')
+                .where('motoboy', '==', currentUser.email)
+                .onSnapshot((snapshot) => {
+                    const ordersList = document.getElementById('ordersList');
+                    ordersList.innerHTML = '';
+                    snapshot.forEach((doc) => {
+                        const order = doc.data();
+                        const orderElement = createOrderElement(doc.id, order);
+                        ordersList.appendChild(orderElement);
+                    });
+                });
+        }
+
+        function createOrderElement(orderId, order) {
+            const orderDiv = document.createElement('div');
+            orderDiv.className = 'order-item';
+            orderDiv.innerHTML = `
+                <h2>Pedido #${order.id}</h2>
+                <p>Cliente: ${order.customer.customerName}</p>
+                <p>Endereço: ${order.deliveryPoint.address}</p>
+                <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
+                <p>Status: <span id="status-${orderId}">${order.status}</span></p>
+                <select id="status-select-${orderId}">
+                    <option value="pending">Pendente</option>
+                    <option value="inProgress">Em Andamento</option>
+                    <option value="delivered">Entregue</option>
+                </select>
+                <button onclick="updateOrderStatus('${orderId}')">Atualizar Status</button>
+            `;
+            return orderDiv;
+        }
+
+        function updateOrderStatus(orderId) {
+            const newStatus = document.getElementById(`status-select-${orderId}`).value;
+            db.collection('orders').doc(orderId).update({
+                status: newStatus
+            }).then(() => {
+                document.getElementById(`status-${orderId}`).textContent = newStatus;
+                console.log(`Status do pedido ${orderId} atualizado para ${newStatus}`);
+            }).catch((error) => {
+                console.error("Erro ao atualizar status: ", error);
+            });
+        }
+    </script>
+</body>
+</html>
