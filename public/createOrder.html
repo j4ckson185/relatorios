@@ -55,7 +55,6 @@
         const db = firebase.firestore();
         let map;
         let markers = {};
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
         const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
         const authToken = '8d7c77946d534444a168bb7da794febf';
@@ -64,10 +63,9 @@
             const centerAddress = { lat: -5.750636, lng: -35.254625 }; // Coordenadas aproximadas de Rua Serra do Mar, 1216, Potengi
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
-                zoom: 16 // Zoom aumentado para mostrar apenas as proximidades
+                zoom: 16
             });
 
-            // Adicionar marcador para o endereço central
             new google.maps.Marker({
                 position: centerAddress,
                 map: map,
@@ -78,11 +76,10 @@
 
         async function fetchOrders() {
             try {
-                const response = await axios.get(`${proxyUrl}${firebaseFunctionUrl}`, {
+                const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json;charset=UTF-8'
                     }
                 });
                 const filteredOrders = response.data.filter(order => 
@@ -143,11 +140,10 @@
 
         async function updateCourierLocation(orderUid) {
             try {
-                const response = await axios.get(`${proxyUrl}${trackingUrl}${orderUid}`, {
+                const response = await axios.get(`${trackingUrl}${orderUid}`, {
                     headers: {
                         'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json;charset=UTF-8'
                     }
                 });
                 const tracking = response.data;
