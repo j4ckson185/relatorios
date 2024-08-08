@@ -3,34 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar Pedido - Foody Delivery</title>
+    <title>Gerenciar Pedidos - Foody Delivery</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E"></script>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
-        .container { width: 90%; margin: auto; overflow: hidden; padding: 20px; }
-        h1 { color: #333; text-align: center; }
-        .order-list, .map-container { background: #fff; margin-bottom: 20px; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        #map { height: 400px; width: 100%; }
-        .order-item { border-bottom: 1px solid #ddd; padding: 10px 0; }
-        .order-item:last-child { border-bottom: none; }
-        select, button { padding: 10px; margin: 5px 0; }
-        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
+        .container { display: flex; height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; padding: 20px; overflow-y: auto; }
+        .main-content { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; }
+        #map { height: 400px; margin-bottom: 20px; }
+        .order-list { flex-grow: 1; overflow-y: auto; }
+        .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+        .filter-section { margin-bottom: 20px; }
+        .motoboy-section { margin-top: 20px; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #45a049; }
+        select { width: 100%; padding: 5px; margin-top: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Criar Pedido</h1>
-        <div class="order-list">
-            <h2>Pedidos Recebidos</h2>
-            <div id="orderResults"></div>
+        <div class="sidebar">
+            <h2>Filtros</h2>
+            <div class="filter-section">
+                <label><input type="checkbox" id="selectAll"> Todos</label>
+                <div id="orderCheckboxes"></div>
+            </div>
+            <div class="motoboy-section">
+                <h3>Atribuir para:</h3>
+                <select id="motoboySelect">
+                    <option value="boazd3@gmail.com">Boaz</option>
+                    <option value="giovanni.silva18@gmail.com">Giovanni</option>
+                    <option value="moises110723@gmail.com">Moisés</option>
+                    <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
+                </select>
+                <button onclick="assignOrders()">Atribuir Pedidos</button>
+            </div>
+            <button onclick="updateOrderStatus('A Caminho')">Marcar como A Caminho</button>
+            <button onclick="updateOrderStatus('Pronto')">Marcar como Pronto</button>
         </div>
-        <div class="map-container">
-            <h2>Mapa de Entregas</h2>
+        <div class="main-content">
             <div id="map"></div>
+            <div class="order-list" id="orderList"></div>
         </div>
     </div>
 
@@ -51,9 +67,7 @@
         const db = firebase.firestore();
         let map;
         let markers = [];
-
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
-        const motoboys = ['boazd3@gmail.com', 'giovanni@example.com', 'moises@example.com', 'felipe.augusto@example.com'];
 
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
@@ -63,49 +77,35 @@
         }
 
         async function fetchOrders() {
-            console.log('Buscando pedidos...');
             try {
                 const response = await axios.get(firebaseFunctionUrl);
-                console.log('Resposta:', response.data);
-                displayOrders(response.data);
+                const filteredOrders = response.data.filter(order => 
+                    order.status === 'onGoing' || order.status === 'ready'
+                );
+                displayOrders(filteredOrders);
+                updateOrderCheckboxes(filteredOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
-                document.getElementById('orderResults').innerHTML = `<p style="color: red;">Erro ao carregar pedidos.</p>`;
             }
         }
 
         function displayOrders(orders) {
-            const orderResults = document.getElementById('orderResults');
-            orderResults.innerHTML = '';
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '';
             clearMarkers();
 
-            if (!Array.isArray(orders) || orders.length === 0) {
-                orderResults.innerHTML = '<p>Nenhum pedido encontrado para o período.</p>';
-                return;
-            }
-
             orders.forEach(order => {
-                const orderElement = createOrderElement(order);
-                orderResults.appendChild(orderElement);
+                const orderElement = document.createElement('div');
+                orderElement.className = 'order-item';
+                orderElement.innerHTML = `
+                    <h3>Pedido #${order.id}</h3>
+                    <p>Status: ${order.status === 'onGoing' ? 'A Caminho' : 'Pronto'}</p>
+                    <p>Cliente: ${order.customer.customerName}</p>
+                    <p>Endereço: ${order.deliveryPoint.address}</p>
+                `;
+                orderList.appendChild(orderElement);
                 addMarker(order);
             });
-        }
-
-        function createOrderElement(order) {
-            const orderDiv = document.createElement('div');
-            orderDiv.className = 'order-item';
-            orderDiv.innerHTML = `
-                <h3>Pedido #${order.id}</h3>
-                <p>Status: ${order.status}</p>
-                <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
-                <p>Cliente: ${order.customer.customerName}</p>
-                <p>Endereço: ${order.deliveryPoint.address}</p>
-                <select id="motoboy-${order.id}">
-                    ${motoboys.map(motoboy => `<option value="${motoboy}">${motoboy}</option>`).join('')}
-                </select>
-                <button onclick="assignOrder('${order.id}')">Atribuir Pedido</button>
-            `;
-            return orderDiv;
         }
 
         function addMarker(order) {
@@ -124,19 +124,75 @@
             markers = [];
         }
 
-        function assignOrder(orderId) {
-            const motoboy = document.getElementById(`motoboy-${orderId}`).value;
-            db.collection('orders').doc(orderId).set({
-                motoboy: motoboy,
-                status: 'assigned'
-            }, { merge: true }).then(() => {
-                console.log(`Pedido ${orderId} atribuído para ${motoboy}`);
-                // Atualizar a interface após a atribuição
-                fetchOrders();
-            }).catch((error) => {
-                console.error("Erro ao atribuir pedido: ", error);
+        function updateOrderCheckboxes(orders) {
+            const checkboxesContainer = document.getElementById('orderCheckboxes');
+            checkboxesContainer.innerHTML = '';
+            orders.forEach(order => {
+                const checkbox = document.createElement('div');
+                checkbox.innerHTML = `
+                    <label>
+                        <input type="checkbox" name="orderCheckbox" value="${order.id}">
+                        Pedido #${order.id}
+                    </label>
+                `;
+                checkboxesContainer.appendChild(checkbox);
             });
         }
+
+        function assignOrders() {
+            const selectedOrders = Array.from(document.querySelectorAll('input[name="orderCheckbox"]:checked'))
+                .map(checkbox => checkbox.value);
+            const motoboy = document.getElementById('motoboySelect').value;
+
+            if (selectedOrders.length === 0) {
+                alert('Por favor, selecione pelo menos um pedido.');
+                return;
+            }
+
+            selectedOrders.forEach(orderId => {
+                db.collection('orders').doc(orderId).update({
+                    motoboy: motoboy,
+                    status: 'assigned'
+                }).then(() => {
+                    console.log(`Pedido ${orderId} atribuído para ${motoboy}`);
+                }).catch((error) => {
+                    console.error("Erro ao atribuir pedido: ", error);
+                });
+            });
+
+            alert('Pedidos atribuídos com sucesso!');
+            fetchOrders(); // Atualiza a lista de pedidos
+        }
+
+        function updateOrderStatus(newStatus) {
+            const selectedOrders = Array.from(document.querySelectorAll('input[name="orderCheckbox"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            if (selectedOrders.length === 0) {
+                alert('Por favor, selecione pelo menos um pedido.');
+                return;
+            }
+
+            const firebaseStatus = newStatus === 'A Caminho' ? 'onGoing' : 'ready';
+
+            selectedOrders.forEach(orderId => {
+                db.collection('orders').doc(orderId).update({
+                    status: firebaseStatus
+                }).then(() => {
+                    console.log(`Status do pedido ${orderId} atualizado para ${newStatus}`);
+                }).catch((error) => {
+                    console.error("Erro ao atualizar status: ", error);
+                });
+            });
+
+            alert('Status dos pedidos atualizado com sucesso!');
+            fetchOrders(); // Atualiza a lista de pedidos
+        }
+
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="orderCheckbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        });
 
         // Inicializar o mapa e buscar pedidos
         initMap();
