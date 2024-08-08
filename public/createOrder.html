@@ -57,7 +57,7 @@
         let markers = {};
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
         const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
-        const authToken = '8d7c77946d534444a168bb7da794febf'; // Seu token de autorização
+        const authToken = '8d7c77946d534444a168bb7da794febf';
 
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
@@ -142,18 +142,27 @@
                 const tracking = response.data;
                 if (tracking.courierLocationCoordinates) {
                     const { lat, lng } = tracking.courierLocationCoordinates;
-                    const courierMarker = new google.maps.Marker({
-                        position: { lat, lng },
-                        map: map,
-                        title: `Motoboy - Pedido #${orderUid}`,
-                        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                    });
+                    
+                    // Criar ou atualizar o marcador do motoboy
+                    if (markers[`courier-${orderUid}`]) {
+                        markers[`courier-${orderUid}`].setPosition({ lat, lng });
+                    } else {
+                        const courierMarker = new google.maps.Marker({
+                            position: { lat, lng },
+                            map: map,
+                            title: `Motoboy - Pedido #${orderUid}`,
+                            icon: {
+                                url: 'http://maps.google.com/mapfiles/ms/icons/motorcycling.png',
+                                scaledSize: new google.maps.Size(32, 32)
+                            }
+                        });
 
-                    markers[`courier-${orderUid}`] = courierMarker;
+                        markers[`courier-${orderUid}`] = courierMarker;
 
-                    courierMarker.addListener('click', () => {
-                        showCourierDetails(orderUid, tracking);
-                    });
+                        courierMarker.addListener('click', () => {
+                            showCourierDetails(orderUid, tracking);
+                        });
+                    }
                 }
             } catch (error) {
                 console.error(`Erro ao buscar localização do motoboy para o pedido ${orderUid}:`, error);
@@ -219,8 +228,8 @@
         initMap();
         fetchOrders();
 
-        // Atualiza a cada 30 segundos
-        setInterval(fetchOrders, 30000);
+        // Atualiza a cada 10 segundos
+        setInterval(fetchOrders, 10000);
     </script>
 </body>
 </html>
