@@ -19,19 +19,10 @@
         .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; position: relative; }
         .order-item:hover { background-color: #f0f0f0; }
         .filter-section { margin-bottom: 20px; }
-        .motoboy-section { margin-top: 20px; }
         button { background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #45a049; }
-        select { width: 100%; padding: 5px; margin-top: 5px; }
         .order-options { position: absolute; right: 10px; top: 10px; }
         .order-options i { cursor: pointer; margin-left: 5px; }
-        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; }
-        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .close:hover { color: #000; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -42,49 +33,11 @@
                 <label><input type="checkbox" id="selectAll"> Todos</label>
                 <div id="orderCheckboxes" class="order-list"></div>
             </div>
-            <div class="motoboy-section">
-                <h3>Atribuir para:</h3>
-                <select id="motoboySelect">
-                    <option value="boazd3@gmail.com">Boaz</option>
-                    <option value="giovanni.silva18@gmail.com">Giovanni</option>
-                    <option value="moises110723@gmail.com">Moisés</option>
-                    <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
-                </select>
-                <button onclick="assignOrders()">Atribuir Pedidos</button>
-            </div>
             <button onclick="updateOrderStatus('onGoing')">Marcar como A Caminho</button>
             <button onclick="updateOrderStatus('ready')">Marcar como Pronto</button>
-            <button onclick="showOrderModal()">Novo Pedido</button>
         </div>
         <div class="main-content">
             <div id="map"></div>
-        </div>
-    </div>
-
-    <div id="orderModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="modalTitle">Novo Pedido</h2>
-            <form id="orderForm">
-                <div class="form-group">
-                    <label for="customerName">Nome do Cliente:</label>
-                    <input type="text" id="customerName" required>
-                </div>
-                <div class="form-group">
-                    <label for="address">Endereço:</label>
-                    <input type="text" id="address" required>
-                </div>
-                <div class="form-group">
-                    <label for="status">Status:</label>
-                    <select id="status">
-                        <option value="accepted">Aceito</option>
-                        <option value="dispatched">Despachado</option>
-                        <option value="onGoing">A Caminho</option>
-                        <option value="ready">Pronto</option>
-                    </select>
-                </div>
-                <button type="submit">Salvar Pedido</button>
-            </form>
         </div>
     </div>
 
@@ -104,33 +57,24 @@
 
         const db = firebase.firestore();
         let map;
-        let markers = [];
-        let currentEditId = null;
+        let markers = {};
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
+        const trackingUrl = 'https://app.foodydelivery.com/rest/1.2/orders/tracking/';
 
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
-                zoom: 15
-            });
-
-            new google.maps.Marker({
-                position: centerAddress,
-                map: map,
-                title: "Endereço Central",
-                icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                zoom: 12
             });
         }
 
         async function fetchOrders() {
             try {
                 const response = await axios.get(firebaseFunctionUrl);
-                const filteredOrders = response.data.filter(order => 
-                    ['accepted', 'dispatched', 'onGoing', 'ready'].includes(order.status)
-                );
-                updateOrderCheckboxes(filteredOrders);
-                addOrderMarkers(filteredOrders);
+                const orders = response.data;
+                updateOrderCheckboxes(orders);
+                updateMap(orders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
             }
@@ -146,9 +90,9 @@
                     <label>
                         <input type="checkbox" name="orderCheckbox" value="${order.id}">
                         #${order.id} - ${getStatusDisplay(order.status)}
+                        ${order.courierName ? `<br><small>Motoboy: ${order.courierName}</small>` : ''}
                     </label>
                     <div class="order-options">
-                        <i class="fas fa-edit" onclick="showOrderModal('${order.id}')"></i>
                         <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.id}')"></i>
                     </div>
                 `;
@@ -156,8 +100,11 @@
             });
         }
 
-        function addOrderMarkers(orders) {
-            clearMarkers();
+        async function updateMap(orders) {
+            // Limpar marcadores existentes
+            Object.values(markers).forEach(marker => marker.setMap(null));
+            markers = {};
+
             orders.forEach(order => {
                 const lat = order.deliveryPoint.coordinates.lat;
                 const lng = order.deliveryPoint.coordinates.lng;
@@ -166,139 +113,52 @@
                     map: map,
                     title: `#${order.id}`
                 });
-                markers.push(marker);
+
+                markers[order.id] = marker;
 
                 marker.addListener('click', () => {
                     showOrderDetails(order);
                 });
             });
+
+            // Atualizar localização dos motoboys
+            for (const order of orders) {
+                if (order.courierName) {
+                    await updateCourierLocation(order.id);
+                }
+            }
         }
 
-        function clearMarkers() {
-            markers.forEach(marker => marker.setMap(null));
-            markers = [];
+        async function updateCourierLocation(orderId) {
+            try {
+                const response = await axios.get(`${trackingUrl}${orderId}`);
+                const tracking = response.data;
+                if (tracking.courierLocationCoordinates) {
+                    const { lat, lng } = tracking.courierLocationCoordinates;
+                    const courierMarker = new google.maps.Marker({
+                        position: { lat, lng },
+                        map: map,
+                        title: `Motoboy - Pedido #${orderId}`,
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    });
+
+                    markers[`courier-${orderId}`] = courierMarker;
+
+                    courierMarker.addListener('click', () => {
+                        showCourierDetails(orderId, tracking);
+                    });
+                }
+            } catch (error) {
+                console.error(`Erro ao buscar localização do motoboy para o pedido ${orderId}:`, error);
+            }
         }
 
         function centerOrderOnMap(orderId) {
-            const marker = markers.find(marker => marker.getTitle() === `#${orderId}`);
+            const marker = markers[orderId];
             if (marker) {
                 map.setCenter(marker.getPosition());
-                map.setZoom(18);
+                map.setZoom(15);
             }
-        }
-
-        function showOrderModal(orderId = null) {
-            const modal = document.getElementById('orderModal');
-            const form = document.getElementById('orderForm');
-            const title = document.getElementById('modalTitle');
-
-            if (orderId) {
-                title.textContent = 'Editar Pedido';
-                db.collection('orders').doc(orderId).get().then((doc) => {
-                    if (doc.exists) {
-                        const order = doc.data();
-                        document.getElementById('customerName').value = order.customer.customerName;
-                        document.getElementById('address').value = order.deliveryPoint.address;
-                        document.getElementById('status').value = order.status;
-                        currentEditId = orderId;
-                    }
-                });
-            } else {
-                title.textContent = 'Novo Pedido';
-                form.reset();
-                currentEditId = null;
-            }
-
-            modal.style.display = 'block';
-        }
-
-        document.getElementById('orderForm').onsubmit = function(e) {
-            e.preventDefault();
-            saveOrder();
-        };
-
-        function saveOrder() {
-            const customerName = document.getElementById('customerName').value;
-            const address = document.getElementById('address').value;
-            const status = document.getElementById('status').value;
-
-            const orderData = {
-                customer: { customerName },
-                deliveryPoint: { address },
-                status: status,
-                // Adicione campos adicionais conforme necessário
-            };
-
-            if (currentEditId) {
-                db.collection('orders').doc(currentEditId).update(orderData)
-                    .then(() => {
-                        console.log("Pedido atualizado com sucesso");
-                        document.getElementById('orderModal').style.display = 'none';
-                        fetchOrders();
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao atualizar pedido: ", error);
-                    });
-            } else {
-                db.collection('orders').add(orderData)
-                    .then(() => {
-                        console.log("Novo pedido criado com sucesso");
-                        document.getElementById('orderModal').style.display = 'none';
-                        fetchOrders();
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao criar novo pedido: ", error);
-                    });
-            }
-        }
-
-        function assignOrders() {
-            const selectedOrders = Array.from(document.querySelectorAll('input[name="orderCheckbox"]:checked'))
-                .map(checkbox => checkbox.value);
-            const motoboy = document.getElementById('motoboySelect').value;
-
-            if (selectedOrders.length === 0) {
-                alert('Por favor, selecione pelo menos um pedido.');
-                return;
-            }
-
-            const batch = db.batch();
-            selectedOrders.forEach(orderId => {
-                const orderRef = db.collection('orders').doc(orderId);
-                batch.update(orderRef, { motoboy: motoboy, status: 'assigned' });
-            });
-
-            batch.commit().then(() => {
-                console.log('Pedidos atribuídos com sucesso!');
-                fetchOrders();
-            }).catch((error) => {
-                console.error("Erro ao atribuir pedidos: ", error);
-                alert("Erro ao atribuir pedidos. Verifique se todos os pedidos selecionados existem.");
-            });
-        }
-
-        function updateOrderStatus(newStatus) {
-            const selectedOrders = Array.from(document.querySelectorAll('input[name="orderCheckbox"]:checked'))
-                .map(checkbox => checkbox.value);
-
-            if (selectedOrders.length === 0) {
-                alert('Por favor, selecione pelo menos um pedido.');
-                return;
-            }
-
-            const batch = db.batch();
-            selectedOrders.forEach(orderId => {
-                const orderRef = db.collection('orders').doc(orderId);
-                batch.update(orderRef, { status: newStatus });
-            });
-
-            batch.commit().then(() => {
-                console.log('Status dos pedidos atualizado com sucesso!');
-                fetchOrders();
-            }).catch((error) => {
-                console.error("Erro ao atualizar status dos pedidos: ", error);
-                alert("Erro ao atualizar status. Verifique se todos os pedidos selecionados existem.");
-            });
         }
 
         function getStatusDisplay(status) {
@@ -311,40 +171,63 @@
             }
         }
 
-function showOrderDetails(order) {
+        function showOrderDetails(order) {
             const infoWindow = new google.maps.InfoWindow({
                 content: `
                     <div>
-                        <h3>#${order.id}</h3>
+                        <h3>Pedido #${order.id}</h3>
                         <p>Cliente: ${order.customer.customerName}</p>
                         <p>Endereço: ${order.deliveryPoint.address}</p>
                         <p>Status: ${getStatusDisplay(order.status)}</p>
+                        ${order.courierName ? `<p>Motoboy: ${order.courierName}</p>` : ''}
                     </div>
                 `
             });
 
-            const marker = markers.find(m => m.getTitle() === `#${order.id}`);
+            const marker = markers[order.id];
             if (marker) {
                 infoWindow.open(map, marker);
             }
+        }
+
+        function showCourierDetails(orderId, tracking) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div>
+                        <h3>Motoboy - Pedido #${orderId}</h3>
+                        <p>Status: ${tracking.status}</p>
+                        <p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>
+                    </div>
+                `
+            });
+
+            const marker = markers[`courier-${orderId}`];
+            if (marker) {
+                infoWindow.open(map, marker);
+            }
+        }
+
+        function updateOrderStatus(newStatus) {
+            const selectedOrders = Array.from(document.querySelectorAll('input[name="orderCheckbox"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            if (selectedOrders.length === 0) {
+                alert('Por favor, selecione pelo menos um pedido.');
+                return;
+            }
+
+            // Aqui você deve implementar a lógica para atualizar o status no Foody Delivery
+            // Como não temos acesso direto à API do Foody Delivery, vamos apenas simular a atualização
+            alert(`Status dos pedidos ${selectedOrders.join(', ')} atualizado para ${newStatus}`);
+            
+            // Após atualizar, recarregue os pedidos
+            fetchOrders();
         }
 
         document.getElementById('selectAll').addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('input[name="orderCheckbox"]');
             checkboxes.forEach(checkbox => checkbox.checked = this.checked);
         });
-
-        // Fechar o modal
-        document.querySelector('.close').onclick = function() {
-            document.getElementById('orderModal').style.display = 'none';
-        }
-
-        // Fechar o modal se clicar fora dele
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('orderModal')) {
-                document.getElementById('orderModal').style.display = 'none';
-            }
-        }
 
         // Inicializar o mapa e buscar pedidos
         initMap();
