@@ -181,19 +181,20 @@
                     motoboyStats[motoboyName].totalOrders++;
                     motoboyStats[motoboyName].statusCounts[order.status] = (motoboyStats[motoboyName].statusCounts[order.status] || 0) + 1;
 
+                    const createdDate = parseDate(order.createdDate);
+                    const acceptedDate = parseDate(order.acceptedDate);
                     const onGoingDate = parseDate(order.onGoingDate);
                     const closedDate = parseDate(order.closedDate);
                     const deliveredDate = parseDate(order.deliveredDate);
-                    const createdDate = parseDate(order.createdDate);
 
-                    debug(`${motoboyName}: Pedido ${order.id} - Status: ${order.status}, onGoingDate: ${formatDate(onGoingDate)}, closedDate: ${formatDate(closedDate)}, deliveredDate: ${formatDate(deliveredDate)}, createdDate: ${formatDate(createdDate)}`);
+                    debug(`${motoboyName}: Pedido ${order.id} - Status: ${order.status}, createdDate: ${formatDate(createdDate)}, acceptedDate: ${formatDate(acceptedDate)}, onGoingDate: ${formatDate(onGoingDate)}, closedDate: ${formatDate(closedDate)}, deliveredDate: ${formatDate(deliveredDate)}`);
+
+                    let startDate = onGoingDate || acceptedDate || createdDate;
+                    let endDate = deliveredDate || closedDate;
 
                     if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += 3; // R$3 por entrega concluída
-
-                        const startDate = onGoingDate || createdDate;
-                        const endDate = closedDate || deliveredDate;
 
                         if (startDate && endDate) {
                             const deliveryTime = endDate - startDate;
@@ -212,7 +213,6 @@
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
                         
-                        const startDate = onGoingDate || createdDate;
                         if (startDate) {
                             const currentTime = new Date();
                             const deliveryTime = currentTime - startDate;
@@ -300,7 +300,7 @@
                     }
                 });
 
- // Gráfico de entregas por hora
+// Gráfico de entregas por hora
                 const hourlyCtx = document.getElementById(`hourly-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
                 new Chart(hourlyCtx, {
                     type: 'bar',
