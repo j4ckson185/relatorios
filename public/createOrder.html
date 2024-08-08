@@ -11,61 +11,80 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
-        .container { display: flex; height: 100vh; flex-direction: column; }
-        .top-bar { background-color: #4CAF50; color: white; padding: 10px; display: none; }
-        .main-content { display: flex; flex-grow: 1; }
-        .sidebar { width: 200px; background-color: #fff; padding: 10px; overflow-y: auto; }
+        .container { display: flex; height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; padding: 20px; overflow-y: auto; }
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; }
         #map { flex-grow: 1; }
-        .order-list { max-height: calc(100vh - 200px); overflow-y: auto; }
-        .order-item { background-color: #fff; margin-bottom: 5px; padding: 5px; border-radius: 3px; position: relative; }
+        .order-list { max-height: calc(100vh - 250px); overflow-y: auto; }
+        .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; position: relative; }
         .order-item:hover { background-color: #f0f0f0; }
-        .filter-section { margin-bottom: 10px; }
-        .motoboy-section { margin-top: 10px; }
-        button { background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
+        .filter-section { margin-bottom: 20px; }
+        .motoboy-section { margin-top: 20px; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #45a049; }
         select { width: 100%; padding: 5px; margin-top: 5px; }
-        .order-options { position: absolute; right: 5px; top: 5px; }
-        .order-options i { cursor: pointer; }
-        .edit-form { display: flex; gap: 10px; align-items: center; }
-        .edit-form input, .edit-form select { flex-grow: 1; }
+        .order-options { position: absolute; right: 10px; top: 10px; }
+        .order-options i { cursor: pointer; margin-left: 5px; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="top-bar" id="topBar">
-            <div class="edit-form">
-                <input type="text" id="editCustomerName" placeholder="Nome do Cliente">
-                <input type="text" id="editAddress" placeholder="Endereço">
-                <select id="editStatus">
-                    <option value="accepted">Aceito</option>
-                    <option value="dispatched">Despachado</option>
-                    <option value="onGoing">A Caminho</option>
-                    <option value="ready">Pronto</option>
-                </select>
-                <button onclick="saveOrder()">Salvar</button>
-                <button onclick="cancelEdit()">Cancelar</button>
+        <div class="sidebar">
+            <h2>Pedidos</h2>
+            <div class="filter-section">
+                <label><input type="checkbox" id="selectAll"> Todos</label>
+                <div id="orderCheckboxes" class="order-list"></div>
             </div>
+            <div class="motoboy-section">
+                <h3>Atribuir para:</h3>
+                <select id="motoboySelect">
+                    <option value="boazd3@gmail.com">Boaz</option>
+                    <option value="giovanni.silva18@gmail.com">Giovanni</option>
+                    <option value="moises110723@gmail.com">Moisés</option>
+                    <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
+                </select>
+                <button onclick="assignOrders()">Atribuir Pedidos</button>
+            </div>
+            <button onclick="updateOrderStatus('onGoing')">Marcar como A Caminho</button>
+            <button onclick="updateOrderStatus('ready')">Marcar como Pronto</button>
+            <button onclick="showOrderModal()">Novo Pedido</button>
         </div>
         <div class="main-content">
-            <div class="sidebar">
-                <div class="filter-section">
-                    <label><input type="checkbox" id="selectAll"> Todos</label>
-                    <div id="orderCheckboxes" class="order-list"></div>
-                </div>
-                <div class="motoboy-section">
-                    <select id="motoboySelect">
-                        <option value="boazd3@gmail.com">Boaz</option>
-                        <option value="giovanni.silva18@gmail.com">Giovanni</option>
-                        <option value="moises110723@gmail.com">Moisés</option>
-                        <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
-                    </select>
-                    <button onclick="assignOrders()">Atribuir Pedidos</button>
-                </div>
-                <button onclick="updateOrderStatus('onGoing')">Marcar como A Caminho</button>
-                <button onclick="updateOrderStatus('ready')">Marcar como Pronto</button>
-                <button onclick="showEditForm()">Novo Pedido</button>
-            </div>
             <div id="map"></div>
+        </div>
+    </div>
+
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Novo Pedido</h2>
+            <form id="orderForm">
+                <div class="form-group">
+                    <label for="customerName">Nome do Cliente:</label>
+                    <input type="text" id="customerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">Endereço:</label>
+                    <input type="text" id="address" required>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select id="status">
+                        <option value="accepted">Aceito</option>
+                        <option value="dispatched">Despachado</option>
+                        <option value="onGoing">A Caminho</option>
+                        <option value="ready">Pronto</option>
+                    </select>
+                </div>
+                <button type="submit">Salvar Pedido</button>
+            </form>
         </div>
     </div>
 
@@ -90,7 +109,7 @@
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
 
         function initMap() {
-            const centerAddress = { lat: -5.750636, lng: -35.254625 }; // Coordenadas aproximadas de Rua Serra do Mar, 1216, Potengi
+            const centerAddress = { lat: -5.750636, lng: -35.254625 };
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
                 zoom: 15
@@ -129,7 +148,8 @@
                         #${order.id} - ${getStatusDisplay(order.status)}
                     </label>
                     <div class="order-options">
-                        <i class="fas fa-cog" onclick="showOrderOptions('${order.id}')"></i>
+                        <i class="fas fa-edit" onclick="showOrderModal('${order.id}')"></i>
+                        <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.id}')"></i>
                     </div>
                 `;
                 checkboxesContainer.appendChild(orderDiv);
@@ -159,39 +179,6 @@
             markers = [];
         }
 
-        function showOrderOptions(orderId) {
-            const options = [
-                { text: 'Centralizar no Mapa', onClick: () => centerOrderOnMap(orderId) },
-                { text: 'Editar Pedido', onClick: () => showEditForm(orderId) }
-            ];
-
-            const optionsHtml = options.map(option => 
-                `<button onclick="${option.onClick.toString().replace(/\s+/g, ' ')}">${option.text}</button>`
-            ).join('');
-
-            const optionsContainer = document.createElement('div');
-            optionsContainer.innerHTML = optionsHtml;
-            optionsContainer.style.position = 'absolute';
-            optionsContainer.style.backgroundColor = 'white';
-            optionsContainer.style.border = '1px solid #ccc';
-            optionsContainer.style.padding = '5px';
-            optionsContainer.style.zIndex = '1000';
-
-            document.body.appendChild(optionsContainer);
-
-            const orderElement = document.querySelector(`input[value="${orderId}"]`).closest('.order-item');
-            const rect = orderElement.getBoundingClientRect();
-            optionsContainer.style.top = `${rect.bottom + window.scrollY}px`;
-            optionsContainer.style.left = `${rect.left + window.scrollX}px`;
-
-            document.addEventListener('click', function closeOptions(e) {
-                if (!optionsContainer.contains(e.target) && e.target !== orderElement) {
-                    document.body.removeChild(optionsContainer);
-                    document.removeEventListener('click', closeOptions);
-                }
-            });
-        }
-
         function centerOrderOnMap(orderId) {
             const marker = markers.find(marker => marker.getTitle() === `#${orderId}`);
             if (marker) {
@@ -200,48 +187,53 @@
             }
         }
 
-        function showEditForm(orderId = null) {
-            currentEditId = orderId;
-            const topBar = document.getElementById('topBar');
-            topBar.style.display = 'block';
+        function showOrderModal(orderId = null) {
+            const modal = document.getElementById('orderModal');
+            const form = document.getElementById('orderForm');
+            const title = document.getElementById('modalTitle');
 
             if (orderId) {
+                title.textContent = 'Editar Pedido';
                 db.collection('orders').doc(orderId).get().then((doc) => {
                     if (doc.exists) {
                         const order = doc.data();
-                        document.getElementById('editCustomerName').value = order.customer.customerName;
-                        document.getElementById('editAddress').value = order.deliveryPoint.address;
-                        document.getElementById('editStatus').value = order.status;
+                        document.getElementById('customerName').value = order.customer.customerName;
+                        document.getElementById('address').value = order.deliveryPoint.address;
+                        document.getElementById('status').value = order.status;
+                        currentEditId = orderId;
                     }
                 });
             } else {
-                document.getElementById('editCustomerName').value = '';
-                document.getElementById('editAddress').value = '';
-                document.getElementById('editStatus').value = 'accepted';
+                title.textContent = 'Novo Pedido';
+                form.reset();
+                currentEditId = null;
             }
+
+            modal.style.display = 'block';
         }
 
-        function saveOrder() {
-            const customerName = document.getElementById('editCustomerName').value;
-            const address = document.getElementById('editAddress').value;
-            const status = document.getElementById('editStatus').value;
+        document.getElementById('orderForm').onsubmit = function(e) {
+            e.preventDefault();
+            saveOrder();
+        };
 
-            if (!customerName || !address) {
-                alert('Por favor, preencha todos os campos.');
-                return;
-            }
+        function saveOrder() {
+            const customerName = document.getElementById('customerName').value;
+            const address = document.getElementById('address').value;
+            const status = document.getElementById('status').value;
 
             const orderData = {
                 customer: { customerName },
                 deliveryPoint: { address },
-                status: status
+                status: status,
+                // Adicione campos adicionais conforme necessário
             };
 
             if (currentEditId) {
                 db.collection('orders').doc(currentEditId).update(orderData)
                     .then(() => {
                         console.log("Pedido atualizado com sucesso");
-                        cancelEdit();
+                        document.getElementById('orderModal').style.display = 'none';
                         fetchOrders();
                     })
                     .catch((error) => {
@@ -251,18 +243,13 @@
                 db.collection('orders').add(orderData)
                     .then(() => {
                         console.log("Novo pedido criado com sucesso");
-                        cancelEdit();
+                        document.getElementById('orderModal').style.display = 'none';
                         fetchOrders();
                     })
                     .catch((error) => {
                         console.error("Erro ao criar novo pedido: ", error);
                     });
             }
-        }
-
-        function cancelEdit() {
-            document.getElementById('topBar').style.display = 'none';
-            currentEditId = null;
         }
 
         function assignOrders() {
@@ -286,6 +273,7 @@
                 fetchOrders();
             }).catch((error) => {
                 console.error("Erro ao atribuir pedidos: ", error);
+                alert("Erro ao atribuir pedidos. Verifique se todos os pedidos selecionados existem.");
             });
         }
 
@@ -309,6 +297,7 @@
                 fetchOrders();
             }).catch((error) => {
                 console.error("Erro ao atualizar status dos pedidos: ", error);
+                alert("Erro ao atualizar status. Verifique se todos os pedidos selecionados existem.");
             });
         }
 
@@ -344,6 +333,18 @@ function showOrderDetails(order) {
             const checkboxes = document.querySelectorAll('input[name="orderCheckbox"]');
             checkboxes.forEach(checkbox => checkbox.checked = this.checked);
         });
+
+        // Fechar o modal
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
+
+        // Fechar o modal se clicar fora dele
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('orderModal')) {
+                document.getElementById('orderModal').style.display = 'none';
+            }
+        }
 
         // Inicializar o mapa e buscar pedidos
         initMap();
