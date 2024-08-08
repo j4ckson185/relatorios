@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastrear Pedido - Foody Delivery</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+        }
+        input {
+            padding: 0.5rem;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+            width: 60%;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #status {
+            margin-top: 1rem;
+            font-weight: bold;
+            text-align: left;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rastrear Pedido</h1>
+        <input type="text" id="pedidoInput" placeholder="Número do pedido">
+        <button onclick="rastrearPedido()">Rastrear</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const db = firebase.firestore();
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+
+        async function rastrearPedido() {
+            const numeroPedido = document.getElementById('pedidoInput').value;
+            const statusElement = document.getElementById('status');
+            statusElement.innerHTML = 'Buscando pedido...';
+
+            try {
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}${numeroPedido}`
+                    }
+                });
+
+                const order = response.data;
+                if (order) {
+                    let statusInfo = getStatusInfo(order.status);
+                    let trackingInfo = '';
+
+                    if (order.status === 'onGoing') {
+                        const trackingResponse = await axios.get(trackingUrl, {
+                            headers: {
+                                'Authorization': authToken,
+                                'Content-Type': 'application/json;charset=UTF-8'
+                            },
+                            params: {
+                                orderUid: order.uid
+                            }
+                        });
+                        const tracking = trackingResponse.data;
+                        if (tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0) {
+                            trackingInfo = `<br>Posição na rota: ${tracking.pointsToDelivery[0].position}`;
+                        }
+                    }
+
+                    statusElement.innerHTML = `
+                        <p><strong>Pedido #${order.id}</strong></p>
+                        <p>Status: ${statusInfo.display}</p>
+                        <p>${statusInfo.description}</p>
+                        <p>Cliente: ${order.customer.customerName}</p>
+                        ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
+                        ${trackingInfo}
+                    `;
+                } else {
+                    statusElement.innerHTML = '<p class="error">Pedido não encontrado.</p>';
+                }
+            } catch (error) {
+                console.error('Erro ao buscar pedido:', error);
+                statusElement.innerHTML = '<p class="error">Erro ao buscar pedido. Por favor, tente novamente mais tarde.</p>';
+            }
+        }
+
+        function getStatusInfo(status) {
+            switch(status) {
+                case 'accepted':
+                    return {
+                        display: 'Aceito',
+                        description: 'O pedido foi aceito e está sendo preparado.'
+                    };
+                case 'dispatched':
+                    return {
+                        display: 'Despachado',
+                        description: 'O motoboy está chegando na loja para coletar o pedido.'
+                    };
+                case 'onGoing':
+                    return {
+                        display: 'A Caminho',
+                        description: 'O pedido saiu para entrega e está a caminho da sua residência.'
+                    };
+                case 'ready':
+                    return {
+                        display: 'Pronto',
+                        description: 'O pedido já foi preparado e está aguardando o próximo motoboy chegar para levar.'
+                    };
+                case 'closed':
+                    return {
+                        display: 'Finalizado',
+                        description: 'O pedido já foi entregue.'
+                    };
+                default:
+                    return {
+                        display: status,
+                        description: 'Status desconhecido.'
+                    };
+            }
+        }
+    </script>
+</body>
+</html>
