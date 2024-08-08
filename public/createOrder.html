@@ -1,14 +1,42 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <!-- ... (cabeçalho e estilos permanecem os mesmos) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Pedidos - Foody Delivery</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
+        .container { display: flex; height: 100vh; }
+        .sidebar { width: 300px; background-color: #fff; padding: 20px; overflow-y: auto; }
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; }
+        #map { flex-grow: 1; }
+        .order-list { max-height: calc(100vh - 100px); overflow-y: auto; }
+        .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; position: relative; }
+        .order-item:hover { background-color: #f0f0f0; }
+        .filter-section { margin-bottom: 20px; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #45a049; }
+        .order-options { position: absolute; right: 10px; top: 10px; }
+        .order-options i { cursor: pointer; margin-left: 5px; }
+        .error { color: red; font-weight: bold; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Rastrear Pedido</h1>
-        <input type="text" id="pedidoInput" placeholder="Número do pedido">
-        <button onclick="rastrearPedido()">Rastrear</button>
-        <div id="status"></div>
+        <div class="sidebar">
+            <h2>Pedidos</h2>
+            <div class="filter-section">
+                <div id="orderList" class="order-list"></div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div id="map"></div>
+        </div>
     </div>
 
     <script>
@@ -26,53 +54,236 @@
         firebase.initializeApp(firebaseConfig);
 
         const db = firebase.firestore();
+        let map;
+        let markers = {};
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
+        const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
-        async function rastrearPedido() {
-            const numeroPedido = document.getElementById('pedidoInput').value;
-            const statusElement = document.getElementById('status');
-            statusElement.innerHTML = 'Buscando pedido...';
+        function initMap() {
+            const centerAddress = { lat: -5.750636, lng: -35.254625 };
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: centerAddress,
+                zoom: 16
+            });
 
-            console.log('Tentando rastrear pedido:', numeroPedido);
+            new google.maps.Marker({
+                position: centerAddress,
+                map: map,
+                title: "Rua Serra do Mar, 1216, Potengi",
+                icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            });
+        }
 
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        }
+
+        async function fetchOrders() {
             try {
-                const orderRef = db.collection('foodyOrders').doc(numeroPedido);
-                console.log('Buscando documento:', orderRef.path);
-                const doc = await orderRef.get();
+                const now = new Date();
+                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 horas atrás
+                const endDate = formatDate(now);
+                
+                console.log('Buscando pedidos da API Foody...');
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+                    }
+                });
+                console.log('Resposta da API Foody:', response.data);
+                
+                const filteredOrders = response.data.filter(order => 
+                    ['onGoing', 'ready', 'dispatched', 'accepted'].includes(order.status)
+                );
+                console.log('Pedidos filtrados:', filteredOrders);
 
-                console.log('Documento encontrado:', doc.exists);
-
-                if (doc.exists) {
-                    const order = doc.data();
-                    console.log('Dados do pedido:', order);
-                    let statusInfo = getStatusInfo(order.status);
-
-                    statusElement.innerHTML = `
-                        <p><strong>Pedido #${order.id}</strong></p>
-                        <p>Status: ${statusInfo.display}</p>
-                        <p>${statusInfo.description}</p>
-                        <p>Cliente: ${order.customer.customerName}</p>
-                        ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
-                    `;
-                } else {
-                    console.log('Pedido não encontrado no Firestore');
-                    statusElement.innerHTML = '<p class="error">Pedido não encontrado. Certifique-se de que o pedido foi carregado na página createOrder.</p>';
-                    
-                    // Adicionar verificação de todos os documentos na coleção
-                    const snapshot = await db.collection('foodyOrders').get();
-                    console.log('Total de documentos na coleção:', snapshot.size);
-                    snapshot.forEach(doc => {
-                        console.log('Documento encontrado:', doc.id, '=>', doc.data());
-                    });
-                }
+                updateOrderList(filteredOrders);
+                updateMap(filteredOrders);
+                saveOrdersToFirestore(filteredOrders);
             } catch (error) {
-                console.error('Erro ao buscar pedido:', error);
-                statusElement.innerHTML = '<p class="error">Erro ao buscar pedido. Por favor, tente novamente mais tarde.</p>';
+                console.error('Erro ao buscar pedidos:', error);
+                if (error.response) {
+                    console.error('Error response:', error.response.data);
+                    console.error('Error status:', error.response.status);
+                    console.error('Error headers:', error.response.headers);
+                } else if (error.request) {
+                    console.error('Error request:', error.request);
+                } else {
+                    console.error('Error message:', error.message);
+                }
+                document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
             }
         }
 
-        function getStatusInfo(status) {
-            // ... (função getStatusInfo permanece a mesma) ...
+        function updateOrderList(orders) {
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '';
+            orders.forEach(order => {
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'order-item';
+                orderDiv.innerHTML = `
+                    <h3>Pedido #${order.id}</h3>
+                    <p>Status: ${getStatusDisplay(order.status)}</p>
+                    <p>Cliente: ${order.customer.customerName}</p>
+                    ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
+                    <div class="order-options">
+                        <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
+                    </div>
+                `;
+                orderList.appendChild(orderDiv);
+            });
         }
+
+        async function updateMap(orders) {
+            Object.values(markers).forEach(marker => marker.setMap(null));
+            markers = {};
+
+            for (const order of orders) {
+                if (order.deliveryPoint && order.deliveryPoint.coordinates) {
+                    const { lat, lng } = order.deliveryPoint.coordinates;
+                    const marker = new google.maps.Marker({
+                        position: { lat, lng },
+                        map: map,
+                        title: `Pedido #${order.id}`,
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                    });
+
+                    markers[order.uid] = marker;
+
+                    marker.addListener('click', () => {
+                        showOrderDetails(order);
+                    });
+                }
+
+                if (order.status === 'onGoing') {
+                    await updateCourierLocation(order);
+                }
+            }
+        }
+
+        async function updateCourierLocation(order) {
+            try {
+                const response = await axios.get(trackingUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        orderUid: order.uid
+                    }
+                });
+                const tracking = response.data;
+                if (tracking.courierLocationCoordinates) {
+                    const { lat, lng } = tracking.courierLocationCoordinates;
+                    const courierMarker = new google.maps.Marker({
+                        position: { lat, lng },
+                        map: map,
+                        title: `Motoboy - Pedido #${order.id}`,
+                        icon: {
+                            url: 'http://maps.google.com/mapfiles/ms/icons/motorcycling.png',
+                            scaledSize: new google.maps.Size(32, 32)
+                        }
+                    });
+
+                    markers[`courier-${order.uid}`] = courierMarker;
+
+                    courierMarker.addListener('click', () => {
+                        showCourierDetails(order, tracking);
+                    });
+                }
+            } catch (error) {
+                console.error(`Erro ao buscar localização do motoboy para o pedido ${order.uid}:`, error);
+            }
+        }
+
+        function centerOrderOnMap(orderUid) {
+            const marker = markers[orderUid] || markers[`courier-${orderUid}`];
+            if (marker) {
+                map.setCenter(marker.getPosition());
+                map.setZoom(16);
+            }
+        }
+
+        function getStatusDisplay(status) {
+            switch(status) {
+                case 'accepted': return 'Aceito';
+                case 'dispatched': return 'Despachado';
+                case 'onGoing': return 'A Caminho';
+                case 'ready': return 'Pronto';
+                default: return status;
+            }
+        }
+
+        function showOrderDetails(order) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div>
+                        <h3>Pedido #${order.id}</h3>
+                        <p>Cliente: ${order.customer.customerName}</p>
+                        <p>Endereço: ${order.deliveryPoint.address}</p>
+                        <p>Status: ${getStatusDisplay(order.status)}</p>
+                        ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
+                    </div>
+                `
+            });
+
+            const marker = markers[order.uid];
+            if (marker) {
+                infoWindow.open(map, marker);
+            }
+        }
+
+        function showCourierDetails(order, tracking) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div>
+                        <h3>Motoboy - Pedido #${order.id}</h3>
+                        <p>Nome: ${order.courier.courierName}</p>
+                        <p>Status: ${tracking.status}</p>
+                        ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
+                            `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
+                    </div>
+                `
+            });
+
+            const marker = markers[`courier-${order.uid}`];
+            if (marker) {
+                infoWindow.open(map, marker);
+            }
+        }
+
+        function saveOrdersToFirestore(orders) {
+            console.log('Iniciando salvamento de pedidos no Firestore...');
+            orders.forEach(order => {
+                console.log('Tentando salvar pedido:', order.id);
+                db.collection('foodyOrders').doc(order.id.toString()).set(order)
+                    .then(() => {
+                        console.log('Pedido salvo com sucesso no Firestore:', order.id);
+                        // Verificar se o pedido foi realmente salvo
+                        return db.collection('foodyOrders').doc(order.id.toString()).get();
+                    })
+                    .then((docSnapshot) => {
+                        if (docSnapshot.exists) {
+                            console.log('Confirmado: Pedido existe no Firestore:', order.id);
+                        } else {
+                            console.error('Erro: Pedido não encontrado no Firestore após salvamento:', order.id);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao salvar ou verificar pedido:', order.id, error);
+                    });
+            });
+        }
+
+        initMap();
+        fetchOrders();
+        setInterval(fetchOrders, 10000);
     </script>
 </body>
 </html>
