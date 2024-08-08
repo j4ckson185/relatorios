@@ -8,28 +8,36 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
         .container { display: flex; height: 100vh; }
         .sidebar { width: 300px; background-color: #fff; padding: 20px; overflow-y: auto; }
-        .main-content { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; }
-        #map { height: 400px; margin-bottom: 20px; }
-        .order-list { flex-grow: 1; overflow-y: auto; }
-        .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+        .main-content { flex-grow: 1; display: flex; }
+        #map { flex-grow: 1; }
+        .order-list { max-height: calc(100vh - 200px); overflow-y: auto; }
+        .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; position: relative; }
+        .order-item:hover { background-color: #f0f0f0; }
         .filter-section { margin-bottom: 20px; }
         .motoboy-section { margin-top: 20px; }
         button { background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #45a049; }
         select { width: 100%; padding: 5px; margin-top: 5px; }
+        .order-options { position: absolute; right: 10px; top: 10px; }
+        .order-options i { cursor: pointer; margin-left: 5px; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="sidebar">
-            <h2>Filtros</h2>
+            <h2>Pedidos</h2>
             <div class="filter-section">
                 <label><input type="checkbox" id="selectAll"> Todos</label>
-                <div id="orderCheckboxes"></div>
+                <div id="orderCheckboxes" class="order-list"></div>
             </div>
             <div class="motoboy-section">
                 <h3>Atribuir para:</h3>
@@ -46,7 +54,27 @@
         </div>
         <div class="main-content">
             <div id="map"></div>
-            <div class="order-list" id="orderList"></div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Editar Pedido</h2>
+            <form id="editForm">
+                <label for="editCustomerName">Nome do Cliente:</label>
+                <input type="text" id="editCustomerName" required><br><br>
+                <label for="editAddress">Endereço:</label>
+                <input type="text" id="editAddress" required><br><br>
+                <label for="editStatus">Status:</label>
+                <select id="editStatus">
+                    <option value="accepted">Aceito</option>
+                    <option value="dispatched">Despachado</option>
+                    <option value="onGoing">A Caminho</option>
+                    <option value="ready">Pronto</option>
+                </select><br><br>
+                <button type="submit">Salvar Alterações</button>
+            </form>
         </div>
     </div>
 
@@ -70,9 +98,18 @@
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
 
         function initMap() {
+            const centerAddress = { lat: -5.750636, lng: -35.254625 }; // Coordenadas aproximadas de Rua Serra do Mar, 1216, Potengi
             map = new google.maps.Map(document.getElementById('map'), {
-                center: {lat: -5.7793, lng: -35.2009}, // Coordenadas de Natal, RN
-                zoom: 12
+                center: centerAddress,
+                zoom: 15
+            });
+
+            // Adicionar marcador para o endereço central
+            new google.maps.Marker({
+                position: centerAddress,
+                map: map,
+                title: "Endereço Central",
+                icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
             });
         }
 
@@ -80,43 +117,50 @@
             try {
                 const response = await axios.get(firebaseFunctionUrl);
                 const filteredOrders = response.data.filter(order => 
-                    order.status === 'onGoing' || order.status === 'ready'
+                    ['accepted', 'dispatched', 'onGoing', 'ready'].includes(order.status)
                 );
-                displayOrders(filteredOrders);
                 updateOrderCheckboxes(filteredOrders);
+                addOrderMarkers(filteredOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
             }
         }
 
-        function displayOrders(orders) {
-            const orderList = document.getElementById('orderList');
-            orderList.innerHTML = '';
-            clearMarkers();
-
+        function updateOrderCheckboxes(orders) {
+            const checkboxesContainer = document.getElementById('orderCheckboxes');
+            checkboxesContainer.innerHTML = '';
             orders.forEach(order => {
-                const orderElement = document.createElement('div');
-                orderElement.className = 'order-item';
-                orderElement.innerHTML = `
-                    <h3>Pedido #${order.id}</h3>
-                    <p>Status: ${order.status === 'onGoing' ? 'A Caminho' : 'Pronto'}</p>
-                    <p>Cliente: ${order.customer.customerName}</p>
-                    <p>Endereço: ${order.deliveryPoint.address}</p>
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'order-item';
+                orderDiv.innerHTML = `
+                    <label>
+                        <input type="checkbox" name="orderCheckbox" value="${order.id}">
+                        Pedido #${order.id} - ${getStatusDisplay(order.status)}
+                    </label>
+                    <div class="order-options">
+                        <i class="fas fa-cog" onclick="showOrderOptions('${order.id}')"></i>
+                    </div>
                 `;
-                orderList.appendChild(orderElement);
-                addMarker(order);
+                checkboxesContainer.appendChild(orderDiv);
             });
         }
 
-        function addMarker(order) {
-            const lat = order.deliveryPoint.coordinates.lat;
-            const lng = order.deliveryPoint.coordinates.lng;
-            const marker = new google.maps.Marker({
-                position: {lat, lng},
-                map: map,
-                title: `Pedido #${order.id}`
+        function addOrderMarkers(orders) {
+            clearMarkers();
+            orders.forEach(order => {
+                const lat = order.deliveryPoint.coordinates.lat;
+                const lng = order.deliveryPoint.coordinates.lng;
+                const marker = new google.maps.Marker({
+                    position: {lat, lng},
+                    map: map,
+                    title: `Pedido #${order.id}`
+                });
+                markers.push(marker);
+
+                marker.addListener('click', () => {
+                    showOrderDetails(order);
+                });
             });
-            markers.push(marker);
         }
 
         function clearMarkers() {
@@ -124,18 +168,58 @@
             markers = [];
         }
 
-        function updateOrderCheckboxes(orders) {
-            const checkboxesContainer = document.getElementById('orderCheckboxes');
-            checkboxesContainer.innerHTML = '';
-            orders.forEach(order => {
-                const checkbox = document.createElement('div');
-                checkbox.innerHTML = `
-                    <label>
-                        <input type="checkbox" name="orderCheckbox" value="${order.id}">
-                        Pedido #${order.id}
-                    </label>
-                `;
-                checkboxesContainer.appendChild(checkbox);
+        function showOrderOptions(orderId) {
+            const optionsHtml = `
+                <div>
+                    <button onclick="centerOrderOnMap('${orderId}')">Centralizar no Mapa</button>
+                    <button onclick="showEditModal('${orderId}')">Editar Pedido</button>
+                </div>
+            `;
+            // Você pode usar um modal ou um popover para mostrar estas opções
+            alert(optionsHtml); // Placeholder - substitua por uma UI melhor
+        }
+
+        function centerOrderOnMap(orderId) {
+            const order = markers.find(marker => marker.getTitle() === `Pedido #${orderId}`);
+            if (order) {
+                map.setCenter(order.getPosition());
+                map.setZoom(18);
+            }
+        }
+
+        function showEditModal(orderId) {
+            const modal = document.getElementById('editModal');
+            modal.style.display = 'block';
+
+            // Preencher o formulário com os dados atuais do pedido
+            db.collection('orders').doc(orderId).get().then((doc) => {
+                if (doc.exists) {
+                    const order = doc.data();
+                    document.getElementById('editCustomerName').value = order.customer.customerName;
+                    document.getElementById('editAddress').value = order.deliveryPoint.address;
+                    document.getElementById('editStatus').value = order.status;
+                }
+            });
+
+            document.getElementById('editForm').onsubmit = function(e) {
+                e.preventDefault();
+                updateOrder(orderId);
+            };
+        }
+
+        function updateOrder(orderId) {
+            const updatedData = {
+                'customer.customerName': document.getElementById('editCustomerName').value,
+                'deliveryPoint.address': document.getElementById('editAddress').value,
+                status: document.getElementById('editStatus').value
+            };
+
+            db.collection('orders').doc(orderId).update(updatedData).then(() => {
+                console.log("Pedido atualizado com sucesso");
+                document.getElementById('editModal').style.display = 'none';
+                fetchOrders(); // Atualiza a lista de pedidos
+            }).catch((error) => {
+                console.error("Erro ao atualizar pedido: ", error);
             });
         }
 
@@ -189,10 +273,42 @@
             fetchOrders(); // Atualiza a lista de pedidos
         }
 
+        function getStatusDisplay(status) {
+            switch(status) {
+                case 'accepted': return 'Aceito';
+                case 'dispatched': return 'Despachado';
+                case 'onGoing': return 'A Caminho';
+                case 'ready': return 'Pronto';
+                default: return status;
+            }
+        }
+
+        function showOrderDetails(order) {
+            const detailsHtml = `
+                <h3>Pedido #${order.id}</h3>
+                <p>Cliente: ${order.customer.customerName}</p>
+                <p>Endereço: ${order.deliveryPoint.address}</p>
+                <p>Status: ${getStatusDisplay(order.status)}</p>
+            `;
+            // Você pode usar um modal ou um infowindow do Google Maps para mostrar estes detalhes
+            alert(detailsHtml); // Placeholder - substitua por uma UI melhor
+        }
+
         document.getElementById('selectAll').addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('input[name="orderCheckbox"]');
             checkboxes.forEach(checkbox => checkbox.checked = this.checked);
         });
+
+        // Fechar o modal
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('editModal')) {
+                document.getElementById('editModal').style.display = 'none';
+            }
+        }
 
         // Inicializar o mapa e buscar pedidos
         initMap();
