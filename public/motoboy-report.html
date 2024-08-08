@@ -161,13 +161,21 @@
                         }
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
+                        
+                        // Calcula o tempo de entrega para pedidos em andamento
+                        if (order.onGoingDate) {
+                            const currentTime = new Date();
+                            const deliveryTime = currentTime - new Date(order.onGoingDate);
+                            motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                        }
                     }
                 }
             });
 
             Object.values(motoboyStats).forEach(stats => {
-                if (stats.completedOrders > 0) {
-                    stats.averageDeliveryTime = stats.totalDeliveryTime / stats.completedOrders / (1000 * 60); // Converte para minutos
+                const totalOrdersWithTime = stats.completedOrders + stats.ongoingOrders;
+                if (totalOrdersWithTime > 0) {
+                    stats.averageDeliveryTime = stats.totalDeliveryTime / totalOrdersWithTime / (1000 * 60); // Converte para minutos
                 }
             });
 
