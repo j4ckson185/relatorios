@@ -148,14 +148,15 @@
                     motoboyStats[motoboyName].totalOrders++;
                     motoboyStats[motoboyName].statusCounts[order.status] = (motoboyStats[motoboyName].statusCounts[order.status] || 0) + 1;
 
-                    if (order.status === 'closed') {
+                    if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += 3; // R$3 por entrega concluída
 
-                        if (order.onGoingDate && order.closedDate) {
-                            const deliveryTime = new Date(order.closedDate) - new Date(order.onGoingDate);
+                        if (order.onGoingDate && (order.closedDate || order.deliveredDate)) {
+                            const endDate = order.closedDate || order.deliveredDate;
+                            const deliveryTime = new Date(endDate) - new Date(order.onGoingDate);
                             motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
-                            const deliveryHour = new Date(order.closedDate).getHours();
+                            const deliveryHour = new Date(endDate).getHours();
                             motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
                         }
                     } else if (order.status === 'onGoing') {
