@@ -172,6 +172,7 @@
                             acceptedOrders: 0,
                             totalEarnings: 0,
                             totalDeliveryTime: 0,
+                            ordersWithValidTime: 0,
                             statusCounts: {},
                             deliveriesPerHour: Array(24).fill(0)
                         };
@@ -183,18 +184,22 @@
                     const onGoingDate = parseDate(order.onGoingDate);
                     const closedDate = parseDate(order.closedDate);
                     const deliveredDate = parseDate(order.deliveredDate);
+                    const createdDate = parseDate(order.createdDate);
 
-                    debug(`${motoboyName}: Pedido ${order.id} - Status: ${order.status}, onGoingDate: ${formatDate(onGoingDate)}, closedDate: ${formatDate(closedDate)}, deliveredDate: ${formatDate(deliveredDate)}`);
+                    debug(`${motoboyName}: Pedido ${order.id} - Status: ${order.status}, onGoingDate: ${formatDate(onGoingDate)}, closedDate: ${formatDate(closedDate)}, deliveredDate: ${formatDate(deliveredDate)}, createdDate: ${formatDate(createdDate)}`);
 
                     if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += 3; // R$3 por entrega concluída
 
-                        if (onGoingDate && (closedDate || deliveredDate)) {
-                            const endDate = closedDate || deliveredDate;
-                            const deliveryTime = endDate - onGoingDate;
+                        const startDate = onGoingDate || createdDate;
+                        const endDate = closedDate || deliveredDate;
+
+                        if (startDate && endDate) {
+                            const deliveryTime = endDate - startDate;
                             if (deliveryTime > 0) {
                                 motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                                motoboyStats[motoboyName].ordersWithValidTime++;
                                 debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega: ${deliveryTime / 60000} minutos`);
                                 const deliveryHour = endDate.getHours();
                                 motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
@@ -207,11 +212,13 @@
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
                         
-                        if (onGoingDate) {
+                        const startDate = onGoingDate || createdDate;
+                        if (startDate) {
                             const currentTime = new Date();
-                            const deliveryTime = currentTime - onGoingDate;
+                            const deliveryTime = currentTime - startDate;
                             if (deliveryTime > 0) {
                                 motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                                motoboyStats[motoboyName].ordersWithValidTime++;
                                 debug(`${motoboyName}: Pedido ${order.id} (em andamento) - Tempo até agora: ${deliveryTime / 60000} minutos`);
                             } else {
                                 debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido para pedido em andamento (${deliveryTime} ms)`);
@@ -231,13 +238,12 @@
             });
 
             Object.entries(motoboyStats).forEach(([name, stats]) => {
-                const totalOrdersWithTime = stats.completedOrders + stats.ongoingOrders;
-                debug(`${name}: Total de pedidos com tempo: ${totalOrdersWithTime}, Tempo total: ${stats.totalDeliveryTime / 60000} minutos`);
-                if (totalOrdersWithTime > 0) {
-                    stats.averageDeliveryTime = stats.totalDeliveryTime / totalOrdersWithTime / (1000 * 60); // Converte para minutos
+                debug(`${name}: Total de pedidos com tempo válido: ${stats.ordersWithValidTime}, Tempo total: ${stats.totalDeliveryTime / 60000} minutos`);
+                if (stats.ordersWithValidTime > 0) {
+                    stats.averageDeliveryTime = stats.totalDeliveryTime / stats.ordersWithValidTime / (1000 * 60); // Converte para minutos
                     debug(`${name}: Tempo médio de entrega - ${stats.averageDeliveryTime.toFixed(2)} minutos`);
                 } else {
-                    debug(`${name}: Sem entregas concluídas ou em andamento`);
+                    debug(`${name}: Sem entregas com tempo válido`);
                     stats.averageDeliveryTime = 0;
                 }
             });
@@ -294,7 +300,7 @@
                     }
                 });
 
-// Gráfico de entregas por hora
+ // Gráfico de entregas por hora
                 const hourlyCtx = document.getElementById(`hourly-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
                 new Chart(hourlyCtx, {
                     type: 'bar',
