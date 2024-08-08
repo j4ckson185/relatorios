@@ -121,6 +121,9 @@
         }
 
         function parseDate(dateString) {
+            if (!dateString) {
+                return null;
+            }
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
                 debug(`Data inválida: ${dateString}`);
@@ -180,6 +183,8 @@
                     const closedDate = parseDate(order.closedDate);
                     const deliveredDate = parseDate(order.deliveredDate);
 
+                    debug(`Pedido ${order.id} - Status: ${order.status}, onGoingDate: ${order.onGoingDate}, closedDate: ${order.closedDate}, deliveredDate: ${order.deliveredDate}`);
+
                     if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += 3; // R$3 por entrega concluída
@@ -193,7 +198,7 @@
                                 const deliveryHour = endDate.getHours();
                                 motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
                             } else {
-                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido`);
+                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido (${deliveryTime} ms)`);
                             }
                         } else {
                             debug(`${motoboyName}: Pedido ${order.id} - Dados de tempo incompletos`);
@@ -208,7 +213,7 @@
                                 motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
                                 debug(`${motoboyName}: Pedido ${order.id} (em andamento) - Tempo até agora: ${deliveryTime / 60000} minutos`);
                             } else {
-                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido`);
+                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido (${deliveryTime} ms)`);
                             }
                         } else {
                             debug(`${motoboyName}: Pedido ${order.id} - Sem data de início válida`);
@@ -310,11 +315,11 @@
             });
         }
 
-        async function updateReports() {
+async function updateReports() {
             try {
                 debug("Iniciando atualização dos relatórios");
                 const orders = await fetchOrders();
-                debug(`Amostra de pedidos recebidos: ${JSON.stringify(orders.slice(0, 2))}`); // Mostra os 2 primeiros pedidos para depuração
+                debug(`Amostra de pedidos recebidos: ${JSON.stringify(orders.slice(0, 2))}`);
                 const motoboyStats = processOrders(orders);
                 displayMotoboyReports(motoboyStats);
                 debug("Relatórios atualizados com sucesso");
@@ -324,7 +329,7 @@
             }
         }
 
-// Função para inicializar a página
+        // Função para inicializar a página
         function initPage() {
             // Configurar a data inicial como 8 de agosto de 2024
             const initialDate = new Date('2024-08-08T00:00:00-03:00');
