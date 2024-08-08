@@ -69,6 +69,10 @@
             padding: 10px;
             margin-top: 20px;
             white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -114,6 +118,7 @@
             console.log(message);
             const debugElement = document.getElementById('debug');
             debugElement.textContent += message + '\n';
+            debugElement.scrollTop = debugElement.scrollHeight;
         }
 
         function formatDate(date) {
@@ -175,8 +180,11 @@
                             const endDate = order.closedDate || order.deliveredDate;
                             const deliveryTime = new Date(endDate) - new Date(order.onGoingDate);
                             motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                            debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega: ${deliveryTime / 60000} minutos`);
                             const deliveryHour = new Date(endDate).getHours();
                             motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
+                        } else {
+                            debug(`${motoboyName}: Pedido ${order.id} - Dados de tempo incompletos`);
                         }
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
@@ -185,6 +193,9 @@
                             const currentTime = new Date();
                             const deliveryTime = currentTime - new Date(order.onGoingDate);
                             motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                            debug(`${motoboyName}: Pedido ${order.id} (em andamento) - Tempo até agora: ${deliveryTime / 60000} minutos`);
+                        } else {
+                            debug(`${motoboyName}: Pedido ${order.id} - Sem data de início`);
                         }
                     }
                 }
@@ -192,6 +203,7 @@
 
             Object.entries(motoboyStats).forEach(([name, stats]) => {
                 const totalOrdersWithTime = stats.completedOrders + stats.ongoingOrders;
+                debug(`${name}: Total de pedidos com tempo: ${totalOrdersWithTime}, Tempo total: ${stats.totalDeliveryTime / 60000} minutos`);
                 if (totalOrdersWithTime > 0) {
                     stats.averageDeliveryTime = stats.totalDeliveryTime / totalOrdersWithTime / (1000 * 60); // Converte para minutos
                     debug(`${name}: Tempo médio de entrega - ${stats.averageDeliveryTime.toFixed(2)} minutos`);
@@ -286,6 +298,7 @@
             try {
                 debug("Iniciando atualização dos relatórios");
                 const orders = await fetchOrders();
+                debug(`Amostra de pedidos recebidos: ${JSON.stringify(orders.slice(0, 2))}`); // Mostra os 2 primeiros pedidos para depuração
                 const motoboyStats = processOrders(orders);
                 displayMotoboyReports(motoboyStats);
                 debug("Relatórios atualizados com sucesso");
