@@ -125,6 +125,16 @@
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
+        function parseDate(dateString) {
+            // Tenta converter a string de data para um objeto Date
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                debug(`Data inválida: ${dateString}`);
+                return null;
+            }
+            return date;
+        }
+
         async function fetchOrders() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -172,30 +182,42 @@
                     motoboyStats[motoboyName].totalOrders++;
                     motoboyStats[motoboyName].statusCounts[order.status] = (motoboyStats[motoboyName].statusCounts[order.status] || 0) + 1;
 
+                    const onGoingDate = parseDate(order.onGoingDate);
+                    const closedDate = parseDate(order.closedDate);
+                    const deliveredDate = parseDate(order.deliveredDate);
+
                     if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += 3; // R$3 por entrega concluída
 
-                        if (order.onGoingDate && (order.closedDate || order.deliveredDate)) {
-                            const endDate = order.closedDate || order.deliveredDate;
-                            const deliveryTime = new Date(endDate) - new Date(order.onGoingDate);
-                            motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
-                            debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega: ${deliveryTime / 60000} minutos`);
-                            const deliveryHour = new Date(endDate).getHours();
-                            motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
+                        if (onGoingDate && (closedDate || deliveredDate)) {
+                            const endDate = closedDate || deliveredDate;
+                            const deliveryTime = endDate - onGoingDate;
+                            if (deliveryTime > 0) {
+                                motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega: ${deliveryTime / 60000} minutos`);
+                                const deliveryHour = endDate.getHours();
+                                motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
+                            } else {
+                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido`);
+                            }
                         } else {
                             debug(`${motoboyName}: Pedido ${order.id} - Dados de tempo incompletos`);
                         }
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
                         
-                        if (order.onGoingDate) {
+                        if (onGoingDate) {
                             const currentTime = new Date();
-                            const deliveryTime = currentTime - new Date(order.onGoingDate);
-                            motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
-                            debug(`${motoboyName}: Pedido ${order.id} (em andamento) - Tempo até agora: ${deliveryTime / 60000} minutos`);
+                            const deliveryTime = currentTime - onGoingDate;
+                            if (deliveryTime > 0) {
+                                motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                                debug(`${motoboyName}: Pedido ${order.id} (em andamento) - Tempo até agora: ${deliveryTime / 60000} minutos`);
+                            } else {
+                                debug(`${motoboyName}: Pedido ${order.id} - Tempo de entrega inválido`);
+                            }
                         } else {
-                            debug(`${motoboyName}: Pedido ${order.id} - Sem data de início`);
+                            debug(`${motoboyName}: Pedido ${order.id} - Sem data de início válida`);
                         }
                     }
                 }
@@ -300,17 +322,4 @@
                 const orders = await fetchOrders();
                 debug(`Amostra de pedidos recebidos: ${JSON.stringify(orders.slice(0, 2))}`); // Mostra os 2 primeiros pedidos para depuração
                 const motoboyStats = processOrders(orders);
-                displayMotoboyReports(motoboyStats);
-                debug("Relatórios atualizados com sucesso");
-            } catch (error) {
-                debug(`Erro ao atualizar relatórios: ${error.message}`);
-                document.getElementById('motoboyReports').innerHTML = '<p>Erro ao carregar relatórios. Por favor, tente novamente mais tarde.</p>';
-            }
-        }
-
-        // Atualiza os relatórios inicialmente e a cada 5 minutos
-        updateReports();
-        setInterval(updateReports, 5 * 60 * 1000);
-    </script>
-</body>
-</html>
+                displayMotoboyReports(motob
