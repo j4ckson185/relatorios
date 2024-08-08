@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -48,8 +48,9 @@
         }
         .chart-container {
             position: relative;
-            height: 200px;
+            height: 300px;
             width: 100%;
+            margin-bottom: 20px;
         }
         .date-filter {
             margin-bottom: 20px;
@@ -133,7 +134,7 @@
                             completedOrders: 0,
                             ongoingOrders: 0,
                             totalEarnings: 0,
-                            averageDeliveryTime: 0,
+                            deliveryTimes: [],
                             statusCounts: {},
                             deliveriesPerHour: Array(24).fill(0)
                         };
@@ -142,13 +143,14 @@
                     motoboyStats[motoboyName].totalOrders++;
                     motoboyStats[motoboyName].statusCounts[order.status] = (motoboyStats[motoboyName].statusCounts[order.status] || 0) + 1;
 
-                    if (order.status === 'delivered') {
+                    if (order.status === 'closed') {
                         motoboyStats[motoboyName].completedOrders++;
-                        motoboyStats[motoboyName].totalEarnings += order.courierFee || 0;
-                        if (order.creationDate && order.deliveryDate) {
-                            const deliveryTime = new Date(order.deliveryDate) - new Date(order.creationDate);
-                            motoboyStats[motoboyName].averageDeliveryTime += deliveryTime;
-                            const deliveryHour = new Date(order.deliveryDate).getHours();
+                        motoboyStats[motoboyName].totalEarnings += 3; // R$3 por entrega concluída
+
+                        if (order.onGoingDate && order.closedDate) {
+                            const deliveryTime = new Date(order.closedDate) - new Date(order.onGoingDate);
+                            motoboyStats[motoboyName].deliveryTimes.push(deliveryTime);
+                            const deliveryHour = new Date(order.closedDate).getHours();
                             motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
                         }
                     } else if (order.status === 'onGoing') {
@@ -158,8 +160,9 @@
             });
 
             Object.values(motoboyStats).forEach(stats => {
-                if (stats.completedOrders > 0) {
-                    stats.averageDeliveryTime = stats.averageDeliveryTime / stats.completedOrders / (1000 * 60); // Converte para minutos
+                if (stats.deliveryTimes.length > 0) {
+                    const totalTime = stats.deliveryTimes.reduce((sum, time) => sum + time, 0);
+                    stats.averageDeliveryTime = totalTime / stats.deliveryTimes.length / (1000 * 60); // Converte para minutos
                 }
             });
 
@@ -179,7 +182,7 @@
                     <div class="metric">Pedidos Concluídos: <span>${stats.completedOrders}</span></div>
                     <div class="metric">Pedidos em Andamento: <span>${stats.ongoingOrders}</span></div>
                     <div class="metric">Ganhos Totais: <span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
-                    <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime.toFixed(2)} min</span></div>
+                    <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime ? stats.averageDeliveryTime.toFixed(2) + ' min' : 'N/A'}</span></div>
                     <div class="chart-container">
                         <canvas id="status-chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
                     </div>
