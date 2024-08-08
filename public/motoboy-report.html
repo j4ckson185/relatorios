@@ -158,6 +158,7 @@
 
         function processOrders(orders) {
             const motoboyStats = {};
+            let ordersWithoutMotoboy = 0;
 
             debug(`Processando ${orders.length} pedidos`);
 
@@ -233,9 +234,12 @@
                         debug(`${motoboyName}: Pedido ${order.id} - Status não processado: ${order.status}`);
                     }
                 } else {
+                    ordersWithoutMotoboy++;
                     debug(`Pedido ${order.id} - Sem informações de motoboy`);
                 }
             });
+
+            debug(`Total de pedidos sem informações de motoboy: ${ordersWithoutMotoboy}`);
 
             Object.entries(motoboyStats).forEach(([name, stats]) => {
                 debug(`${name}: Total de pedidos com tempo válido: ${stats.ordersWithValidTime}, Tempo total: ${stats.totalDeliveryTime / 60000} minutos`);
@@ -300,7 +304,7 @@
                     }
                 });
 
-// Gráfico de entregas por hora
+             // Gráfico de entregas por hora
                 const hourlyCtx = document.getElementById(`hourly-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
                 new Chart(hourlyCtx, {
                     type: 'bar',
