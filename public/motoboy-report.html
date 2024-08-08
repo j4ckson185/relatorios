@@ -169,6 +169,7 @@
                             totalOrders: 0,
                             completedOrders: 0,
                             ongoingOrders: 0,
+                            acceptedOrders: 0,
                             totalEarnings: 0,
                             totalDeliveryTime: 0,
                             statusCounts: {},
@@ -218,6 +219,9 @@
                         } else {
                             debug(`${motoboyName}: Pedido ${order.id} - Sem data de início válida para pedido em andamento`);
                         }
+                    } else if (order.status === 'accepted') {
+                        motoboyStats[motoboyName].acceptedOrders++;
+                        debug(`${motoboyName}: Pedido ${order.id} - Aceito, aguardando início`);
                     } else {
                         debug(`${motoboyName}: Pedido ${order.id} - Status não processado: ${order.status}`);
                     }
@@ -234,6 +238,7 @@
                     debug(`${name}: Tempo médio de entrega - ${stats.averageDeliveryTime.toFixed(2)} minutos`);
                 } else {
                     debug(`${name}: Sem entregas concluídas ou em andamento`);
+                    stats.averageDeliveryTime = 0;
                 }
             });
 
@@ -254,8 +259,9 @@
                     <div class="metric">Total de Pedidos: <span>${stats.totalOrders}</span></div>
                     <div class="metric">Pedidos Concluídos: <span>${stats.completedOrders}</span></div>
                     <div class="metric">Pedidos em Andamento: <span>${stats.ongoingOrders}</span></div>
+                    <div class="metric">Pedidos Aceitos: <span>${stats.acceptedOrders}</span></div>
                     <div class="metric">Ganhos Totais: <span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
-                    <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime ? stats.averageDeliveryTime.toFixed(2) + ' min' : 'N/A'}</span></div>
+                    <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime.toFixed(2)} min</span></div>
                     <div class="pie-chart-container">
                         <canvas id="status-chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
                     </div>
@@ -288,7 +294,7 @@
                     }
                 });
 
-                // Gráfico de entregas por hora
+// Gráfico de entregas por hora
                 const hourlyCtx = document.getElementById(`hourly-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d');
                 new Chart(hourlyCtx, {
                     type: 'bar',
@@ -319,7 +325,7 @@
             });
         }
 
-async function updateReports() {
+        async function updateReports() {
             try {
                 debug("Iniciando atualização dos relatórios");
                 const orders = await fetchOrders();
