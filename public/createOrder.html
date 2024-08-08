@@ -101,6 +101,7 @@
                 );
                 updateOrderList(filteredOrders);
                 updateMap(filteredOrders);
+                saveOrdersToFirestore(filteredOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 if (error.response) {
@@ -251,6 +252,15 @@
             if (marker) {
                 infoWindow.open(map, marker);
             }
+        }
+
+        // Nova função para salvar pedidos no Firestore
+        function saveOrdersToFirestore(orders) {
+            orders.forEach(order => {
+                db.collection('foodyOrders').doc(order.id.toString()).set(order)
+                    .then(() => console.log('Pedido salvo no Firestore:', order.id))
+                    .catch(error => console.error('Erro ao salvar pedido:', error));
+            });
         }
 
         initMap();
