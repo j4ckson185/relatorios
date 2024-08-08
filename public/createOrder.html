@@ -76,15 +76,23 @@
             });
         }
 
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        }
+
         async function fetchOrders() {
             try {
+                const now = new Date();
+                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 horas atrás
+                const endDate = formatDate(now);
+                
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
                     },
                     params: {
-                        url: foodyApiUrl
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
                 console.log('Response:', response.data);
