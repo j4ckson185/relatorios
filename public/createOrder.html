@@ -11,70 +11,61 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
-        .container { display: flex; height: 100vh; }
-        .sidebar { width: 300px; background-color: #fff; padding: 20px; overflow-y: auto; }
-        .main-content { flex-grow: 1; display: flex; }
+        .container { display: flex; height: 100vh; flex-direction: column; }
+        .top-bar { background-color: #4CAF50; color: white; padding: 10px; display: none; }
+        .main-content { display: flex; flex-grow: 1; }
+        .sidebar { width: 200px; background-color: #fff; padding: 10px; overflow-y: auto; }
         #map { flex-grow: 1; }
         .order-list { max-height: calc(100vh - 200px); overflow-y: auto; }
-        .order-item { background-color: #fff; margin-bottom: 10px; padding: 10px; border-radius: 5px; position: relative; }
+        .order-item { background-color: #fff; margin-bottom: 5px; padding: 5px; border-radius: 3px; position: relative; }
         .order-item:hover { background-color: #f0f0f0; }
-        .filter-section { margin-bottom: 20px; }
-        .motoboy-section { margin-top: 20px; }
-        button { background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; margin-top: 10px; }
+        .filter-section { margin-bottom: 10px; }
+        .motoboy-section { margin-top: 10px; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
         button:hover { background-color: #45a049; }
         select { width: 100%; padding: 5px; margin-top: 5px; }
-        .order-options { position: absolute; right: 10px; top: 10px; }
-        .order-options i { cursor: pointer; margin-left: 5px; }
-        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; }
-        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .close:hover { color: #000; }
+        .order-options { position: absolute; right: 5px; top: 5px; }
+        .order-options i { cursor: pointer; }
+        .edit-form { display: flex; gap: 10px; align-items: center; }
+        .edit-form input, .edit-form select { flex-grow: 1; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <h2>Pedidos</h2>
-            <div class="filter-section">
-                <label><input type="checkbox" id="selectAll"> Todos</label>
-                <div id="orderCheckboxes" class="order-list"></div>
-            </div>
-            <div class="motoboy-section">
-                <h3>Atribuir para:</h3>
-                <select id="motoboySelect">
-                    <option value="boazd3@gmail.com">Boaz</option>
-                    <option value="giovanni.silva18@gmail.com">Giovanni</option>
-                    <option value="moises110723@gmail.com">Moisés</option>
-                    <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
-                </select>
-                <button onclick="assignOrders()">Atribuir Pedidos</button>
-            </div>
-            <button onclick="updateOrderStatus('A Caminho')">Marcar como A Caminho</button>
-            <button onclick="updateOrderStatus('Pronto')">Marcar como Pronto</button>
-        </div>
-        <div class="main-content">
-            <div id="map"></div>
-        </div>
-    </div>
-
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Editar Pedido</h2>
-            <form id="editForm">
-                <label for="editCustomerName">Nome do Cliente:</label>
-                <input type="text" id="editCustomerName" required><br><br>
-                <label for="editAddress">Endereço:</label>
-                <input type="text" id="editAddress" required><br><br>
-                <label for="editStatus">Status:</label>
+        <div class="top-bar" id="topBar">
+            <div class="edit-form">
+                <input type="text" id="editCustomerName" placeholder="Nome do Cliente">
+                <input type="text" id="editAddress" placeholder="Endereço">
                 <select id="editStatus">
                     <option value="accepted">Aceito</option>
                     <option value="dispatched">Despachado</option>
                     <option value="onGoing">A Caminho</option>
                     <option value="ready">Pronto</option>
-                </select><br><br>
-                <button type="submit">Salvar Alterações</button>
-            </form>
+                </select>
+                <button onclick="saveOrder()">Salvar</button>
+                <button onclick="cancelEdit()">Cancelar</button>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="filter-section">
+                    <label><input type="checkbox" id="selectAll"> Todos</label>
+                    <div id="orderCheckboxes" class="order-list"></div>
+                </div>
+                <div class="motoboy-section">
+                    <select id="motoboySelect">
+                        <option value="boazd3@gmail.com">Boaz</option>
+                        <option value="giovanni.silva18@gmail.com">Giovanni</option>
+                        <option value="moises110723@gmail.com">Moisés</option>
+                        <option value="felipeaugusto02001@gmail.com">Felipe Augusto</option>
+                    </select>
+                    <button onclick="assignOrders()">Atribuir Pedidos</button>
+                </div>
+                <button onclick="updateOrderStatus('onGoing')">Marcar como A Caminho</button>
+                <button onclick="updateOrderStatus('ready')">Marcar como Pronto</button>
+                <button onclick="showEditForm()">Novo Pedido</button>
+            </div>
+            <div id="map"></div>
         </div>
     </div>
 
@@ -95,6 +86,7 @@
         const db = firebase.firestore();
         let map;
         let markers = [];
+        let currentEditId = null;
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders';
 
         function initMap() {
@@ -104,7 +96,6 @@
                 zoom: 15
             });
 
-            // Adicionar marcador para o endereço central
             new google.maps.Marker({
                 position: centerAddress,
                 map: map,
@@ -135,7 +126,7 @@
                 orderDiv.innerHTML = `
                     <label>
                         <input type="checkbox" name="orderCheckbox" value="${order.id}">
-                        Pedido #${order.id} - ${getStatusDisplay(order.status)}
+                        #${order.id} - ${getStatusDisplay(order.status)}
                     </label>
                     <div class="order-options">
                         <i class="fas fa-cog" onclick="showOrderOptions('${order.id}')"></i>
@@ -153,7 +144,7 @@
                 const marker = new google.maps.Marker({
                     position: {lat, lng},
                     map: map,
-                    title: `Pedido #${order.id}`
+                    title: `#${order.id}`
                 });
                 markers.push(marker);
 
@@ -169,58 +160,109 @@
         }
 
         function showOrderOptions(orderId) {
-            const optionsHtml = `
-                <div>
-                    <button onclick="centerOrderOnMap('${orderId}')">Centralizar no Mapa</button>
-                    <button onclick="showEditModal('${orderId}')">Editar Pedido</button>
-                </div>
-            `;
-            // Você pode usar um modal ou um popover para mostrar estas opções
-            alert(optionsHtml); // Placeholder - substitua por uma UI melhor
+            const options = [
+                { text: 'Centralizar no Mapa', onClick: () => centerOrderOnMap(orderId) },
+                { text: 'Editar Pedido', onClick: () => showEditForm(orderId) }
+            ];
+
+            const optionsHtml = options.map(option => 
+                `<button onclick="${option.onClick.toString().replace(/\s+/g, ' ')}">${option.text}</button>`
+            ).join('');
+
+            const optionsContainer = document.createElement('div');
+            optionsContainer.innerHTML = optionsHtml;
+            optionsContainer.style.position = 'absolute';
+            optionsContainer.style.backgroundColor = 'white';
+            optionsContainer.style.border = '1px solid #ccc';
+            optionsContainer.style.padding = '5px';
+            optionsContainer.style.zIndex = '1000';
+
+            document.body.appendChild(optionsContainer);
+
+            const orderElement = document.querySelector(`input[value="${orderId}"]`).closest('.order-item');
+            const rect = orderElement.getBoundingClientRect();
+            optionsContainer.style.top = `${rect.bottom + window.scrollY}px`;
+            optionsContainer.style.left = `${rect.left + window.scrollX}px`;
+
+            document.addEventListener('click', function closeOptions(e) {
+                if (!optionsContainer.contains(e.target) && e.target !== orderElement) {
+                    document.body.removeChild(optionsContainer);
+                    document.removeEventListener('click', closeOptions);
+                }
+            });
         }
 
         function centerOrderOnMap(orderId) {
-            const order = markers.find(marker => marker.getTitle() === `Pedido #${orderId}`);
-            if (order) {
-                map.setCenter(order.getPosition());
+            const marker = markers.find(marker => marker.getTitle() === `#${orderId}`);
+            if (marker) {
+                map.setCenter(marker.getPosition());
                 map.setZoom(18);
             }
         }
 
-        function showEditModal(orderId) {
-            const modal = document.getElementById('editModal');
-            modal.style.display = 'block';
+        function showEditForm(orderId = null) {
+            currentEditId = orderId;
+            const topBar = document.getElementById('topBar');
+            topBar.style.display = 'block';
 
-            // Preencher o formulário com os dados atuais do pedido
-            db.collection('orders').doc(orderId).get().then((doc) => {
-                if (doc.exists) {
-                    const order = doc.data();
-                    document.getElementById('editCustomerName').value = order.customer.customerName;
-                    document.getElementById('editAddress').value = order.deliveryPoint.address;
-                    document.getElementById('editStatus').value = order.status;
-                }
-            });
-
-            document.getElementById('editForm').onsubmit = function(e) {
-                e.preventDefault();
-                updateOrder(orderId);
-            };
+            if (orderId) {
+                db.collection('orders').doc(orderId).get().then((doc) => {
+                    if (doc.exists) {
+                        const order = doc.data();
+                        document.getElementById('editCustomerName').value = order.customer.customerName;
+                        document.getElementById('editAddress').value = order.deliveryPoint.address;
+                        document.getElementById('editStatus').value = order.status;
+                    }
+                });
+            } else {
+                document.getElementById('editCustomerName').value = '';
+                document.getElementById('editAddress').value = '';
+                document.getElementById('editStatus').value = 'accepted';
+            }
         }
 
-        function updateOrder(orderId) {
-            const updatedData = {
-                'customer.customerName': document.getElementById('editCustomerName').value,
-                'deliveryPoint.address': document.getElementById('editAddress').value,
-                status: document.getElementById('editStatus').value
+        function saveOrder() {
+            const customerName = document.getElementById('editCustomerName').value;
+            const address = document.getElementById('editAddress').value;
+            const status = document.getElementById('editStatus').value;
+
+            if (!customerName || !address) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            const orderData = {
+                customer: { customerName },
+                deliveryPoint: { address },
+                status: status
             };
 
-            db.collection('orders').doc(orderId).update(updatedData).then(() => {
-                console.log("Pedido atualizado com sucesso");
-                document.getElementById('editModal').style.display = 'none';
-                fetchOrders(); // Atualiza a lista de pedidos
-            }).catch((error) => {
-                console.error("Erro ao atualizar pedido: ", error);
-            });
+            if (currentEditId) {
+                db.collection('orders').doc(currentEditId).update(orderData)
+                    .then(() => {
+                        console.log("Pedido atualizado com sucesso");
+                        cancelEdit();
+                        fetchOrders();
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao atualizar pedido: ", error);
+                    });
+            } else {
+                db.collection('orders').add(orderData)
+                    .then(() => {
+                        console.log("Novo pedido criado com sucesso");
+                        cancelEdit();
+                        fetchOrders();
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao criar novo pedido: ", error);
+                    });
+            }
+        }
+
+        function cancelEdit() {
+            document.getElementById('topBar').style.display = 'none';
+            currentEditId = null;
         }
 
         function assignOrders() {
@@ -233,19 +275,18 @@
                 return;
             }
 
+            const batch = db.batch();
             selectedOrders.forEach(orderId => {
-                db.collection('orders').doc(orderId).update({
-                    motoboy: motoboy,
-                    status: 'assigned'
-                }).then(() => {
-                    console.log(`Pedido ${orderId} atribuído para ${motoboy}`);
-                }).catch((error) => {
-                    console.error("Erro ao atribuir pedido: ", error);
-                });
+                const orderRef = db.collection('orders').doc(orderId);
+                batch.update(orderRef, { motoboy: motoboy, status: 'assigned' });
             });
 
-            alert('Pedidos atribuídos com sucesso!');
-            fetchOrders(); // Atualiza a lista de pedidos
+            batch.commit().then(() => {
+                console.log('Pedidos atribuídos com sucesso!');
+                fetchOrders();
+            }).catch((error) => {
+                console.error("Erro ao atribuir pedidos: ", error);
+            });
         }
 
         function updateOrderStatus(newStatus) {
@@ -257,20 +298,18 @@
                 return;
             }
 
-            const firebaseStatus = newStatus === 'A Caminho' ? 'onGoing' : 'ready';
-
+            const batch = db.batch();
             selectedOrders.forEach(orderId => {
-                db.collection('orders').doc(orderId).update({
-                    status: firebaseStatus
-                }).then(() => {
-                    console.log(`Status do pedido ${orderId} atualizado para ${newStatus}`);
-                }).catch((error) => {
-                    console.error("Erro ao atualizar status: ", error);
-                });
+                const orderRef = db.collection('orders').doc(orderId);
+                batch.update(orderRef, { status: newStatus });
             });
 
-            alert('Status dos pedidos atualizado com sucesso!');
-            fetchOrders(); // Atualiza a lista de pedidos
+            batch.commit().then(() => {
+                console.log('Status dos pedidos atualizado com sucesso!');
+                fetchOrders();
+            }).catch((error) => {
+                console.error("Erro ao atualizar status dos pedidos: ", error);
+            });
         }
 
         function getStatusDisplay(status) {
@@ -283,32 +322,28 @@
             }
         }
 
-        function showOrderDetails(order) {
-            const detailsHtml = `
-                <h3>Pedido #${order.id}</h3>
-                <p>Cliente: ${order.customer.customerName}</p>
-                <p>Endereço: ${order.deliveryPoint.address}</p>
-                <p>Status: ${getStatusDisplay(order.status)}</p>
-            `;
-            // Você pode usar um modal ou um infowindow do Google Maps para mostrar estes detalhes
-            alert(detailsHtml); // Placeholder - substitua por uma UI melhor
+function showOrderDetails(order) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div>
+                        <h3>#${order.id}</h3>
+                        <p>Cliente: ${order.customer.customerName}</p>
+                        <p>Endereço: ${order.deliveryPoint.address}</p>
+                        <p>Status: ${getStatusDisplay(order.status)}</p>
+                    </div>
+                `
+            });
+
+            const marker = markers.find(m => m.getTitle() === `#${order.id}`);
+            if (marker) {
+                infoWindow.open(map, marker);
+            }
         }
 
         document.getElementById('selectAll').addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('input[name="orderCheckbox"]');
             checkboxes.forEach(checkbox => checkbox.checked = this.checked);
         });
-
-        // Fechar o modal
-        document.querySelector('.close').onclick = function() {
-            document.getElementById('editModal').style.display = 'none';
-        }
-
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('editModal')) {
-                document.getElementById('editModal').style.display = 'none';
-            }
-        }
 
         // Inicializar o mapa e buscar pedidos
         initMap();
