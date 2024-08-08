@@ -6,7 +6,6 @@
     <title>Rastrear Pedido - Foody Delivery</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -80,10 +79,6 @@
         firebase.initializeApp(firebaseConfig);
 
         const db = firebase.firestore();
-        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
-        const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
-        const authToken = '8d7c77946d534444a168bb7da794febf';
-        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         async function rastrearPedido() {
             const numeroPedido = document.getElementById('pedidoInput').value;
@@ -91,36 +86,12 @@
             statusElement.innerHTML = 'Buscando pedido...';
 
             try {
-                const response = await axios.get(firebaseFunctionUrl, {
-                    headers: {
-                        'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
-                    },
-                    params: {
-                        url: `${foodyApiUrl}${numeroPedido}`
-                    }
-                });
+                const orderRef = db.collection('foodyOrders').doc(numeroPedido);
+                const doc = await orderRef.get();
 
-                const order = response.data;
-                if (order) {
+                if (doc.exists) {
+                    const order = doc.data();
                     let statusInfo = getStatusInfo(order.status);
-                    let trackingInfo = '';
-
-                    if (order.status === 'onGoing') {
-                        const trackingResponse = await axios.get(trackingUrl, {
-                            headers: {
-                                'Authorization': authToken,
-                                'Content-Type': 'application/json;charset=UTF-8'
-                            },
-                            params: {
-                                orderUid: order.uid
-                            }
-                        });
-                        const tracking = trackingResponse.data;
-                        if (tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0) {
-                            trackingInfo = `<br>Posição na rota: ${tracking.pointsToDelivery[0].position}`;
-                        }
-                    }
 
                     statusElement.innerHTML = `
                         <p><strong>Pedido #${order.id}</strong></p>
@@ -128,10 +99,9 @@
                         <p>${statusInfo.description}</p>
                         <p>Cliente: ${order.customer.customerName}</p>
                         ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
-                        ${trackingInfo}
                     `;
                 } else {
-                    statusElement.innerHTML = '<p class="error">Pedido não encontrado.</p>';
+                    statusElement.innerHTML = '<p class="error">Pedido não encontrado. Certifique-se de que o pedido foi carregado na página createOrder.</p>';
                 }
             } catch (error) {
                 console.error('Erro ao buscar pedido:', error);
