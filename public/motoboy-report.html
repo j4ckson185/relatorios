@@ -63,6 +63,13 @@
         .date-filter label, .date-filter input {
             margin-right: 10px;
         }
+        #debug {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -76,6 +83,7 @@
             <button onclick="updateReports()">Filtrar</button>
         </div>
         <div id="motoboyReports"></div>
+        <div id="debug"></div>
     </div>
 
     <script>
@@ -102,6 +110,12 @@
         document.getElementById('startDate').valueAsDate = initialDate;
         document.getElementById('endDate').valueAsDate = new Date();
 
+        function debug(message) {
+            console.log(message);
+            const debugElement = document.getElementById('debug');
+            debugElement.textContent += message + '\n';
+        }
+
         function formatDate(date) {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
@@ -109,6 +123,8 @@
         async function fetchOrders() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            
+            debug(`Buscando pedidos de ${startDate} até ${endDate}`);
             
             try {
                 const response = await axios.get(firebaseFunctionUrl, {
@@ -120,15 +136,18 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}T00:00:00-03:00&endDate=${encodeURIComponent(endDate)}T23:59:59-03:00`
                     }
                 });
+                debug(`Pedidos recebidos: ${response.data.length}`);
                 return response.data;
             } catch (error) {
-                console.error('Erro ao buscar pedidos:', error);
+                debug(`Erro ao buscar pedidos: ${error.message}`);
                 throw error;
             }
         }
 
         function processOrders(orders) {
             const motoboyStats = {};
+
+            debug(`Processando ${orders.length} pedidos`);
 
             orders.forEach(order => {
                 if (order.courier && order.courier.courierName) {
@@ -162,7 +181,6 @@
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
                         
-                        // Calcula o tempo de entrega para pedidos em andamento
                         if (order.onGoingDate) {
                             const currentTime = new Date();
                             const deliveryTime = currentTime - new Date(order.onGoingDate);
@@ -172,10 +190,13 @@
                 }
             });
 
-            Object.values(motoboyStats).forEach(stats => {
+            Object.entries(motoboyStats).forEach(([name, stats]) => {
                 const totalOrdersWithTime = stats.completedOrders + stats.ongoingOrders;
                 if (totalOrdersWithTime > 0) {
                     stats.averageDeliveryTime = stats.totalDeliveryTime / totalOrdersWithTime / (1000 * 60); // Converte para minutos
+                    debug(`${name}: Tempo médio de entrega - ${stats.averageDeliveryTime.toFixed(2)} minutos`);
+                } else {
+                    debug(`${name}: Sem entregas concluídas ou em andamento`);
                 }
             });
 
@@ -185,6 +206,8 @@
         function displayMotoboyReports(motoboyStats) {
             const reportsContainer = document.getElementById('motoboyReports');
             reportsContainer.innerHTML = '';
+
+            debug(`Exibindo relatórios para ${Object.keys(motoboyStats).length} motoboys`);
 
             Object.entries(motoboyStats).forEach(([motoboyName, stats]) => {
                 const reportDiv = document.createElement('div');
@@ -261,11 +284,13 @@
 
         async function updateReports() {
             try {
+                debug("Iniciando atualização dos relatórios");
                 const orders = await fetchOrders();
                 const motoboyStats = processOrders(orders);
                 displayMotoboyReports(motoboyStats);
+                debug("Relatórios atualizados com sucesso");
             } catch (error) {
-                console.error('Erro ao atualizar relatórios:', error);
+                debug(`Erro ao atualizar relatórios: ${error.message}`);
                 document.getElementById('motoboyReports').innerHTML = '<p>Erro ao carregar relatórios. Por favor, tente novamente mais tarde.</p>';
             }
         }
