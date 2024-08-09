@@ -15,7 +15,7 @@
             color: #333;
             margin: 0;
             padding: 20px;
-            background-color: #f4f4f4;
+            background-color: #f0f0f0;
         }
         .container {
             max-width: 1200px;
@@ -97,11 +97,13 @@
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
-        function parseDate(dateString) {
-            if (!dateString) return null;
-            const date = new Date(dateString);
-            return isNaN(date.getTime()) ? null : date;
-        }
+        const statusNames = {
+            'closed': 'Finalizados',
+            'onGoing': 'A Caminho',
+            'accepted': 'Aceitos',
+            'ready': 'Prontos',
+            'dispatched': 'Despachados'
+        };
 
         async function fetchOrders() {
             const startDate = document.getElementById('startDate').value;
@@ -137,8 +139,6 @@
                             ongoingOrders: 0,
                             acceptedOrders: 0,
                             totalEarnings: 0,
-                            totalDeliveryTime: 0,
-                            ordersWithValidTime: 0,
                             statusCounts: {},
                             deliveriesPerHour: Array(24).fill(0)
                         };
@@ -147,43 +147,16 @@
                     motoboyStats[motoboyName].totalOrders++;
                     motoboyStats[motoboyName].statusCounts[order.status] = (motoboyStats[motoboyName].statusCounts[order.status] || 0) + 1;
 
-                    const startDate = parseDate(order.onGoingDate) || parseDate(order.acceptedDate) || parseDate(order.createdDate);
-                    const endDate = parseDate(order.deliveredDate) || parseDate(order.closedDate);
-
                     if (order.status === 'closed' || order.status === 'delivered') {
                         motoboyStats[motoboyName].completedOrders++;
                         motoboyStats[motoboyName].totalEarnings += 3;
-
-                        if (startDate && endDate) {
-                            const deliveryTime = endDate - startDate;
-                            if (deliveryTime > 0) {
-                                motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
-                                motoboyStats[motoboyName].ordersWithValidTime++;
-                                motoboyStats[motoboyName].deliveriesPerHour[endDate.getHours()]++;
-                            }
-                        }
+                        const deliveryHour = new Date(order.closedDate || order.deliveredDate).getHours();
+                        motoboyStats[motoboyName].deliveriesPerHour[deliveryHour]++;
                     } else if (order.status === 'onGoing') {
                         motoboyStats[motoboyName].ongoingOrders++;
-                        
-                        if (startDate) {
-                            const currentTime = new Date();
-                            const deliveryTime = currentTime - startDate;
-                            if (deliveryTime > 0) {
-                                motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
-                                motoboyStats[motoboyName].ordersWithValidTime++;
-                            }
-                        }
                     } else if (order.status === 'accepted') {
                         motoboyStats[motoboyName].acceptedOrders++;
                     }
-                }
-            });
-
-            Object.values(motoboyStats).forEach(stats => {
-                if (stats.ordersWithValidTime > 0) {
-                    stats.averageDeliveryTime = stats.totalDeliveryTime / stats.ordersWithValidTime / (1000 * 60);
-                } else {
-                    stats.averageDeliveryTime = 0;
                 }
             });
 
@@ -204,7 +177,6 @@
                     <div class="metric">Pedidos em Andamento: <span>${stats.ongoingOrders}</span></div>
                     <div class="metric">Pedidos Aceitos: <span>${stats.acceptedOrders}</span></div>
                     <div class="metric">Ganhos Totais: <span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
-                    <div class="metric">Tempo Médio de Entrega: <span>${stats.averageDeliveryTime.toFixed(2)} min</span></div>
                     <div class="pie-chart-container">
                         <canvas id="status-chart-${motoboyName.replace(/\s+/g, '-')}"></canvas>
                     </div>
@@ -217,7 +189,7 @@
                 new Chart(document.getElementById(`status-chart-${motoboyName.replace(/\s+/g, '-')}`).getContext('2d'), {
                     type: 'pie',
                     data: {
-                        labels: Object.keys(stats.statusCounts),
+                        labels: Object.keys(stats.statusCounts).map(status => statusNames[status] || status),
                         datasets: [{
                             data: Object.values(stats.statusCounts),
                             backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
