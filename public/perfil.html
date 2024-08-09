@@ -161,6 +161,7 @@
                 currentUser = user;
                 const motoboyName = motoboyInfo[user.email] || 'Motoboy';
                 document.getElementById('userInfo').innerHTML = `Bem-vindo, ${motoboyName}!`;
+                setCurrentDate();
                 updateProfile();
             } else {
                 window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
@@ -228,4 +229,36 @@
                     datasets: [{
                         label: 'Entregas por Hora',
                         data: stats.deliveriesPerHour,
-                        backgroundColor: '#3498db
+                        backgroundColor: '#3498db'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function updateProfile() {
+            const dateInput = document.getElementById('date').value || new Date().toISOString().split('T')[0];
+            const motoboyName = motoboyInfo[currentUser.email] || 'Motoboy';
+
+            try {
+                const orders = await fetchOrders(dateInput);
+                const stats = processOrders(orders, motoboyName);
+                updateProfileInfo(stats);
+            } catch (error) {
+                console.error('Erro ao atualizar perfil:', error);
+            }
+        }
+
+        function setCurrentDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = today;
+        }
+    </script>
+</body>
+</html>
