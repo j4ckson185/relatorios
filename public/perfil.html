@@ -87,10 +87,10 @@
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         const motoboyInfo = {
-            'boazd3@gmail.com': { name: 'Boaz', id: 'boaz_id' },
-            'giovanni.silva18@gmail.com': { name: 'Giovanni', id: 'giovanni_id' },
-            'moises110723@gmail.com': { name: 'Moisés', id: 'moises_id' },
-            'felipeaugusto02001@gmail.com': { name: 'Felipe Augusto', id: 'felipe_id' }
+            'boazd3@gmail.com': 'Boaz',
+            'giovanni.silva18@gmail.com': 'Giovanni',
+            'moises110723@gmail.com': 'Moisés José',
+            'felipeaugusto02001@gmail.com': 'Felipe Augusto'
         };
 
         let currentUser = null;
@@ -98,7 +98,8 @@
         auth.onAuthStateChanged(function(user) {
             if (user) {
                 currentUser = user;
-                document.getElementById('userInfo').innerHTML = `<p>Bem-vindo, ${motoboyInfo[user.email].name}!</p>`;
+                const motoboyName = motoboyInfo[user.email] || 'Motoboy';
+                document.getElementById('userInfo').innerHTML = `<p>Bem-vindo, ${motoboyName}!</p>`;
                 updateProfile();
             } else {
                 window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
@@ -123,7 +124,7 @@
             }
         }
 
-        function processOrders(orders, motoboyId) {
+        function processOrders(orders, motoboyName) {
             const stats = {
                 totalOrders: 0,
                 completedOrders: 0,
@@ -133,7 +134,7 @@
             };
 
             orders.forEach(order => {
-                if (order.courier && order.courier.id === motoboyId) {
+                if (order.courier && order.courier.courierName === motoboyName) {
                     stats.totalOrders++;
                     if (order.status === 'closed' || order.status === 'delivered') {
                         stats.completedOrders++;
@@ -187,11 +188,11 @@
             if (!currentUser) return;
 
             const date = document.getElementById('date').value || new Date().toISOString().split('T')[0];
-            const motoboyId = motoboyInfo[currentUser.email].id;
+            const motoboyName = motoboyInfo[currentUser.email];
 
             try {
                 const orders = await fetchOrders(date);
-                const stats = processOrders(orders, motoboyId);
+                const stats = processOrders(orders, motoboyName);
                 updateProfileInfo(stats);
             } catch (error) {
                 console.error('Erro ao atualizar perfil:', error);
