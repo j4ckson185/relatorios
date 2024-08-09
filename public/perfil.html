@@ -51,6 +51,7 @@
             font-size: 1em;
             border: 1px solid #ddd;
             border-radius: 5px;
+            margin-right: 10px;
         }
         .btn {
             padding: 10px 20px;
@@ -99,6 +100,12 @@
             padding: 15px;
             font-size: 1.1em;
             background-color: #e74c3c;
+            color: #fff;
+            text-align: center;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
         #informEarnings:hover {
             background-color: #c0392b;
@@ -221,50 +228,4 @@
                     datasets: [{
                         label: 'Entregas por Hora',
                         data: stats.deliveriesPerHour,
-                        backgroundColor: '#3498db'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true,
-                                stepSize: 1
-                            }
-                        }]
-                    }
-                }
-            });
-        }
-
-        async function updateProfile() {
-            if (!currentUser) return;
-
-            const date = document.getElementById('date').value;
-            const motoboyName = motoboyInfo[currentUser.email];
-
-            try {
-                const orders = await fetchOrders(date);
-                const stats = processOrders(orders, motoboyName);
-                updateProfileInfo(stats);
-            } catch (error) {
-                console.error('Erro ao atualizar perfil:', error);
-                document.getElementById('profileInfo').innerHTML = '<p>Erro ao carregar informações. Por favor, tente novamente mais tarde.</p>';
-            }
-        }
-
-        // Função para definir a data atual
-        function setCurrentDate() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${year}-${month}-${day}`;
-        }
-
-        // Inicializa a página com a data atual
-        setCurrentDate();
-    </script>
-</body>
-</html>
+                        backgroundColor: '#3498db
