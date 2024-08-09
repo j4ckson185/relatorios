@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo - Gerenciamento de Motoboys</title>
+    <title>Painel Administrativo - Desempenho dos Motoboys</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,48 +23,26 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        h1, h2 {
+        h1 {
             color: #333;
+            text-align: center;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }
         th, td {
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             text-align: left;
         }
         th {
             background-color: #f2f2f2;
+            font-weight: bold;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #editForm {
+        tr:nth-child(even) {
             background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        input[type="text"], input[type="email"] {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0 15px;
-            display: inline-block;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
         }
         .quick-access {
             display: flex;
@@ -84,7 +65,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Painel Administrativo - Gerenciamento de Motoboys</h1>
+        <h1>Painel Administrativo - Desempenho dos Motoboys</h1>
         
         <div class="quick-access">
             <a href="createorder.html">Pedidos Foody Delivery</a>
@@ -97,124 +78,130 @@
             <a href="waze.html">Waze</a>
         </div>
 
-        <table>
+        <table id="motoboyTable">
             <thead>
                 <tr>
                     <th>Nome</th>
-                    <th>Email</th>
-                    <th>Desafio Atual</th>
-                    <th>Progresso</th>
-                    <th>Ações</th>
+                    <th>Total de Entregas (Hoje)</th>
+                    <th>Entregas em Andamento</th>
+                    <th>Ganhos do Dia</th>
+                    <th>Tempo Médio de Entrega</th>
                 </tr>
             </thead>
-            <tbody id="motoboyList">
-                <!-- Os dados dos motoboys serão inseridos aqui dinamicamente -->
+            <tbody>
+                <!-- Dados dos motoboys serão inseridos aqui -->
             </tbody>
         </table>
-
-        <button onclick="showAddForm()">Adicionar Novo Motoboy</button>
-
-        <div id="editForm" style="display: none;">
-            <h2 id="formTitle">Editar Motoboy</h2>
-            <form id="motoboyForm">
-                <input type="hidden" id="motoboyId">
-                <label for="name">Nome:</label>
-                <input type="text" id="name" required>
-                <label for="email">Email:</label>
-                <input type="email" id="email" required>
-                <label for="challenge">Desafio Atual:</label>
-                <input type="text" id="challenge">
-                <label for="progress">Progresso:</label>
-                <input type="text" id="progress">
-                <button type="submit">Salvar</button>
-                <button type="button" onclick="hideForm()">Cancelar</button>
-            </form>
-        </div>
     </div>
 
     <script>
-        // Simulação de dados dos motoboys (substitua por dados reais do seu backend)
-        let motoboys = [
-            { id: 1, name: "João Silva", email: "joao@example.com", challenge: "100 entregas", progress: "75%" },
-            { id: 2, name: "Maria Santos", email: "maria@example.com", challenge: "50 entregas", progress: "90%" }
-        ];
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+        firebase.initializeApp(firebaseConfig);
 
-        function renderMotoboys() {
-            const motoboyList = document.getElementById('motoboyList');
-            motoboyList.innerHTML = '';
-            motoboys.forEach(motoboy => {
-                motoboyList.innerHTML += `
-                    <tr>
-                        <td>${motoboy.name}</td>
-                        <td>${motoboy.email}</td>
-                        <td>${motoboy.challenge}</td>
-                        <td>${motoboy.progress}</td>
-                        <td>
-                            <button onclick="editMotoboy(${motoboy.id})">Editar</button>
-                            <button onclick="deleteMotoboy(${motoboy.id})">Excluir</button>
-                        </td>
-                    </tr>
+        const db = firebase.firestore();
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+
+        async function fetchOrders() {
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}?startDate=${today}T00:00:00-03:00&endDate=${today}T23:59:59-03:00`
+                    }
+                });
+                return response.data;
+            } catch (error) {
+                console.error('Erro ao buscar pedidos:', error);
+                return [];
+            }
+        }
+
+        function processOrders(orders) {
+            const motoboyStats = {};
+
+            orders.forEach(order => {
+                if (order.courier && order.courier.courierName) {
+                    const motoboyName = order.courier.courierName;
+                    if (!motoboyStats[motoboyName]) {
+                        motoboyStats[motoboyName] = {
+                            totalDeliveries: 0,
+                            ongoingDeliveries: 0,
+                            earnings: 0,
+                            totalDeliveryTime: 0,
+                            completedDeliveries: 0
+                        };
+                    }
+
+                    motoboyStats[motoboyName].totalDeliveries++;
+
+                    if (order.status === 'closed' || order.status === 'delivered') {
+                        motoboyStats[motoboyName].earnings += 3; // R$3 por entrega concluída
+                        motoboyStats[motoboyName].completedDeliveries++;
+                        if (order.onGoingDate && (order.closedDate || order.deliveredDate)) {
+                            const endDate = new Date(order.closedDate || order.deliveredDate);
+                            const startDate = new Date(order.onGoingDate);
+                            const deliveryTime = endDate - startDate;
+                            motoboyStats[motoboyName].totalDeliveryTime += deliveryTime;
+                        }
+                    } else if (order.status === 'onGoing') {
+                        motoboyStats[motoboyName].ongoingDeliveries++;
+                    }
+                }
+            });
+
+            // Calcular tempo médio de entrega
+            Object.values(motoboyStats).forEach(stats => {
+                if (stats.completedDeliveries > 0) {
+                    stats.averageDeliveryTime = stats.totalDeliveryTime / stats.completedDeliveries / (1000 * 60); // em minutos
+                } else {
+                    stats.averageDeliveryTime = 0;
+                }
+            });
+
+            return motoboyStats;
+        }
+
+        function updateTable(motoboyStats) {
+            const tableBody = document.querySelector('#motoboyTable tbody');
+            tableBody.innerHTML = '';
+
+            Object.entries(motoboyStats).forEach(([name, stats]) => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${name}</td>
+                    <td>${stats.totalDeliveries}</td>
+                    <td>${stats.ongoingDeliveries}</td>
+                    <td>R$ ${stats.earnings.toFixed(2)}</td>
+                    <td>${stats.averageDeliveryTime.toFixed(2)} min</td>
                 `;
             });
         }
 
-        function showAddForm() {
-            document.getElementById('formTitle').textContent = 'Adicionar Novo Motoboy';
-            document.getElementById('motoboyForm').reset();
-            document.getElementById('motoboyId').value = '';
-            document.getElementById('editForm').style.display = 'block';
+        async function updateStats() {
+            const orders = await fetchOrders();
+            const stats = processOrders(orders);
+            updateTable(stats);
         }
 
-        function editMotoboy(id) {
-            const motoboy = motoboys.find(m => m.id === id);
-            if (motoboy) {
-                document.getElementById('formTitle').textContent = 'Editar Motoboy';
-                document.getElementById('motoboyId').value = motoboy.id;
-                document.getElementById('name').value = motoboy.name;
-                document.getElementById('email').value = motoboy.email;
-                document.getElementById('challenge').value = motoboy.challenge;
-                document.getElementById('progress').value = motoboy.progress;
-                document.getElementById('editForm').style.display = 'block';
-            }
-        }
-
-        function hideForm() {
-            document.getElementById('editForm').style.display = 'none';
-        }
-
-        function deleteMotoboy(id) {
-            if (confirm('Tem certeza que deseja excluir este motoboy?')) {
-                motoboys = motoboys.filter(m => m.id !== id);
-                renderMotoboys();
-            }
-        }
-
-        document.getElementById('motoboyForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const id = document.getElementById('motoboyId').value;
-            const motoboy = {
-                id: id ? parseInt(id) : Date.now(),
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                challenge: document.getElementById('challenge').value,
-                progress: document.getElementById('progress').value
-            };
-
-            if (id) {
-                // Editar motoboy existente
-                const index = motoboys.findIndex(m => m.id === parseInt(id));
-                motoboys[index] = motoboy;
-            } else {
-                // Adicionar novo motoboy
-                motoboys.push(motoboy);
-            }
-
-            renderMotoboys();
-            hideForm();
-        });
-
-        // Renderiza a lista inicial de motoboys
-        renderMotoboys();
+        // Atualiza as estatísticas a cada 30 segundos
+        updateStats();
+        setInterval(updateStats, 30000);
     </script>
 </body>
 </html>
