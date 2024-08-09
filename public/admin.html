@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <title>Painel Administrativo - Gerenciamento de Motoboys</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            line-height: 1.6;
             margin: 0;
             padding: 20px;
-            background-color: #f0f0f0;
+            background-color: #f4f4f4;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background-color: white;
+            background-color: #fff;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         h1, h2 {
@@ -31,8 +29,8 @@
             margin-bottom: 20px;
         }
         th, td {
+            padding: 10px;
             border: 1px solid #ddd;
-            padding: 8px;
             text-align: left;
         }
         th {
@@ -41,8 +39,8 @@
         button {
             background-color: #4CAF50;
             color: white;
-            border: none;
             padding: 10px 15px;
+            border: none;
             border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
@@ -50,17 +48,37 @@
         button:hover {
             background-color: #45a049;
         }
-        input, select {
-            padding: 8px;
-            margin-bottom: 10px;
-        }
         #editForm {
-            display: none;
             background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 15px;
-            border-radius: 4px;
+            padding: 20px;
+            border-radius: 5px;
             margin-top: 20px;
+        }
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .quick-access {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .quick-access a {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .quick-access a:hover {
+            background-color: #2980b9;
         }
     </style>
 </head>
@@ -68,7 +86,18 @@
     <div class="container">
         <h1>Painel Administrativo - Gerenciamento de Motoboys</h1>
         
-        <table id="motoboysTable">
+        <div class="quick-access">
+            <a href="createorder.html">Pedidos Foody Delivery</a>
+            <a href="chatbot.html">Chatbot</a>
+            <a href="ganhos.html">Informar Ganhos</a>
+            <a href="motoboy-report.html">Entregas Motoboys em Tempo Real</a>
+            <a href="portalmotoboy.html">Portal Motoboy Desafios</a>
+            <a href="previsao.html">Previsão do Tempo</a>
+            <a href="rastrear.html">Rastrear Pedidos</a>
+            <a href="waze.html">Waze</a>
+        </div>
+
+        <table>
             <thead>
                 <tr>
                     <th>Nome</th>
@@ -78,184 +107,114 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody>
-                <!-- Dados dos motoboys serão inseridos aqui -->
+            <tbody id="motoboyList">
+                <!-- Os dados dos motoboys serão inseridos aqui dinamicamente -->
             </tbody>
         </table>
 
-        <button onclick="mostrarFormularioNovo()">Adicionar Novo Motoboy</button>
+        <button onclick="showAddForm()">Adicionar Novo Motoboy</button>
 
-        <div id="editForm">
+        <div id="editForm" style="display: none;">
             <h2 id="formTitle">Editar Motoboy</h2>
-            <input type="hidden" id="editUserId">
-            <input type="text" id="editNome" placeholder="Nome">
-            <input type="email" id="editEmail" placeholder="Email">
-            <input type="text" id="editDesafio" placeholder="Desafio">
-            <input type="number" id="editMeta" placeholder="Meta do Desafio">
-            <input type="number" id="editProgresso" placeholder="Progresso">
-            <button onclick="salvarEdicao()">Salvar</button>
-            <button onclick="cancelarEdicao()">Cancelar</button>
+            <form id="motoboyForm">
+                <input type="hidden" id="motoboyId">
+                <label for="name">Nome:</label>
+                <input type="text" id="name" required>
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+                <label for="challenge">Desafio Atual:</label>
+                <input type="text" id="challenge">
+                <label for="progress">Progresso:</label>
+                <input type="text" id="progress">
+                <button type="submit">Salvar</button>
+                <button type="button" onclick="hideForm()">Cancelar</button>
+            </form>
         </div>
     </div>
 
     <script>
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId: "706144237954",
-            appId: "1:706144237954:web:345c10370972486afc779b",
-            measurementId: "G-96Y337GYT8"
-        };
+        // Simulação de dados dos motoboys (substitua por dados reais do seu backend)
+        let motoboys = [
+            { id: 1, name: "João Silva", email: "joao@example.com", challenge: "100 entregas", progress: "75%" },
+            { id: 2, name: "Maria Santos", email: "maria@example.com", challenge: "50 entregas", progress: "90%" }
+        ];
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-
-        // Referência ao banco de dados
-        const db = firebase.database();
-
-        // Carregar dados dos motoboys
-        function carregarMotoboys() {
-            db.ref('usuarios').once('value').then((snapshot) => {
-                const motoboys = snapshot.val();
-                const tbody = document.querySelector('#motoboysTable tbody');
-                tbody.innerHTML = '';
-
-                if (!motoboys) {
-                    console.log('Nenhum motoboy encontrado no banco de dados.');
-                    return;
-                }
-
-                for (let userId in motoboys) {
-                    const motoboy = motoboys[userId];
-                    console.log('Dados do motoboy:', userId, motoboy); // Depuração
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${motoboy.nome || 'N/A'}</td>
-                        <td>${motoboy.email || 'N/A'}</td>
-                        <td>${motoboy.desafioSemana || 'Nenhum'}</td>
-                        <td>${motoboy.progressoDesafio || 0}/${motoboy.metaDesafio || 0}</td>
+        function renderMotoboys() {
+            const motoboyList = document.getElementById('motoboyList');
+            motoboyList.innerHTML = '';
+            motoboys.forEach(motoboy => {
+                motoboyList.innerHTML += `
+                    <tr>
+                        <td>${motoboy.name}</td>
+                        <td>${motoboy.email}</td>
+                        <td>${motoboy.challenge}</td>
+                        <td>${motoboy.progress}</td>
                         <td>
-                            <button onclick="editarMotoboy('${userId}')">Editar</button>
-                            <button onclick="excluirMotoboy('${userId}')">Excluir</button>
+                            <button onclick="editMotoboy(${motoboy.id})">Editar</button>
+                            <button onclick="deleteMotoboy(${motoboy.id})">Excluir</button>
                         </td>
-                    `;
-                    tbody.appendChild(tr);
-                }
-            }).catch(error => {
-                console.error('Erro ao carregar motoboys:', error);
-                alert('Erro ao carregar motoboys. Por favor, verifique o console para mais detalhes.');
+                    </tr>
+                `;
             });
         }
 
-        // Editar motoboy
-        function editarMotoboy(userId) {
-            db.ref('usuarios/' + userId).once('value').then((snapshot) => {
-                const motoboy = snapshot.val();
-                console.log('Editando motoboy:', userId, motoboy); // Depuração
-
-                if (!motoboy) {
-                    console.error('Motoboy não encontrado:', userId);
-                    alert('Erro: Motoboy não encontrado.');
-                    return;
-                }
-
-                document.getElementById('editUserId').value = userId;
-                document.getElementById('editNome').value = motoboy.nome || '';
-                document.getElementById('editEmail').value = motoboy.email || '';
-                document.getElementById('editDesafio').value = motoboy.desafioSemana || '';
-                document.getElementById('editMeta').value = motoboy.metaDesafio || '';
-                document.getElementById('editProgresso').value = motoboy.progressoDesafio || '';
-                document.getElementById('formTitle').textContent = 'Editar Motoboy';
-                document.getElementById('editForm').style.display = 'block';
-            }).catch(error => {
-                console.error('Erro ao carregar dados do motoboy:', error);
-                alert('Erro ao carregar dados do motoboy. Por favor, tente novamente.');
-            });
-        }
-
-        // Salvar edição
-        function salvarEdicao() {
-            const userId = document.getElementById('editUserId').value;
-            const nome = document.getElementById('editNome').value;
-            const email = document.getElementById('editEmail').value;
-            const desafio = document.getElementById('editDesafio').value;
-            const meta = parseInt(document.getElementById('editMeta').value) || 0;
-            const progresso = parseInt(document.getElementById('editProgresso').value) || 0;
-
-            const dadosAtualizados = {
-                nome: nome,
-                email: email,
-                desafioSemana: desafio,
-                metaDesafio: meta,
-                progressoDesafio: progresso
-            };
-
-            console.log('Salvando dados:', userId, dadosAtualizados); // Depuração
-
-            if (userId) {
-                // Atualizar motoboy existente
-                db.ref('usuarios/' + userId).update(dadosAtualizados)
-                    .then(() => {
-                        alert('Motoboy atualizado com sucesso!');
-                        document.getElementById('editForm').style.display = 'none';
-                        carregarMotoboys();
-                    }).catch((error) => {
-                        console.error("Erro ao atualizar motoboy:", error);
-                        alert('Erro ao atualizar motoboy. Por favor, tente novamente.');
-                    });
-            } else {
-                // Adicionar novo motoboy
-                db.ref('usuarios').push(dadosAtualizados)
-                    .then(() => {
-                        alert('Novo motoboy adicionado com sucesso!');
-                        document.getElementById('editForm').style.display = 'none';
-                        carregarMotoboys();
-                    }).catch((error) => {
-                        console.error("Erro ao adicionar novo motoboy:", error);
-                        alert('Erro ao adicionar novo motoboy. Por favor, tente novamente.');
-                    });
-            }
-        }
-
-        // Cancelar edição
-        function cancelarEdicao() {
-            document.getElementById('editForm').style.display = 'none';
-        }
-
-        // Excluir motoboy
-        function excluirMotoboy(userId) {
-            if (confirm('Tem certeza que deseja excluir este motoboy?')) {
-                db.ref('usuarios/' + userId).remove()
-                    .then(() => {
-                        alert('Motoboy excluído com sucesso!');
-                        carregarMotoboys();
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao excluir motoboy:", error);
-                        alert('Erro ao excluir motoboy. Por favor, tente novamente.');
-                    });
-            }
-        }
-
-        // Mostrar formulário para novo motoboy
-        function mostrarFormularioNovo() {
-            document.getElementById('editUserId').value = '';
-            document.getElementById('editNome').value = '';
-            document.getElementById('editEmail').value = '';
-            document.getElementById('editDesafio').value = '';
-            document.getElementById('editMeta').value = '';
-            document.getElementById('editProgresso').value = '';
+        function showAddForm() {
             document.getElementById('formTitle').textContent = 'Adicionar Novo Motoboy';
+            document.getElementById('motoboyForm').reset();
+            document.getElementById('motoboyId').value = '';
             document.getElementById('editForm').style.display = 'block';
         }
 
-        // Carregar motoboys ao iniciar a página
-        window.onload = carregarMotoboys;
+        function editMotoboy(id) {
+            const motoboy = motoboys.find(m => m.id === id);
+            if (motoboy) {
+                document.getElementById('formTitle').textContent = 'Editar Motoboy';
+                document.getElementById('motoboyId').value = motoboy.id;
+                document.getElementById('name').value = motoboy.name;
+                document.getElementById('email').value = motoboy.email;
+                document.getElementById('challenge').value = motoboy.challenge;
+                document.getElementById('progress').value = motoboy.progress;
+                document.getElementById('editForm').style.display = 'block';
+            }
+        }
+
+        function hideForm() {
+            document.getElementById('editForm').style.display = 'none';
+        }
+
+        function deleteMotoboy(id) {
+            if (confirm('Tem certeza que deseja excluir este motoboy?')) {
+                motoboys = motoboys.filter(m => m.id !== id);
+                renderMotoboys();
+            }
+        }
+
+        document.getElementById('motoboyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = document.getElementById('motoboyId').value;
+            const motoboy = {
+                id: id ? parseInt(id) : Date.now(),
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                challenge: document.getElementById('challenge').value,
+                progress: document.getElementById('progress').value
+            };
+
+            if (id) {
+                // Editar motoboy existente
+                const index = motoboys.findIndex(m => m.id === parseInt(id));
+                motoboys[index] = motoboy;
+            } else {
+                // Adicionar novo motoboy
+                motoboys.push(motoboy);
+            }
+
+            renderMotoboys();
+            hideForm();
+        });
+
+        // Renderiza a lista inicial de motoboys
+        renderMotoboys();
     </script>
 </body>
 </html>
