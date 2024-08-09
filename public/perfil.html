@@ -148,6 +148,7 @@
         };
 
         let currentUser = null;
+        let chart = null;
 
         auth.onAuthStateChanged(function(user) {
             if (user) {
@@ -155,6 +156,8 @@
                 const motoboyName = motoboyInfo[user.email] || 'Motoboy';
                 document.getElementById('userInfo').innerHTML = `Bem-vindo, ${motoboyName}!`;
                 updateProfile();
+                // Inicia a atualização em tempo real
+                setInterval(updateProfile, 10000); // Atualiza a cada 10 segundos
             } else {
                 window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
             }
@@ -213,29 +216,39 @@
                 <div class="metric">Ganhos do Dia<span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
             `;
 
+            updateChart(stats.deliveriesPerHour);
+        }
+
+        function updateChart(deliveriesPerHour) {
             const ctx = document.getElementById('deliveriesChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: Array.from({length: 24}, (_, i) => `${i}h`),
-                    datasets: [{
-                        label: 'Entregas por Hora',
-                        data: stats.deliveriesPerHour,
-                        backgroundColor: '#3498db'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true,
-                                stepSize: 1
-                            }
+            
+            if (chart) {
+                chart.data.datasets[0].data = deliveriesPerHour;
+                chart.update();
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Array.from({length: 24}, (_, i) => `${i}h`),
+                        datasets: [{
+                            label: 'Entregas por Hora',
+                            data: deliveriesPerHour,
+                            backgroundColor: '#3498db'
                         }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true,
+                                    stepSize: 1
+                                }
+                            }]
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         async function updateProfile() {
