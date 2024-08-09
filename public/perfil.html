@@ -191,7 +191,7 @@
             };
 
             orders.forEach(order => {
-                if (order.courier && order.courier.courierName === motoboyName) {
+                if (order.courier && (order.courier.courierName === motoboyName || order.courier.courierName === motoboyName.replace(' José', ''))) {
                     stats.totalOrders++;
                     if (order.status === 'closed' || order.status === 'delivered') {
                         stats.completedOrders++;
@@ -261,6 +261,7 @@
                 const orders = await fetchOrders(date);
                 const stats = processOrders(orders, motoboyName);
                 updateProfileInfo(stats);
+                console.log(`Atualizado perfil de ${motoboyName}:`, stats);
             } catch (error) {
                 console.error('Erro ao atualizar perfil:', error);
                 document.getElementById('profileInfo').innerHTML = '<p>Erro ao carregar informações. Por favor, tente novamente mais tarde.</p>';
