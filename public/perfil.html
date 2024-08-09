@@ -161,7 +161,7 @@
                 currentUser = user;
                 const motoboyName = motoboyInfo[user.email] || 'Motoboy';
                 document.getElementById('userInfo').innerHTML = `Bem-vindo, ${motoboyName}!`;
-                setCurrentDate();
+                setInitialDate();
                 updateProfile();
             } else {
                 window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
@@ -244,21 +244,25 @@
         }
 
         async function updateProfile() {
-            const dateInput = document.getElementById('date').value || new Date().toISOString().split('T')[0];
+            if (!currentUser) return;
+
+            const date = document.getElementById('date').value;
             const motoboyName = motoboyInfo[currentUser.email] || 'Motoboy';
 
             try {
-                const orders = await fetchOrders(dateInput);
+                const orders = await fetchOrders(date);
                 const stats = processOrders(orders, motoboyName);
                 updateProfileInfo(stats);
             } catch (error) {
                 console.error('Erro ao atualizar perfil:', error);
+                document.getElementById('profileInfo').innerHTML = '<p>Erro ao carregar informações. Por favor, tente novamente mais tarde.</p>';
             }
         }
 
-        function setCurrentDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date').value = today;
+        function setInitialDate() {
+            const initialDate = new Date(2024, 7, 8).toISOString().split('T')[0]; // 8 de agosto de 2024
+            const today = new Date().toISOString().split('T')[0]; // Data atual
+            document.getElementById('date').value = today > initialDate ? today : initialDate;
         }
     </script>
 </body>
