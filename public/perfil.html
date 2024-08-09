@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Motoboy - Foody Delivery</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .metric {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .metric span {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .chart-container {
+            margin-top: 20px;
+        }
+        #dateFilter {
+            margin-bottom: 20px;
+        }
+        #dateFilter input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Perfil do Motoboy</h1>
+        <div id="userInfo"></div>
+        <div id="dateFilter">
+            <label for="date">Selecione a data:</label>
+            <input type="date" id="date">
+            <button onclick="updateProfile()">Filtrar</button>
+        </div>
+        <div id="profileInfo"></div>
+        <div class="chart-container">
+            <canvas id="deliveriesChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+
+        const motoboyInfo = {
+            'boazd3@gmail.com': { name: 'Boaz', id: 'boaz_id' },
+            'giovanni.silva18@gmail.com': { name: 'Giovanni', id: 'giovanni_id' },
+            'moises110723@gmail.com': { name: 'Moisés', id: 'moises_id' },
+            'felipeaugusto02001@gmail.com': { name: 'Felipe Augusto', id: 'felipe_id' }
+        };
+
+        let currentUser = null;
+
+        auth.onAuthStateChanged(function(user) {
+            if (user) {
+                currentUser = user;
+                document.getElementById('userInfo').innerHTML = `<p>Bem-vindo, ${motoboyInfo[user.email].name}!</p>`;
+                updateProfile();
+            } else {
+                window.location.href = 'login.html'; // Redireciona para a página de login se não estiver autenticado
+            }
+        });
+
+        async function fetchOrders(date) {
+            try {
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(date)}T00:00:00-03:00&endDate=${encodeURIComponent(date)}T23:59:59-03:00`
+                    }
+                });
+                return response.data;
+            } catch (error) {
+                console.error('Erro ao buscar pedidos:', error);
+                throw error;
+            }
+        }
+
+        function processOrders(orders, motoboyId) {
+            const stats = {
+                totalOrders: 0,
+                completedOrders: 0,
+                ongoingOrders: 0,
+                totalEarnings: 0,
+                deliveriesPerHour: Array(24).fill(0)
+            };
+
+            orders.forEach(order => {
+                if (order.courier && order.courier.id === motoboyId) {
+                    stats.totalOrders++;
+                    if (order.status === 'closed' || order.status === 'delivered') {
+                        stats.completedOrders++;
+                        stats.totalEarnings += 3; // Assumindo R$3 por entrega
+                        const deliveryHour = new Date(order.closedDate || order.deliveredDate).getHours();
+                        stats.deliveriesPerHour[deliveryHour]++;
+                    } else if (order.status === 'onGoing') {
+                        stats.ongoingOrders++;
+                    }
+                }
+            });
+
+            return stats;
+        }
+
+        function updateProfileInfo(stats) {
+            const profileInfo = document.getElementById('profileInfo');
+            profileInfo.innerHTML = `
+                <div class="metric">Total de Pedidos: <span>${stats.totalOrders}</span></div>
+                <div class="metric">Pedidos Concluídos: <span>${stats.completedOrders}</span></div>
+                <div class="metric">Pedidos em Andamento: <span>${stats.ongoingOrders}</span></div>
+                <div class="metric">Ganhos do Dia: <span>R$ ${stats.totalEarnings.toFixed(2)}</span></div>
+            `;
+
+            const ctx = document.getElementById('deliveriesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i}h`),
+                    datasets: [{
+                        label: 'Entregas por Hora',
+                        data: stats.deliveriesPerHour,
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                stepSize: 1
+                            }
+                        }]
+                    }
+                }
+            });
+        }
+
+        async function updateProfile() {
+            if (!currentUser) return;
+
+            const date = document.getElementById('date').value || new Date().toISOString().split('T')[0];
+            const motoboyId = motoboyInfo[currentUser.email].id;
+
+            try {
+                const orders = await fetchOrders(date);
+                const stats = processOrders(orders, motoboyId);
+                updateProfileInfo(stats);
+            } catch (error) {
+                console.error('Erro ao atualizar perfil:', error);
+                document.getElementById('profileInfo').innerHTML = '<p>Erro ao carregar informações. Por favor, tente novamente mais tarde.</p>';
+            }
+        }
+
+        // Inicializa a página com a data atual
+        document.getElementById('date').valueAsDate = new Date();
+    </script>
+</body>
+</html>
