@@ -22,20 +22,20 @@
             height: 100vh;
         }
         .sidebar { 
-            width: 350px; 
+            width: 300px; 
             background-color: #2c3e50; 
             padding: 20px; 
             overflow-y: auto; 
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            position: relative;
         }
         .main-content { 
             flex-grow: 1; 
             display: flex; 
             flex-direction: column; 
             padding: 20px;
+            overflow-y: auto;
         }
         #map { 
             height: 400px;
@@ -46,22 +46,22 @@
         .dashboard {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-bottom: 20px;
         }
         .metric-card {
             background-color: #fff;
             border-radius: 8px;
-            padding: 15px;
+            padding: 10px;
             width: 23%;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .metric-title {
-            font-size: 14px;
+            font-size: 12px;
             color: #7f8c8d;
             margin-bottom: 5px;
         }
         .metric-value {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             color: #2c3e50;
         }
@@ -110,9 +110,10 @@
             border-radius: 5px;
             margin-top: 10px;
         }
+        .status-open { color: #e74c3c; }
         .status-accepted { color: #f1c40f; }
-        .status-onGoing { color: #87CEEB; }
         .status-ready { color: #8E44AD; }
+        .status-onGoing { color: #87CEEB; }
         .status-dispatched { color: #e67e22; }
         .action-button {
             background-color: #3498db;
@@ -132,73 +133,20 @@
             font-size: 12px;
             margin-top: 5px;
         }
-        .menu-icon {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 24px;
-            cursor: pointer;
-            color: #ecf0f1;
-            z-index: 1000;
-        }
-        .side-menu {
-            position: fixed;
-            top: 0;
-            left: -250px;
-            width: 250px;
-            height: 100%;
-            background-color: #34495e;
-            transition: 0.3s;
-            z-index: 1001;
-            padding-top: 60px;
-        }
-        .side-menu.active {
-            left: 0;
-        }
-        .side-menu a {
-            padding: 15px 25px;
-            text-decoration: none;
-            font-size: 18px;
-            color: #ecf0f1;
-            display: block;
-            transition: 0.3s;
-        }
-        .side-menu a:hover {
-            background-color: #2c3e50;
-        }
-        .close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 24px;
-            color: #ecf0f1;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="sidebar">
-            <div class="menu-icon" onclick="toggleMenu()">
-                <i class="fas fa-bars"></i>
-            </div>
             <h2>Pedidos</h2>
             <div id="orderList" class="order-list"></div>
             <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
         </div>
         <div class="main-content">
-            <div class="side-menu" id="sideMenu">
-                <span class="close-btn" onclick="toggleMenu()">&times;</span>
-                <a href="createorder.html" target="_blank"><i class="fas fa-home"></i> Home</a>
-                <a href="relatorios.html" target="_blank"><i class="fas fa-chart-bar"></i> Relatórios</a>
-                <a href="admin.html" target="_blank"><i class="fas fa-motorcycle"></i> Entregas Motoboys</a>
-                <a href="rastrear.html" target="_blank"><i class="fas fa-map-marker-alt"></i> Rastrear Pedidos</a>
-                <a href="chatbot.html" target="_blank"><i class="fas fa-robot"></i> Chatbot</a>
-            </div>
             <div id="map"></div>
             <div class="dashboard">
                 <div class="metric-card">
-                    <div class="metric-title">Total de Pedidos Hoje</div>
+                    <div class="metric-title">Total de Pedidos</div>
                     <div id="totalOrders" class="metric-value">0</div>
                 </div>
                 <div class="metric-card">
@@ -252,10 +200,35 @@
             online: 0
         };
         let currentOrders = [];
-        let allOrdersToday = [];
 
-        function toggleMenu() {
-            document.getElementById('sideMenu').classList.toggle('active');
+        // Funções para salvar e carregar dados do localStorage
+        function saveDataToLocalStorage() {
+            localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
+            localStorage.setItem('totalPrepTime', totalPrepTime.toString());
+            localStorage.setItem('preparedOrders', preparedOrders.toString());
+            localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
+            localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
+            localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
+        }
+
+        function loadDataFromLocalStorage() {
+            const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
+            if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
+
+            const storedTotalPrepTime = localStorage.getItem('totalPrepTime');
+            if (storedTotalPrepTime) totalPrepTime = parseFloat(storedTotalPrepTime);
+
+            const storedPreparedOrders = localStorage.getItem('preparedOrders');
+            if (storedPreparedOrders) preparedOrders = parseInt(storedPreparedOrders);
+
+            const storedTotalOrdersCount = localStorage.getItem('totalOrdersCount');
+            if (storedTotalOrdersCount) totalOrdersCount = parseInt(storedTotalOrdersCount);
+
+            const storedTotalOrdersValue = localStorage.getItem('totalOrdersValue');
+            if (storedTotalOrdersValue) totalOrdersValue = parseFloat(storedTotalOrdersValue);
+
+            const storedPaymentMethods = localStorage.getItem('paymentMethods');
+            if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
         }
 
         function initMap() {
@@ -287,9 +260,8 @@
 
         async function fetchOrders() {
             try {
-                const now = new Date('2024-08-10T23:59:59-03:00');
-                const startOfDay = new Date('2024-08-10T00:00:00-03:00');
-                const startDate = formatDate(startOfDay);
+                const now = new Date();
+                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
                 const endDate = formatDate(now);
                 
                 const response = await axios.get(firebaseFunctionUrl, {
@@ -301,15 +273,17 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
-                
-                allOrdersToday = response.data;
-                currentOrders = allOrdersToday.filter(order => 
-                    ['open', 'accepted', 'onGoing', 'ready', 'dispatched'].includes(order.status)
+                console.log('Pedidos recebidos:', response.data);
+                const filteredOrders = response.data.filter(order => 
+                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
+                const newOrders = filteredOrders.filter(order => !currentOrders.some(co => co.id === order.id));
+                currentOrders = filteredOrders;
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
-                updateDashboard(allOrdersToday);
+                updateDashboard(newOrders);
                 updatePrepTimes(currentOrders);
+                saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -339,7 +313,7 @@
             });
         }
 
- function updateMap(orders) {
+function updateMap(orders) {
             Object.keys(markers).forEach(key => {
                 markers[key].setMap(null);
             });
@@ -457,25 +431,28 @@
         }
 
         function getStatusDisplay(status) {
-            const statusMap = {
-                'open': 'Aberto',
-                'accepted': 'Aceito',
-                'onGoing': 'A Caminho',
-                'canceled': 'Cancelado',
-                'dispatched': 'Despachado',
-                'finished': 'Finalizado',
-                'ready': 'Pronto'
-            };
-            return statusMap[status] || status;
+            switch(status) {
+                case 'open': return 'Aberto';
+                case 'accepted': return 'Aceito';
+                case 'ready': return 'Pronto';
+                case 'onGoing': return 'A Caminho';
+                case 'dispatched': return 'Despachado';
+                default: return status;
+            }
         }
 
         function translatePaymentMethod(method) {
-            const methodMap = {
-                'money': 'Dinheiro',
-                'card': 'Cartão',
-                'online': 'Online'
-            };
-            return methodMap[method] || method;
+            switch(method) {
+                case 'money':
+                    return 'Dinheiro';
+                case 'card':
+                    return 'Cartão';
+                case 'online':
+                case 'pix':
+                    return 'Online';
+                default:
+                    return method;
+            }
         }
 
         function showOrderDetails(order) {
@@ -520,20 +497,16 @@
             }
         }
 
-        function updateDashboard(orders) {
-            totalOrdersCount = orders.length;
-            totalOrdersValue = orders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
-            paymentMethods = {
-                money: 0,
-                card: 0,
-                online: 0
-            };
-            orders.forEach(order => {
-                paymentMethods[order.paymentMethod] += order.orderTotal || 0;
+        function updateDashboard(newOrders) {
+            totalOrdersCount += newOrders.length;
+            newOrders.forEach(order => {
+                totalOrdersValue += order.orderTotal || 0;
+                const paymentType = order.paymentMethod;
+                paymentMethods[paymentType] += order.orderTotal || 0;
             });
 
             document.getElementById('totalOrders').textContent = totalOrdersCount;
-            document.getElementById('ongoingOrders').textContent = orders.filter(order => order.status === 'onGoing').length;
+            document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
             
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
             
@@ -542,6 +515,8 @@
             for (const [method, value] of Object.entries(paymentMethods)) {
                 paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
+
+            saveDataToLocalStorage();
         }
 
         function updatePrepTimes(orders) {
@@ -564,6 +539,8 @@
 
             const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
             document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
+
+            saveDataToLocalStorage();
         }
 
         function getPrepTimeForOrder(orderId) {
@@ -590,8 +567,10 @@
             document.getElementById('ongoingOrders').textContent = '0';
             document.getElementById('totalValue').textContent = 'R$ 0.00';
             document.getElementById('paymentBreakdown').innerHTML = '';
+            saveDataToLocalStorage();
         }
 
+        loadDataFromLocalStorage();
         initMap();
         fetchOrders();
         setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
