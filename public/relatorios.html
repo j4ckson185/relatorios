@@ -204,6 +204,7 @@
                 option.textContent = motoqueiro;
                 motoqueirosSelect.appendChild(option);
             });
+            console.log('Motoboys encontrados:', Array.from(motoqueirosSet));
         }
 
         function applyFilters() {
@@ -212,11 +213,13 @@
             const pagamento = document.getElementById('pagamento').value;
 
             const filteredOrders = allOrders.filter(order => {
-                return (!motoqueiro || (order.courier && order.courier.courierName === motoqueiro)) &&
-                       (!situacao || order.status === situacao) &&
-                       (!pagamento || order.paymentMethod === pagamento);
+                const motoqueiroCriterio = !motoqueiro || (order.courier && order.courier.courierName === motoqueiro);
+                const situacaoCriterio = !situacao || order.status === situacao;
+                const pagamentoCriterio = !pagamento || order.paymentMethod === pagamento;
+                return motoqueiroCriterio && situacaoCriterio && pagamentoCriterio;
             });
 
+            console.log('Pedidos filtrados:', filteredOrders);
             updateTable(filteredOrders);
         }
 
