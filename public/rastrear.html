@@ -62,6 +62,15 @@
             border-radius: 5px;
             margin-top: 10px;
         }
+        .status-message {
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status-ready { background-color: #8E44AD; color: white; }
+        .status-onGoing { background-color: #87CEEB; color: white; }
+        .status-accepted { background-color: #f1c40f; color: black; }
     </style>
 </head>
 <body>
@@ -93,40 +102,81 @@
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
+        let allOrders = [];
+
         document.getElementById('searchForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const orderId = document.getElementById('orderId').value;
             await searchOrder(orderId);
         });
 
-        async function searchOrder(orderId) {
-            const statusElement = document.getElementById('status');
-            statusElement.innerHTML = 'Buscando pedido...';
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        }
 
+        async function fetchAllOrders() {
             try {
+                const now = new Date();
+                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 horas atrás
+                const endDate = formatDate(now);
+                
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
                     },
                     params: {
-                        url: `${foodyApiUrl}${orderId}`
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
-
-                if (response.data && response.data.id) {
-                    displayOrderDetails(response.data);
-                } else {
-                    statusElement.innerHTML = '<p class="error">Pedido não encontrado. Verifique o número e tente novamente.</p>';
-                }
+                allOrders = response.data.filter(order => 
+                    ['onGoing', 'ready', 'accepted', 'dispatched'].includes(order.status)
+                );
+                console.log('Pedidos atualizados:', allOrders);
             } catch (error) {
-                console.error('Erro ao buscar pedido:', error);
-                statusElement.innerHTML = '<p class="error">Erro ao buscar pedido. Por favor, tente novamente mais tarde.</p>';
+                console.error('Erro ao buscar pedidos:', error);
+            }
+        }
+
+        async function searchOrder(orderId) {
+            const statusElement = document.getElementById('status');
+            statusElement.innerHTML = 'Buscando pedido...';
+
+            await fetchAllOrders();
+
+            const order = allOrders.find(o => o.id === orderId);
+
+            if (order) {
+                displayOrderDetails(order);
+            } else {
+                statusElement.innerHTML = '<p class="error">Pedido não encontrado. Verifique o número e tente novamente.</p>';
             }
         }
 
         function displayOrderDetails(order) {
             const statusElement = document.getElementById('status');
+            let statusMessage = '';
+            let statusClass = '';
+
+            switch(order.status) {
+                case 'ready':
+                    statusMessage = 'O pedido já foi preparado e está aguardando o próximo motoqueiro para sair para entrega.';
+                    statusClass = 'status-ready';
+                    break;
+                case 'onGoing':
+                    statusMessage = 'O pedido já está a caminho.';
+                    statusClass = 'status-onGoing';
+                    break;
+                case 'accepted':
+                    statusMessage = 'O motoboy já coletou o pedido e já vai sair para entrega.';
+                    statusClass = 'status-accepted';
+                    break;
+                case 'dispatched':
+                    statusMessage = 'O pedido foi despachado e está a caminho.';
+                    statusClass = 'status-onGoing';
+                    break;
+            }
+
             statusElement.innerHTML = `
                 <h2>Detalhes do Pedido #${order.id}</h2>
                 <p><strong>Status:</strong> ${getStatusDisplay(order.status)}</p>
@@ -136,6 +186,7 @@
                 <p><strong>Total do Pedido:</strong> R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                 ${order.notes ? `<p><strong>Observações:</strong> ${order.notes}</p>` : ''}
                 ${order.courier ? `<p><strong>Motoboy:</strong> ${order.courier.courierName}</p>` : ''}
+                <p class="status-message ${statusClass}">${statusMessage}</p>
             `;
         }
 
@@ -158,6 +209,10 @@
                 default: return method;
             }
         }
+
+        // Buscar pedidos inicialmente e a cada 30 segundos
+        fetchAllOrders();
+        setInterval(fetchAllOrders, 30000);
     </script>
 </body>
 </html>
