@@ -112,6 +112,7 @@
         }
         .status-open { color: #e74c3c; }
         .status-accepted { color: #f1c40f; }
+        .status-ready { color: #8E44AD; }
         .status-onGoing { color: #87CEEB; }
         .status-dispatched { color: #e67e22; }
         .action-button {
@@ -244,7 +245,7 @@
                 });
                 console.log('Pedidos recebidos:', response.data);
                 const filteredOrders = response.data.filter(order => 
-                    ['open', 'accepted', 'onGoing', 'dispatched'].includes(order.status)
+                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
                 const newOrders = filteredOrders.filter(order => !currentOrders.some(co => co.id === order.id));
                 currentOrders = filteredOrders;
@@ -320,6 +321,7 @@
             switch (status) {
                 case 'open': color = '#e74c3c'; break;
                 case 'accepted': color = '#f1c40f'; break;
+                case 'ready': color = '#8E44AD'; break;
                 case 'onGoing': color = '#87CEEB'; break;
                 case 'dispatched': color = '#e67e22'; break;
                 default: color = 'gray';
@@ -336,7 +338,7 @@
             };
         }
 
-async function updateCourierLocation(order) {
+  async function updateCourierLocation(order) {
             try {
                 const response = await axios.get(trackingUrl, {
                     headers: {
@@ -401,6 +403,7 @@ async function updateCourierLocation(order) {
             switch(status) {
                 case 'open': return 'Aberto';
                 case 'accepted': return 'Aceito';
+                case 'ready': return 'Pronto';
                 case 'onGoing': return 'A Caminho';
                 case 'dispatched': return 'Despachado';
                 default: return status;
