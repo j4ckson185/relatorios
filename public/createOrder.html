@@ -19,10 +19,31 @@
         }
         .container { 
             display: flex; 
-            height: 100vh;
+            flex-direction: column;
+            height: 100vh; 
+        }
+        .nav-menu {
+            background-color: #2c3e50;
+            padding: 10px 0;
+            text-align: center;
+        }
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin: 0 5px;
+            font-weight: bold;
+        }
+        .nav-menu a:hover {
+            background-color: #34495e;
+            border-radius: 5px;
+        }
+        .content {
+            display: flex;
+            flex-grow: 1;
         }
         .sidebar { 
-            width: 300px; 
+            width: 350px; 
             background-color: #2c3e50; 
             padding: 20px; 
             overflow-y: auto; 
@@ -35,13 +56,11 @@
             display: flex; 
             flex-direction: column; 
             padding: 20px;
-            overflow-y: auto;
         }
         #map { 
-            height: 400px;
+            flex-grow: 1; 
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
         }
         .dashboard {
             display: flex;
@@ -51,17 +70,17 @@
         .metric-card {
             background-color: #fff;
             border-radius: 8px;
-            padding: 10px;
+            padding: 15px;
             width: 23%;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .metric-title {
-            font-size: 12px;
+            font-size: 14px;
             color: #7f8c8d;
             margin-bottom: 5px;
         }
         .metric-value {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
             color: #2c3e50;
         }
@@ -110,10 +129,9 @@
             border-radius: 5px;
             margin-top: 10px;
         }
-        .status-open { color: #e74c3c; }
         .status-accepted { color: #f1c40f; }
-        .status-ready { color: #8E44AD; }
         .status-onGoing { color: #87CEEB; }
+        .status-ready { color: #8E44AD; }
         .status-dispatched { color: #e67e22; }
         .action-button {
             background-color: #3498db;
@@ -137,31 +155,40 @@
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <h2>Pedidos</h2>
-            <div id="orderList" class="order-list"></div>
-            <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
-        </div>
-        <div class="main-content">
-            <div id="map"></div>
-            <div class="dashboard">
-                <div class="metric-card">
-                    <div class="metric-title">Total de Pedidos</div>
-                    <div id="totalOrders" class="metric-value">0</div>
+        <nav class="nav-menu">
+            <a href="createorder.html" target="_blank"><i class="fas fa-home"></i> Home</a>
+            <a href="relatorios.html" target="_blank"><i class="fas fa-chart-bar"></i> Relatórios</a>
+            <a href="admin.html" target="_blank"><i class="fas fa-motorcycle"></i> Entregas Motoboys</a>
+            <a href="rastrear.html" target="_blank"><i class="fas fa-map-marker-alt"></i> Rastrear Pedidos</a>
+            <a href="chatbot.html" target="_blank"><i class="fas fa-robot"></i> Chatbot</a>
+        </nav>
+        <div class="content">
+            <div class="sidebar">
+                <h2>Pedidos</h2>
+                <div id="orderList" class="order-list"></div>
+                <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
+            </div>
+            <div class="main-content">
+                <div class="dashboard">
+                    <div class="metric-card">
+                        <div class="metric-title">Total de Pedidos</div>
+                        <div id="totalOrders" class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Pedidos em Andamento</div>
+                        <div id="ongoingOrders" class="metric-value">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Valor Total</div>
+                        <div id="totalValue" class="metric-value">R$ 0,00</div>
+                        <div id="paymentBreakdown"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">Tempo Médio de Preparo</div>
+                        <div id="avgPrepTime" class="metric-value">0 min</div>
+                    </div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-title">Pedidos em Andamento</div>
-                    <div id="ongoingOrders" class="metric-value">0</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">Valor Total</div>
-                    <div id="totalValue" class="metric-value">R$ 0,00</div>
-                    <div id="paymentBreakdown"></div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">Tempo Médio de Preparo</div>
-                    <div id="avgPrepTime" class="metric-value">0 min</div>
-                </div>
+                <div id="map"></div>
             </div>
         </div>
     </div>
@@ -200,36 +227,6 @@
             online: 0
         };
         let currentOrders = [];
-
-        // Funções para salvar e carregar dados do localStorage
-        function saveDataToLocalStorage() {
-            localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
-            localStorage.setItem('totalPrepTime', totalPrepTime.toString());
-            localStorage.setItem('preparedOrders', preparedOrders.toString());
-            localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
-            localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
-            localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
-        }
-
-        function loadDataFromLocalStorage() {
-            const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
-            if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
-
-            const storedTotalPrepTime = localStorage.getItem('totalPrepTime');
-            if (storedTotalPrepTime) totalPrepTime = parseFloat(storedTotalPrepTime);
-
-            const storedPreparedOrders = localStorage.getItem('preparedOrders');
-            if (storedPreparedOrders) preparedOrders = parseInt(storedPreparedOrders);
-
-            const storedTotalOrdersCount = localStorage.getItem('totalOrdersCount');
-            if (storedTotalOrdersCount) totalOrdersCount = parseInt(storedTotalOrdersCount);
-
-            const storedTotalOrdersValue = localStorage.getItem('totalOrdersValue');
-            if (storedTotalOrdersValue) totalOrdersValue = parseFloat(storedTotalOrdersValue);
-
-            const storedPaymentMethods = localStorage.getItem('paymentMethods');
-            if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
-        }
 
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
@@ -273,17 +270,14 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
-                console.log('Pedidos recebidos:', response.data);
-                const filteredOrders = response.data.filter(order => 
-                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
+                
+                currentOrders = response.data.filter(order => 
+                    ['open', 'accepted', 'onGoing', 'ready', 'dispatched'].includes(order.status)
                 );
-                const newOrders = filteredOrders.filter(order => !currentOrders.some(co => co.id === order.id));
-                currentOrders = filteredOrders;
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
-                updateDashboard(newOrders);
+                updateDashboard(currentOrders);
                 updatePrepTimes(currentOrders);
-                saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -313,7 +307,7 @@
             });
         }
 
-function updateMap(orders) {
+        function updateMap(orders) {
             Object.keys(markers).forEach(key => {
                 markers[key].setMap(null);
             });
@@ -347,7 +341,7 @@ function updateMap(orders) {
             heatmap.setData(heatmapData);
         }
 
-        function getOrderMarkerIcon(status, orderId) {
+function getOrderMarkerIcon(status, orderId) {
             let color;
             switch (status) {
                 case 'open': color = '#e74c3c'; break;
@@ -431,28 +425,25 @@ function updateMap(orders) {
         }
 
         function getStatusDisplay(status) {
-            switch(status) {
-                case 'open': return 'Aberto';
-                case 'accepted': return 'Aceito';
-                case 'ready': return 'Pronto';
-                case 'onGoing': return 'A Caminho';
-                case 'dispatched': return 'Despachado';
-                default: return status;
-            }
+            const statusMap = {
+                'open': 'Aberto',
+                'accepted': 'Aceito',
+                'onGoing': 'A Caminho',
+                'canceled': 'Cancelado',
+                'dispatched': 'Despachado',
+                'finished': 'Finalizado',
+                'ready': 'Pronto'
+            };
+            return statusMap[status] || status;
         }
 
         function translatePaymentMethod(method) {
-            switch(method) {
-                case 'money':
-                    return 'Dinheiro';
-                case 'card':
-                    return 'Cartão';
-                case 'online':
-                case 'pix':
-                    return 'Online';
-                default:
-                    return method;
-            }
+            const methodMap = {
+                'money': 'Dinheiro',
+                'card': 'Cartão',
+                'online': 'Online'
+            };
+            return methodMap[method] || method;
         }
 
         function showOrderDetails(order) {
@@ -497,16 +488,20 @@ function updateMap(orders) {
             }
         }
 
-        function updateDashboard(newOrders) {
-            totalOrdersCount += newOrders.length;
-            newOrders.forEach(order => {
-                totalOrdersValue += order.orderTotal || 0;
-                const paymentType = order.paymentMethod;
-                paymentMethods[paymentType] += order.orderTotal || 0;
+        function updateDashboard(orders) {
+            totalOrdersCount = orders.length;
+            totalOrdersValue = orders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
+            paymentMethods = {
+                money: 0,
+                card: 0,
+                online: 0
+            };
+            orders.forEach(order => {
+                paymentMethods[order.paymentMethod] += order.orderTotal || 0;
             });
 
             document.getElementById('totalOrders').textContent = totalOrdersCount;
-            document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
+            document.getElementById('ongoingOrders').textContent = orders.filter(order => order.status === 'onGoing').length;
             
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
             
@@ -515,8 +510,6 @@ function updateMap(orders) {
             for (const [method, value] of Object.entries(paymentMethods)) {
                 paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
-
-            saveDataToLocalStorage();
         }
 
         function updatePrepTimes(orders) {
@@ -539,8 +532,6 @@ function updateMap(orders) {
 
             const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
             document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
-
-            saveDataToLocalStorage();
         }
 
         function getPrepTimeForOrder(orderId) {
@@ -567,10 +558,8 @@ function updateMap(orders) {
             document.getElementById('ongoingOrders').textContent = '0';
             document.getElementById('totalValue').textContent = 'R$ 0.00';
             document.getElementById('paymentBreakdown').innerHTML = '';
-            saveDataToLocalStorage();
         }
 
-        loadDataFromLocalStorage();
         initMap();
         fetchOrders();
         setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
