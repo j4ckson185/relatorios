@@ -22,7 +22,7 @@
             height: 100vh;
         }
         .sidebar { 
-            width: 350px; 
+            width: 300px; 
             background-color: #2c3e50; 
             padding: 20px; 
             overflow-y: auto; 
@@ -37,35 +37,33 @@
             padding: 20px;
             overflow-y: auto;
         }
+        #map { 
+            height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
         .dashboard {
             display: flex;
-            flex-wrap: wrap;
             justify-content: space-between;
             margin-bottom: 20px;
         }
         .metric-card {
             background-color: #fff;
             border-radius: 8px;
-            padding: 15px;
+            padding: 10px;
             width: 23%;
-            margin-bottom: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .metric-title {
-            font-size: 14px;
+            font-size: 12px;
             color: #7f8c8d;
             margin-bottom: 5px;
         }
         .metric-value {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             color: #2c3e50;
-        }
-        #map { 
-            height: 500px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-top: 20px;
         }
         .order-list { 
             flex-grow: 1;
@@ -136,7 +134,7 @@
             margin-top: 10px;
         }
         #paymentBreakdown {
-            font-size: 14px;
+            font-size: 12px;
             margin-top: 5px;
         }
     </style>
@@ -152,6 +150,7 @@
             </div>
         </div>
         <div class="main-content">
+            <div id="map"></div>
             <div class="dashboard">
                 <div class="metric-card">
                     <div class="metric-title">Total de Pedidos</div>
@@ -171,7 +170,6 @@
                     <div id="avgPrepTime" class="metric-value">0 min</div>
                 </div>
             </div>
-            <div id="map"></div>
         </div>
     </div>
 
@@ -206,10 +204,9 @@
         let totalOrdersCount = 0;
         let totalOrdersValue = 0;
         let paymentMethods = {
-            credit_card: 0,
-            debit_card: 0,
-            cash: 0,
-            pix: 0
+            online: 0,
+            card: 0,
+            cash: 0
         };
         let currentOrders = [];
 
@@ -326,7 +323,7 @@
             heatmap.setData(heatmapData);
         }
 
-  function getOrderMarkerIcon(status, orderId) {
+        function getOrderMarkerIcon(status, orderId) {
             let color;
             switch (status) {
                 case 'ready': color = '#8E44AD'; break;
@@ -347,7 +344,7 @@
             };
         }
 
-        async function updateCourierLocation(order) {
+       async function updateCourierLocation(order) {
             try {
                 const response = await axios.get(trackingUrl, {
                     headers: {
@@ -420,11 +417,14 @@
 
         function translatePaymentMethod(method) {
             switch(method) {
-                case 'credit_card': return 'Cartão de Crédito';
-                case 'debit_card': return 'Cartão de Débito';
-                case 'cash': return 'Dinheiro';
-                case 'pix': return 'PIX';
-                default: return method;
+                case 'credit_card':
+                case 'debit_card':
+                case 'pix':
+                    return 'Online';
+                case 'cash':
+                    return 'Dinheiro';
+                default:
+                    return 'Cartão';
             }
         }
 
@@ -471,7 +471,16 @@
         }
 
         function updateDashboard(orders) {
-            if (!countingStarted) return;
+            if (countingStarted) {
+                totalOrdersCount += orders.length - currentOrders.length;
+                orders.forEach(order => {
+                    if (!currentOrders.some(co => co.id === order.id)) {
+                        totalOrdersValue += order.orderTotal || 0;
+                        const paymentType = translatePaymentMethod(order.paymentMethod);
+                        paymentMethods[paymentType.toLowerCase()] += order.orderTotal || 0;
+                    }
+                });
+            }
 
             document.getElementById('totalOrders').textContent = totalOrdersCount;
             document.getElementById('ongoingOrders').textContent = orders.filter(order => order.status === 'onGoing').length;
@@ -481,8 +490,10 @@
             const paymentBreakdown = document.getElementById('paymentBreakdown');
             paymentBreakdown.innerHTML = '';
             for (const [method, value] of Object.entries(paymentMethods)) {
-                paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
+                paymentBreakdown.innerHTML += `<p>${method.charAt(0).toUpperCase() + method.slice(1)}: R$ ${value.toFixed(2)}</p>`;
             }
+
+            currentOrders = [...orders];
         }
 
         function updatePrepTimes(orders) {
@@ -521,15 +532,13 @@
             totalOrdersCount = currentOrders.length;
             totalOrdersValue = currentOrders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
             paymentMethods = {
-                credit_card: 0,
-                debit_card: 0,
-                cash: 0,
-                pix: 0
+                online: 0,
+                card: 0,
+                cash: 0
             };
             currentOrders.forEach(order => {
-                if (paymentMethods.hasOwnProperty(order.paymentMethod)) {
-                    paymentMethods[order.paymentMethod] += order.orderTotal || 0;
-                }
+                const paymentType = translatePaymentMethod(order.paymentMethod);
+                paymentMethods[paymentType.toLowerCase()] += order.orderTotal || 0;
             });
             document.getElementById('startButton').disabled = true;
             document.getElementById('resetButton').disabled = false;
@@ -542,10 +551,9 @@
             totalOrdersCount = 0;
             totalOrdersValue = 0;
             paymentMethods = {
-                credit_card: 0,
-                debit_card: 0,
-                cash: 0,
-                pix: 0
+                online: 0,
+                card: 0,
+                cash: 0
             };
             totalPrepTime = 0;
             preparedOrders = 0;
