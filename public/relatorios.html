@@ -234,8 +234,12 @@
             };
 
             const filteredOrders = allOrders.filter(order => {
+                const statusMatch = !currentFilters.situacao || 
+                                    order.status === currentFilters.situacao || 
+                                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
+                                    (currentFilters.situacao === 'canceled' && order.status === 'cancelled');
                 return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
-                       (!currentFilters.situacao || order.status === currentFilters.situacao || (currentFilters.situacao === 'finished' && order.status === 'closed')) &&
+                       statusMatch &&
                        (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
             });
 
@@ -273,6 +277,7 @@
                 'accepted': 'Aceito',
                 'onGoing': 'A Caminho',
                 'canceled': 'Cancelado',
+                'cancelled': 'Cancelado',
                 'dispatched': 'Despachado',
                 'finished': 'Finalizado',
                 'ready': 'Pronto',
