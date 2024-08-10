@@ -338,7 +338,7 @@
             };
         }
 
-  async function updateCourierLocation(order) {
+   async function updateCourierLocation(order) {
             try {
                 const response = await axios.get(trackingUrl, {
                     headers: {
@@ -491,7 +491,7 @@
             orders.forEach(order => {
                 if (order.status === 'open' && !orderPrepTimes[order.id]) {
                     orderPrepTimes[order.id] = now.getTime();
-                } else if ((order.status === 'onGoing' || order.status === 'dispatched') && orderPrepTimes[order.id]) {
+                } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
                     const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
                     totalPrepTime += prepTime;
                     preparedOrders++;
