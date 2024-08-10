@@ -6,12 +6,14 @@
     <title>Rastrear Pedido - Foody Delivery</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f0f0f0;
+            color: #333;
         }
         .container {
             max-width: 800px;
@@ -19,8 +21,31 @@
             padding: 20px;
         }
         h1 {
-            color: #333;
+            color: #2c3e50;
             text-align: center;
+        }
+        #searchForm {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #orderId {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+        }
+        #searchButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        #searchButton:hover {
+            background-color: #2980b9;
         }
         #status {
             background-color: white;
@@ -29,77 +54,110 @@
             margin-top: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .order-item {
-            border-bottom: 1px solid #eee;
-            padding: 10px 0;
-        }
-        .order-item:last-child {
-            border-bottom: none;
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+            background-color: #fadbd8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Rastrear Pedido</h1>
+        <form id="searchForm">
+            <input type="text" id="orderId" placeholder="Digite o número do pedido" required>
+            <button type="submit" id="searchButton">Buscar</button>
+        </form>
         <div id="status"></div>
     </div>
 
     <script>
-        // Configuração do Firebase (mantenha as informações existentes)
+        // Configuração do Firebase
         const firebaseConfig = {
-  apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-  authDomain: "cabana-8d55e.firebaseapp.com",
-  databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-  projectId: "cabana-8d55e",
-  storageBucket: "cabana-8d55e.appspot.com",
-  messagingSenderId: "706144237954",
-  appId: "1:706144237954:web:345c10370972486afc779b",
-  measurementId: "G-96Y337GYT8"
+            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+            authDomain: "cabana-8d55e.firebaseapp.com",
+            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+            projectId: "cabana-8d55e",
+            storageBucket: "cabana-8d55e.appspot.com",
+            messagingSenderId: "706144237954",
+            appId: "1:706144237954:web:345c10370972486afc779b",
+            measurementId: "G-96Y337GYT8"
         };
-
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
+
         const db = firebase.firestore();
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
-        // Função para exibir os pedidos
-        function displayOrders(orders) {
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const orderId = document.getElementById('orderId').value;
+            await searchOrder(orderId);
+        });
+
+        async function searchOrder(orderId) {
             const statusElement = document.getElementById('status');
-            statusElement.innerHTML = '';
+            statusElement.innerHTML = 'Buscando pedido...';
 
-            if (orders.length === 0) {
-                statusElement.innerHTML = '<p>Nenhum pedido encontrado.</p>';
-                return;
-            }
-
-            orders.forEach(order => {
-                const orderElement = document.createElement('div');
-                orderElement.classList.add('order-item');
-                orderElement.innerHTML = `
-                    <h3>Pedido #${order.id}</h3>
-                    <p>Status: ${order.status}</p>
-                    <p>Cliente: ${order.customerName}</p>
-                    <p>Endereço: ${order.address}</p>
-                    <p>Itens: ${order.items.join(', ')}</p>
-                `;
-                statusElement.appendChild(orderElement);
-            });
-        }
-
-        // Função para buscar pedidos do Firestore
-        function fetchOrders() {
-            db.collection("foodyOrders").onSnapshot((snapshot) => {
-                const orders = [];
-                snapshot.forEach((doc) => {
-                    orders.push({ id: doc.id, ...doc.data() });
+            try {
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}${orderId}`
+                    }
                 });
-                displayOrders(orders);
-            }, (error) => {
-                console.error("Erro ao buscar pedidos:", error);
-            });
+
+                if (response.data && response.data.id) {
+                    displayOrderDetails(response.data);
+                } else {
+                    statusElement.innerHTML = '<p class="error">Pedido não encontrado. Verifique o número e tente novamente.</p>';
+                }
+            } catch (error) {
+                console.error('Erro ao buscar pedido:', error);
+                statusElement.innerHTML = '<p class="error">Erro ao buscar pedido. Por favor, tente novamente mais tarde.</p>';
+            }
         }
 
-        // Iniciar a busca de pedidos quando a página carregar
-        document.addEventListener('DOMContentLoaded', fetchOrders);
+        function displayOrderDetails(order) {
+            const statusElement = document.getElementById('status');
+            statusElement.innerHTML = `
+                <h2>Detalhes do Pedido #${order.id}</h2>
+                <p><strong>Status:</strong> ${getStatusDisplay(order.status)}</p>
+                <p><strong>Cliente:</strong> ${order.customer.customerName}</p>
+                <p><strong>Endereço de Entrega:</strong> ${order.deliveryPoint.address}</p>
+                <p><strong>Método de Pagamento:</strong> ${translatePaymentMethod(order.paymentMethod)}</p>
+                <p><strong>Total do Pedido:</strong> R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                ${order.notes ? `<p><strong>Observações:</strong> ${order.notes}</p>` : ''}
+                ${order.courier ? `<p><strong>Motoboy:</strong> ${order.courier.courierName}</p>` : ''}
+            `;
+        }
+
+        function getStatusDisplay(status) {
+            switch(status) {
+                case 'accepted': return 'Aceito';
+                case 'onGoing': return 'A Caminho';
+                case 'ready': return 'Pronto';
+                case 'dispatched': return 'Despachado';
+                default: return status;
+            }
+        }
+
+        function translatePaymentMethod(method) {
+            switch(method) {
+                case 'credit_card': return 'Cartão de Crédito';
+                case 'debit_card': return 'Cartão de Débito';
+                case 'cash': return 'Dinheiro';
+                case 'pix': return 'PIX';
+                default: return method;
+            }
+        }
     </script>
 </body>
 </html>
