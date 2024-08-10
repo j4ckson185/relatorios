@@ -157,14 +157,15 @@
         }
 
         function formatDate(date) {
-            return moment(date).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
         async function fetchOrders() {
             try {
                 const selectedDate = document.getElementById('dataInicio').value;
+                const now = moment();
                 const startDate = formatDate(moment(selectedDate).startOf('day'));
-                const endDate = formatDate(moment(selectedDate).endOf('day'));
+                const endDate = formatDate(now < moment(selectedDate).endOf('day') ? now : moment(selectedDate).endOf('day'));
                 
                 console.log('Buscando pedidos de', startDate, 'até', endDate);
 
