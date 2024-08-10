@@ -124,7 +124,7 @@
             <thead>
                 <tr>
                     <th>ID do Pedido</th>
-                    <th>Data/Hora</th>
+                    <th>Data/Hora de Chegada</th>
                     <th>Cliente</th>
                     <th>Motoqueiro</th>
                     <th>Situação</th>
@@ -148,6 +148,11 @@
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         let allOrders = [];
+        let currentFilters = {
+            motoqueiro: '',
+            situacao: '',
+            pagamento: ''
+        };
 
         moment.tz.setDefault("America/Sao_Paulo");
 
@@ -198,6 +203,7 @@
             });
 
             const motoqueirosSelect = document.getElementById('motoqueiro');
+            const currentSelection = motoqueirosSelect.value;
             motoqueirosSelect.innerHTML = '<option value="">Todos</option>';
             motoqueirosSet.forEach(motoqueiro => {
                 const option = document.createElement('option');
@@ -205,17 +211,20 @@
                 option.textContent = motoqueiro;
                 motoqueirosSelect.appendChild(option);
             });
+            motoqueirosSelect.value = currentSelection;
         }
 
         function applyFilters() {
-            const motoqueiro = document.getElementById('motoqueiro').value;
-            const situacao = document.getElementById('situacao').value;
-            const pagamento = document.getElementById('pagamento').value;
+            currentFilters = {
+                motoqueiro: document.getElementById('motoqueiro').value,
+                situacao: document.getElementById('situacao').value,
+                pagamento: document.getElementById('pagamento').value
+            };
 
             const filteredOrders = allOrders.filter(order => {
-                return (!motoqueiro || (order.courier && order.courier.courierName === motoqueiro)) &&
-                       (!situacao || order.status === situacao) &&
-                       (!pagamento || order.paymentMethod === pagamento);
+                return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
+                       (!currentFilters.situacao || order.status === currentFilters.situacao || (currentFilters.situacao === 'finished' && order.status === 'closed')) &&
+                       (!currentFilters.pagamento || order.paymentMethod === currentFilters.pagamento);
             });
 
             updateTable(filteredOrders);
@@ -254,7 +263,8 @@
                 'canceled': 'Cancelado',
                 'dispatched': 'Despachado',
                 'finished': 'Finalizado',
-                'ready': 'Pronto'
+                'ready': 'Pronto',
+                'closed': 'Finalizado'
             };
             return statusMap[status] || status;
         }
@@ -285,7 +295,9 @@
         fetchOrders();
 
         // Atualizar pedidos a cada 30 segundos
-        setInterval(fetchOrders, 30000);
+        setInterval(() => {
+            fetchOrders().then(() => applyFilters());
+        }, 30000);
     </script>
 </body>
 </html>
