@@ -88,8 +88,8 @@
         }
         /* Estilos para os status dos pedidos */
         .status-accepted { color: #f1c40f; }
-        .status-onGoing { color: #3498db; }
-        .status-ready { color: #9b59b6; }
+        .status-onGoing { color: #40E0D0; }
+        .status-ready { color: #8E44AD; }
         .status-dispatched { color: #e67e22; }
     </style>
 </head>
@@ -243,10 +243,10 @@
             let color;
             switch (status) {
                 case 'ready':
-                    color = '#D6B4FC';  // Roxo claro
+                    color = '#8E44AD';  // Roxo
                     break;
                 case 'onGoing':
-                    color = '#3498db';  // Azul
+                    color = '#40E0D0';  // Azul piscina
                     break;
                 case 'accepted':
                     color = '#f1c40f';  // Amarelo
@@ -330,7 +330,7 @@
             }
         }
 
-   function getStatusDisplay(status) {
+        function getStatusDisplay(status) {
             switch(status) {
                 case 'accepted': return 'Aceito';
                 case 'onGoing': return 'A Caminho';
