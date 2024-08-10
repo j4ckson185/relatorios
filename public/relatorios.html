@@ -208,7 +208,9 @@
                     }
                 });
                 
-                allOrders = response.data;
+                allOrders = response.data.filter(order => 
+                    ['open', 'accepted', 'onGoing', 'canceled', 'dispatched', 'finished', 'ready'].includes(order.status)
+                );
                 updateMotoqueirosSelect();
                 applyFilters();
             } catch (error) {
