@@ -77,6 +77,19 @@
             margin-top: 20px;
             font-weight: bold;
         }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+            width: auto;
+        }
     </style>
 </head>
 <body>
@@ -108,13 +121,12 @@
                     </select>
                 </div>
                 <div class="filter-item">
-                    <label for="pagamento">Forma de Pagamento:</label>
-                    <select id="pagamento">
-                        <option value="">Todas</option>
-                        <option value="money">Dinheiro</option>
-                        <option value="card">Cartão</option>
-                        <option value="online">Online</option>
-                    </select>
+                    <label>Forma de Pagamento:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="pagamento" value="money"> Dinheiro</label>
+                        <label><input type="checkbox" name="pagamento" value="card"> Cartão</label>
+                        <label><input type="checkbox" name="pagamento" value="online"> Online</label>
+                    </div>
                 </div>
             </div>
             <button id="buscarBtn">Buscar</button>
@@ -151,7 +163,7 @@
         let currentFilters = {
             motoqueiro: '',
             situacao: '',
-            pagamento: ''
+            pagamento: []
         };
 
         moment.tz.setDefault("America/Sao_Paulo");
@@ -218,13 +230,13 @@
             currentFilters = {
                 motoqueiro: document.getElementById('motoqueiro').value,
                 situacao: document.getElementById('situacao').value,
-                pagamento: document.getElementById('pagamento').value
+                pagamento: Array.from(document.querySelectorAll('input[name="pagamento"]:checked')).map(el => el.value)
             };
 
             const filteredOrders = allOrders.filter(order => {
                 return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
                        (!currentFilters.situacao || order.status === currentFilters.situacao || (currentFilters.situacao === 'finished' && order.status === 'closed')) &&
-                       (!currentFilters.pagamento || order.paymentMethod === currentFilters.pagamento);
+                       (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
             });
 
             updateTable(filteredOrders);
@@ -289,7 +301,9 @@
         document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
         document.getElementById('motoqueiro').addEventListener('change', applyFilters);
         document.getElementById('situacao').addEventListener('change', applyFilters);
-        document.getElementById('pagamento').addEventListener('change', applyFilters);
+        document.querySelectorAll('input[name="pagamento"]').forEach(checkbox => {
+            checkbox.addEventListener('change', applyFilters);
+        });
 
         setDefaultDate();
         fetchOrders();
