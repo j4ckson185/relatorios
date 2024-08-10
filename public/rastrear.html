@@ -82,7 +82,7 @@
             console.log('Tentando rastrear pedido:', numeroPedido);
 
             try {
-                const orderRef = db.collection('foodyOrders').doc(numeroPedido);
+                const orderRef = db.collection('getFoodyOrders').doc(numeroPedido);
                 console.log('Buscando documento:', orderRef.path);
                 const doc = await orderRef.get();
 
