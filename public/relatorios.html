@@ -178,7 +178,7 @@
         moment.tz.setDefault("America/Sao_Paulo");
 
         function formatDateForAPI(date) {
-            return moment(date).format('YYYY-MM-DDTHH:mm:ssZZ');
+            return moment(date).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
         }
 
         function formatDateForDisplay(dateString) {
@@ -213,7 +213,7 @@
                 applyFilters();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
-                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
+                alert('Erro ao buscar pedidos. Por favor, verifique as datas e tente novamente.');
             }
         }
 
