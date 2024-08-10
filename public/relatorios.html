@@ -73,6 +73,10 @@
         th {
             background-color: #f2f2f2;
         }
+        .summary {
+            margin-top: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -81,15 +85,9 @@
         <div class="filter-section">
             <div class="filter-row">
                 <div class="filter-item">
-                    <label for="dataInicio">Data Início:</label>
-                    <input type="datetime-local" id="dataInicio">
+                    <label for="dataInicio">Data:</label>
+                    <input type="date" id="dataInicio">
                 </div>
-                <div class="filter-item">
-                    <label for="dataFim">Data Fim:</label>
-                    <input type="datetime-local" id="dataFim">
-                </div>
-            </div>
-            <div class="filter-row">
                 <div class="filter-item">
                     <label for="motoqueiro">Motoqueiro:</label>
                     <select id="motoqueiro">
@@ -138,6 +136,10 @@
                 <!-- Os dados serão inseridos aqui dinamicamente -->
             </tbody>
         </table>
+        <div class="summary">
+            <p>Total de Entregas: <span id="totalEntregas">0</span></p>
+            <p>Valor Total: R$ <span id="valorTotal">0.00</span></p>
+        </div>
     </div>
 
     <script>
@@ -149,23 +151,20 @@
 
         moment.tz.setDefault("America/Sao_Paulo");
 
-        function setDefaultDates() {
-            const now = moment();
-            const startOfDay = now.clone().startOf('day');
-            
-            document.getElementById('dataFim').value = now.format('YYYY-MM-DDTHH:mm');
-            document.getElementById('dataInicio').value = startOfDay.format('YYYY-MM-DDTHH:mm');
+        function setDefaultDate() {
+            const today = moment().format('YYYY-MM-DD');
+            document.getElementById('dataInicio').value = today;
         }
 
         function formatDate(date) {
-            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+            return moment(date).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
         }
 
         async function fetchOrders() {
             try {
-                const now = new Date();
-                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-                const endDate = formatDate(now);
+                const selectedDate = document.getElementById('dataInicio').value;
+                const startDate = formatDate(moment(selectedDate).startOf('day'));
+                const endDate = formatDate(moment(selectedDate).endOf('day'));
                 
                 console.log('Buscando pedidos de', startDate, 'até', endDate);
 
@@ -205,7 +204,6 @@
                 option.textContent = motoqueiro;
                 motoqueirosSelect.appendChild(option);
             });
-            console.log('Motoboys encontrados:', Array.from(motoqueirosSet));
         }
 
         function applyFilters() {
@@ -219,7 +217,6 @@
                        (!pagamento || order.paymentMethod === pagamento);
             });
 
-            console.log('Pedidos filtrados:', filteredOrders);
             updateTable(filteredOrders);
         }
 
@@ -227,16 +224,23 @@
             const tbody = document.querySelector('#relatorioTable tbody');
             tbody.innerHTML = '';
 
+            let totalValue = 0;
+
             orders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id;
-                row.insertCell().textContent = moment(order.createdAt).format('YYYY-MM-DD HH:mm:ss');
+                row.insertCell().textContent = moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss');
                 row.insertCell().textContent = order.customer.customerName;
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
                 row.insertCell().textContent = `R$ ${order.orderTotal.toFixed(2)}`;
+
+                totalValue += order.orderTotal;
             });
+
+            document.getElementById('totalEntregas').textContent = orders.length;
+            document.getElementById('valorTotal').textContent = totalValue.toFixed(2);
 
             console.log('Tabela atualizada com', orders.length, 'pedidos');
         }
@@ -276,16 +280,11 @@
         document.getElementById('situacao').addEventListener('change', applyFilters);
         document.getElementById('pagamento').addEventListener('change', applyFilters);
 
-        setDefaultDates();
+        setDefaultDate();
         fetchOrders();
 
         // Atualizar pedidos a cada 30 segundos
         setInterval(fetchOrders, 30000);
-
-        // Atualizar a data final a cada minuto
-        setInterval(() => {
-            document.getElementById('dataFim').value = moment().format('YYYY-MM-DDTHH:mm');
-        }, 60000);
     </script>
 </body>
 </html>
