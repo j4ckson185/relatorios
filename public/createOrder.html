@@ -45,15 +45,15 @@
         }
         .dashboard {
             display: flex;
-            justify-content: space-between;
             flex-wrap: wrap;
+            justify-content: space-between;
             margin-bottom: 20px;
         }
         .metric-card {
             background-color: #fff;
             border-radius: 8px;
             padding: 10px;
-            width: 23%;
+            width: 19%;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             margin-bottom: 10px;
         }
@@ -163,6 +163,10 @@
                 <div class="metric-card">
                     <div class="metric-title">Tempo Médio de Preparo</div>
                     <div id="avgPrepTime" class="metric-value">0 min</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Previsão de Demanda</div>
+                    <div id="demandPrediction" class="metric-value"></div>
                 </div>
             </div>
         </div>
@@ -309,7 +313,7 @@
             }
         }
 
-   function updateOrderList(orders) {
+function updateOrderList(orders) {
     const orderList = document.getElementById('orderList');
     orderList.innerHTML = '';
     orders.forEach(order => {
@@ -462,15 +466,11 @@ function getStatusDisplay(status) {
 
 function translatePaymentMethod(method) {
     switch(method) {
-        case 'money':
-            return 'Dinheiro';
-        case 'card':
-            return 'Cartão';
+        case 'money': return 'Dinheiro';
+        case 'card': return 'Cartão';
         case 'online':
-        case 'pix':
-            return 'Online';
-        default:
-            return method;
+        case 'pix': return 'Online';
+        default: return method;
     }
 }
 
@@ -528,7 +528,7 @@ function updateDashboard(allOrders) {
     allOrders.forEach(order => {
         totalOrdersValue += order.orderTotal || 0;
         const paymentType = order.paymentMethod;
-        paymentMethods[paymentType] += order.orderTotal || 0;
+        paymentMethods[paymentType] = (paymentMethods[paymentType] || 0) + (order.orderTotal || 0);
     });
 
     document.getElementById('totalOrders').textContent = totalOrdersCount;
@@ -564,7 +564,10 @@ function updatePrepTimes(orders) {
     });
 
     const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
-    document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
+    const avgPrepTimeElement = document.getElementById('avgPrepTime');
+    if (avgPrepTimeElement) {
+        avgPrepTimeElement.textContent = `${avgPrepTime.toFixed(1)} min`;
+    }
 
     saveDataToLocalStorage();
 }
@@ -593,6 +596,7 @@ function resetCounters() {
     document.getElementById('ongoingOrders').textContent = '0';
     document.getElementById('totalValue').textContent = 'R$ 0.00';
     document.getElementById('paymentBreakdown').innerHTML = '';
+    document.getElementById('demandPrediction').textContent = '0';
     saveDataToLocalStorage();
 }
 
@@ -620,31 +624,13 @@ function updateDemandPrediction(allOrders) {
         demandPredictions[day][hour] = averageOrders;
     });
 
-    // Prevê a demanda para as próximas 3 horas
-    const predictions = [];
-    for (let i = 1; i <= 3; i++) {
-        const predictedHour = (currentHour + i) % 24;
-        const predictedDemand = demandPredictions[currentDay]?.[predictedHour] || 0;
-        predictions.push({ hour: predictedHour, demand: predictedDemand });
-    }
+    // Prevê a demanda para a próxima hora
+    const nextHour = (currentHour + 1) % 24;
+    const predictedDemand = demandPredictions[currentDay]?.[nextHour] || 0;
 
-    displayDemandPrediction(predictions);
-}
-
-function displayDemandPrediction(predictions) {
-    const predictionContainer = document.createElement('div');
-    predictionContainer.className = 'metric-card';
-    predictionContainer.innerHTML = `
-        <div class="metric-title">Previsão de Demanda (Próximas 3 horas)</div>
-        ${predictions.map(p => `<div>${p.hour}:00 - ${p.demand.toFixed(1)} pedidos</div>`).join('')}
-    `;
-
-    const dashboard = document.querySelector('.dashboard');
-    const existingPrediction = document.querySelector('.metric-card:last-child');
-    if (existingPrediction) {
-        dashboard.replaceChild(predictionContainer, existingPrediction);
-    } else {
-        dashboard.appendChild(predictionContainer);
+    const demandPredictionElement = document.getElementById('demandPrediction');
+    if (demandPredictionElement) {
+        demandPredictionElement.textContent = `${predictedDemand.toFixed(0)} pedidos na próxima hora`;
     }
 }
 
