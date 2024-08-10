@@ -187,8 +187,8 @@
 
         async function fetchOrders() {
             try {
-                const dataInicio = document.getElementById('dataInicio').value;
-                const dataFim = document.getElementById('dataFim').value;
+                const dataInicio = formatDate(new Date(document.getElementById('dataInicio').value));
+                const dataFim = formatDate(new Date(document.getElementById('dataFim').value));
                 
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
@@ -199,6 +199,7 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(dataInicio)}&endDate=${encodeURIComponent(dataFim)}`
                     }
                 });
+                
                 allOrders = response.data;
                 updateMotoqueirosSelect();
                 applyFilters();
