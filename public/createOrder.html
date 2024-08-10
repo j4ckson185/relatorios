@@ -486,7 +486,7 @@ async function updateCourierLocation(order) {
         function updatePrepTimes(orders) {
             const now = new Date();
             orders.forEach(order => {
-                if (order.status === 'accepted' && !orderPrepTimes[order.id]) {
+                if (order.status === 'open' && !orderPrepTimes[order.id]) {
                     orderPrepTimes[order.id] = now.getTime();
                 } else if ((order.status === 'onGoing' || order.status === 'dispatched') && orderPrepTimes[order.id]) {
                     const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
