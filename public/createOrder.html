@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&libraries=visualization"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body { 
@@ -19,27 +19,54 @@
         }
         .container { 
             display: flex; 
-            height: 100vh; 
+            height: 100vh;
         }
         .sidebar { 
-            width: 350px; 
+            width: 300px; 
             background-color: #2c3e50; 
             padding: 20px; 
             overflow-y: auto; 
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
         }
         .main-content { 
             flex-grow: 1; 
             display: flex; 
             flex-direction: column; 
+            padding: 20px;
+            overflow-y: auto;
         }
         #map { 
-            flex-grow: 1; 
+            height: 400px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .dashboard {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            width: 23%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .metric-title {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
         }
         .order-list { 
-            max-height: calc(100vh - 100px); 
+            flex-grow: 1;
             overflow-y: auto; 
         }
         .order-item { 
@@ -54,9 +81,6 @@
         .order-item:hover { 
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .filter-section { 
-            margin-bottom: 20px; 
         }
         h2 {
             color: #ecf0f1;
@@ -86,23 +110,59 @@
             border-radius: 5px;
             margin-top: 10px;
         }
-        /* Estilos para os status dos pedidos */
+        .status-open { color: #e74c3c; }
         .status-accepted { color: #f1c40f; }
-        .status-onGoing { color: #87CEEB; }
         .status-ready { color: #8E44AD; }
+        .status-onGoing { color: #87CEEB; }
         .status-dispatched { color: #e67e22; }
+        .action-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+        .action-button:hover {
+            background-color: #2980b9;
+        }
+        #paymentBreakdown {
+            font-size: 12px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="sidebar">
             <h2>Pedidos</h2>
-            <div class="filter-section">
-                <div id="orderList" class="order-list"></div>
-            </div>
+            <div id="orderList" class="order-list"></div>
+            <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
         </div>
         <div class="main-content">
             <div id="map"></div>
+            <div class="dashboard">
+                <div class="metric-card">
+                    <div class="metric-title">Total de Pedidos</div>
+                    <div id="totalOrders" class="metric-value">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Pedidos em Andamento</div>
+                    <div id="ongoingOrders" class="metric-value">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Valor Total</div>
+                    <div id="totalValue" class="metric-value">R$ 0,00</div>
+                    <div id="paymentBreakdown"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Tempo Médio de Preparo</div>
+                    <div id="avgPrepTime" class="metric-value">0 min</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -122,20 +182,65 @@
 
         const db = firebase.firestore();
         let map;
+        let heatmap;
         let markers = {};
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
         const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
+        let orderPrepTimes = {};
+        let totalPrepTime = 0;
+        let preparedOrders = 0;
+        let totalOrdersCount = 0;
+        let totalOrdersValue = 0;
+        let paymentMethods = {
+            money: 0,
+            card: 0,
+            online: 0
+        };
+        let currentOrders = [];
+
+        // Funções para salvar e carregar dados do localStorage
+        function saveDataToLocalStorage() {
+            localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
+            localStorage.setItem('totalPrepTime', totalPrepTime.toString());
+            localStorage.setItem('preparedOrders', preparedOrders.toString());
+            localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
+            localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
+            localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
+        }
+
+        function loadDataFromLocalStorage() {
+            const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
+            if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
+
+            const storedTotalPrepTime = localStorage.getItem('totalPrepTime');
+            if (storedTotalPrepTime) totalPrepTime = parseFloat(storedTotalPrepTime);
+
+            const storedPreparedOrders = localStorage.getItem('preparedOrders');
+            if (storedPreparedOrders) preparedOrders = parseInt(storedPreparedOrders);
+
+            const storedTotalOrdersCount = localStorage.getItem('totalOrdersCount');
+            if (storedTotalOrdersCount) totalOrdersCount = parseInt(storedTotalOrdersCount);
+
+            const storedTotalOrdersValue = localStorage.getItem('totalOrdersValue');
+            if (storedTotalOrdersValue) totalOrdersValue = parseFloat(storedTotalOrdersValue);
+
+            const storedPaymentMethods = localStorage.getItem('paymentMethods');
+            if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
+        }
+
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
-                zoom: 16,
-                styles: [
-                    // ... (estilos do mapa permanecem os mesmos)
-                ]
+                zoom: 12
+            });
+
+            heatmap = new google.maps.visualization.HeatmapLayer({
+                data: [],
+                map: map
             });
 
             new google.maps.Marker({
@@ -156,7 +261,7 @@
         async function fetchOrders() {
             try {
                 const now = new Date();
-                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)); // 24 horas atrás
+                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
                 const endDate = formatDate(now);
                 
                 const response = await axios.get(firebaseFunctionUrl, {
@@ -170,10 +275,15 @@
                 });
                 console.log('Pedidos recebidos:', response.data);
                 const filteredOrders = response.data.filter(order => 
-                    ['onGoing', 'ready', 'accepted', 'dispatched'].includes(order.status)
+                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
-                updateOrderList(filteredOrders);
-                updateMap(filteredOrders);
+                const newOrders = filteredOrders.filter(order => !currentOrders.some(co => co.id === order.id));
+                currentOrders = filteredOrders;
+                updateOrderList(currentOrders);
+                updateMap(currentOrders);
+                updateDashboard(newOrders);
+                updatePrepTimes(currentOrders);
+                saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -194,6 +304,7 @@
                     <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
                     <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                     ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
+                    <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
                     <div class="order-options">
                         <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
                     </div>
@@ -202,60 +313,49 @@
             });
         }
 
-        function updateMap(orders) {
-            // Remover marcadores de pedidos que não estão mais na lista
+function updateMap(orders) {
             Object.keys(markers).forEach(key => {
-                if (key.startsWith('order-') && !orders.find(order => `order-${order.uid}` === key)) {
-                    markers[key].setMap(null);
-                    delete markers[key];
-                }
+                markers[key].setMap(null);
             });
+            markers = {};
 
+            const heatmapData = [];
+            
             orders.forEach(order => {
                 if (order.deliveryPoint && order.deliveryPoint.coordinates) {
                     const { lat, lng } = order.deliveryPoint.coordinates;
-                    let marker = markers[`order-${order.uid}`];
-                    
-                    if (!marker) {
-                        marker = new google.maps.Marker({
-                            position: { lat, lng },
-                            map: map,
-                            title: `Pedido #${order.id}`,
-                            icon: getOrderMarkerIcon(order.status, order.id)
-                        });
-                        markers[`order-${order.uid}`] = marker;
+                    const marker = new google.maps.Marker({
+                        position: { lat, lng },
+                        map: map,
+                        title: `Pedido #${order.id}`,
+                        icon: getOrderMarkerIcon(order.status, order.id)
+                    });
+                    markers[`order-${order.uid}`] = marker;
 
-                        marker.addListener('click', () => {
-                            showOrderDetails(order);
-                        });
-                    } else {
-                        marker.setIcon(getOrderMarkerIcon(order.status, order.id));
-                    }
+                    marker.addListener('click', () => {
+                        showOrderDetails(order);
+                    });
+
+                    heatmapData.push(new google.maps.LatLng(lat, lng));
                 }
 
                 if (order.status === 'onGoing' || order.status === 'dispatched') {
                     updateCourierLocation(order);
                 }
             });
+
+            heatmap.setData(heatmapData);
         }
 
         function getOrderMarkerIcon(status, orderId) {
             let color;
             switch (status) {
-                case 'ready':
-                    color = '#8E44AD';  // Roxo
-                    break;
-                case 'onGoing':
-                    color = '#87CEEB';  // Azul piscina
-                    break;
-                case 'accepted':
-                    color = '#f1c40f';  // Amarelo
-                    break;
-                case 'dispatched':
-                    color = '#e67e22';  // Laranja
-                    break;
-                default:
-                    color = 'gray';
+                case 'open': color = '#e74c3c'; break;
+                case 'accepted': color = '#f1c40f'; break;
+                case 'ready': color = '#8E44AD'; break;
+                case 'onGoing': color = '#87CEEB'; break;
+                case 'dispatched': color = '#e67e22'; break;
+                default: color = 'gray';
             }
             return {
                 url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
@@ -332,9 +432,10 @@
 
         function getStatusDisplay(status) {
             switch(status) {
+                case 'open': return 'Aberto';
                 case 'accepted': return 'Aceito';
-                case 'onGoing': return 'A Caminho';
                 case 'ready': return 'Pronto';
+                case 'onGoing': return 'A Caminho';
                 case 'dispatched': return 'Despachado';
                 default: return status;
             }
@@ -342,11 +443,15 @@
 
         function translatePaymentMethod(method) {
             switch(method) {
-                case 'credit_card': return 'Cartão de Crédito';
-                case 'debit_card': return 'Cartão de Débito';
-                case 'cash': return 'Dinheiro';
-                case 'pix': return 'PIX';
-                default: return method;
+                case 'money':
+                    return 'Dinheiro';
+                case 'card':
+                    return 'Cartão';
+                case 'online':
+                case 'pix':
+                    return 'Online';
+                default:
+                    return method;
             }
         }
 
@@ -362,6 +467,7 @@
                         <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
                         <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                         ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
+                        <p>Tempo de Preparo: ${getPrepTimeForOrder(order.id)} min</p>
                     </div>
                 `
             });
@@ -391,6 +497,80 @@
             }
         }
 
+        function updateDashboard(newOrders) {
+            totalOrdersCount += newOrders.length;
+            newOrders.forEach(order => {
+                totalOrdersValue += order.orderTotal || 0;
+                const paymentType = order.paymentMethod;
+                paymentMethods[paymentType] += order.orderTotal || 0;
+            });
+
+            document.getElementById('totalOrders').textContent = totalOrdersCount;
+            document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
+            
+            document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
+            
+            const paymentBreakdown = document.getElementById('paymentBreakdown');
+            paymentBreakdown.innerHTML = '';
+            for (const [method, value] of Object.entries(paymentMethods)) {
+                paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
+            }
+
+            saveDataToLocalStorage();
+        }
+
+        function updatePrepTimes(orders) {
+            const now = new Date();
+            orders.forEach(order => {
+                if (order.status === 'open' && !orderPrepTimes[order.id]) {
+                    orderPrepTimes[order.id] = now.getTime();
+                } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
+                    const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
+                    totalPrepTime += prepTime;
+                    preparedOrders++;
+                    delete orderPrepTimes[order.id];
+                }
+
+                const prepTimeElement = document.getElementById(`prepTime-${order.id}`);
+                if (prepTimeElement) {
+                    prepTimeElement.textContent = `${getPrepTimeForOrder(order.id)} min`;
+                }
+            });
+
+            const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
+            document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
+
+            saveDataToLocalStorage();
+        }
+
+        function getPrepTimeForOrder(orderId) {
+            if (orderPrepTimes[orderId]) {
+                const now = new Date();
+                return ((now.getTime() - orderPrepTimes[orderId]) / 60000).toFixed(1);
+            }
+            return '0.0';
+        }
+
+        function resetCounters() {
+            totalOrdersCount = 0;
+            totalOrdersValue = 0;
+            paymentMethods = {
+                money: 0,
+                card: 0,
+                online: 0
+            };
+            totalPrepTime = 0;
+            preparedOrders = 0;
+            orderPrepTimes = {};
+            document.getElementById('avgPrepTime').textContent = '0.0 min';
+            document.getElementById('totalOrders').textContent = '0';
+            document.getElementById('ongoingOrders').textContent = '0';
+            document.getElementById('totalValue').textContent = 'R$ 0.00';
+            document.getElementById('paymentBreakdown').innerHTML = '';
+            saveDataToLocalStorage();
+        }
+
+        loadDataFromLocalStorage();
         initMap();
         fetchOrders();
         setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
