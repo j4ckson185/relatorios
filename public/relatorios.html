@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Foody Delivery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .filter-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .filter-item {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .filter-item:last-child {
+            margin-right: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        #buscarBtn {
+            background-color: #3498db;
+            color: white;
+        }
+        #exportarBtn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e6e6e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Relatórios Foody Delivery</h1>
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label for="dataInicio">Data Início:</label>
+                    <input type="datetime-local" id="dataInicio">
+                </div>
+                <div class="filter-item">
+                    <label for="dataFim">Data Fim:</label>
+                    <input type="datetime-local" id="dataFim">
+                </div>
+            </div>
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label for="motoqueiro">Motoqueiro:</label>
+                    <select id="motoqueiro">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="situacao">Situação do Pedido:</label>
+                    <select id="situacao">
+                        <option value="">Todas</option>
+                        <option value="open">Aberto</option>
+                        <option value="accepted">Aceito</option>
+                        <option value="onGoing">A Caminho</option>
+                        <option value="canceled">Cancelado</option>
+                        <option value="dispatched">Despachado</option>
+                        <option value="finished">Finalizado</option>
+                        <option value="ready">Pronto</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="pagamento">Forma de Pagamento:</label>
+                    <select id="pagamento">
+                        <option value="">Todas</option>
+                        <option value="money">Dinheiro</option>
+                        <option value="card">Cartão</option>
+                        <option value="online">Online</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="buscarBtn">Buscar</button>
+                <button id="exportarBtn">Exportar</button>
+            </div>
+        </div>
+        <table id="relatorioTable">
+            <thead>
+                <tr>
+                    <th>ID do Pedido</th>
+                    <th>Data/Hora</th>
+                    <th>Cliente</th>
+                    <th>Motoqueiro</th>
+                    <th>Situação</th>
+                    <th>Forma de Pagamento</th>
+                    <th>Valor Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Os dados serão inseridos aqui dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+
+        let allOrders = [];
+        let filteredOrders = [];
+
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        }
+
+        function setDefaultDates() {
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            
+            document.getElementById('dataFim').value = now.toISOString().slice(0, 16);
+            document.getElementById('dataInicio').value = yesterday.toISOString().slice(0, 16);
+        }
+
+        async function fetchOrders() {
+            try {
+                const dataInicio = document.getElementById('dataInicio').value;
+                const dataFim = document.getElementById('dataFim').value;
+                
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(dataInicio)}&endDate=${encodeURIComponent(dataFim)}`
+                    }
+                });
+                allOrders = response.data;
+                updateMotoqueirosSelect();
+                applyFilters();
+            } catch (error) {
+                console.error('Erro ao buscar pedidos:', error);
+                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
+            }
+        }
+
+        function updateMotoqueirosSelect() {
+            const motoqueirosSet = new Set();
+            allOrders.forEach(order => {
+                if (order.courier && order.courier.courierName) {
+                    motoqueirosSet.add(order.courier.courierName);
+                }
+            });
+
+            const motoqueirosSelect = document.getElementById('motoqueiro');
+            motoqueirosSelect.innerHTML = '<option value="">Todos</option>';
+            motoqueirosSet.forEach(motoqueiro => {
+                const option = document.createElement('option');
+                option.value = motoqueiro;
+                option.textContent = motoqueiro;
+                motoqueirosSelect.appendChild(option);
+            });
+        }
+
+        function applyFilters() {
+            const motoqueiro = document.getElementById('motoqueiro').value;
+            const situacao = document.getElementById('situacao').value;
+            const pagamento = document.getElementById('pagamento').value;
+
+            filteredOrders = allOrders.filter(order => {
+                return (!motoqueiro || (order.courier && order.courier.courierName === motoqueiro)) &&
+                       (!situacao || order.status === situacao) &&
+                       (!pagamento || order.paymentMethod === pagamento);
+            });
+
+            updateTable();
+        }
+
+        function updateTable() {
+            const tbody = document.querySelector('#relatorioTable tbody');
+            tbody.innerHTML = '';
+
+            filteredOrders.forEach(order => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = order.id;
+                row.insertCell().textContent = new Date(order.createdAt).toLocaleString();
+                row.insertCell().textContent = order.customer.customerName;
+                row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
+                row.insertCell().textContent = getStatusDisplay(order.status);
+                row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
+                row.insertCell().textContent = `R$ ${order.orderTotal.toFixed(2)}`;
+            });
+        }
+
+        function getStatusDisplay(status) {
+            const statusMap = {
+                'open': 'Aberto',
+                'accepted': 'Aceito',
+                'onGoing': 'A Caminho',
+                'canceled': 'Cancelado',
+                'dispatched': 'Despachado',
+                'finished': 'Finalizado',
+                'ready': 'Pronto'
+            };
+            return statusMap[status] || status;
+        }
+
+        function translatePaymentMethod(method) {
+            const methodMap = {
+                'money': 'Dinheiro',
+                'card': 'Cartão',
+                'online': 'Online'
+            };
+            return methodMap[method] || method;
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(filteredOrders.map(order => ({
+                'ID do Pedido': order.id,
+                'Data/Hora': new Date(order.createdAt).toLocaleString(),
+                'Cliente': order.customer.customerName,
+                'Motoqueiro': order.courier ? order.courier.courierName : 'N/A',
+                'Situação': getStatusDisplay(order.status),
+                'Forma de Pagamento': translatePaymentMethod(order.paymentMethod),
+                'Valor Total': `R$ ${order.orderTotal.toFixed(2)}`
+            })));
+
+            XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+            XLSX.writeFile(wb, "Relatorio_Foody_Delivery.xlsx");
+        }
+
+        document.getElementById('buscarBtn').addEventListener('click', fetchOrders);
+        document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
+
+        // Event listeners para filtros
+        document.getElementById('motoqueiro').addEventListener('change', applyFilters);
+        document.getElementById('situacao').addEventListener('change', applyFilters);
+        document.getElementById('pagamento').addEventListener('change', applyFilters);
+
+        // Inicialização
+        setDefaultDates();
+        fetchOrders();
+    </script>
+</body>
+</html>
