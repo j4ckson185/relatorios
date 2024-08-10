@@ -158,7 +158,7 @@
         }
 
         function formatDateForAPI(date) {
-            return moment(date).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+            return moment.tz(date, "America/Sao_Paulo").format('YYYY-MM-DDTHH:mm:ss.SSSZ');
         }
 
         async function fetchOrders() {
@@ -234,6 +234,8 @@
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
                 row.insertCell().textContent = `R$ ${order.orderTotal.toFixed(2)}`;
             });
+
+            console.log('Tabela atualizada com', orders.length, 'pedidos');
         }
 
         function getStatusDisplay(status) {
