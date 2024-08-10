@@ -279,6 +279,11 @@
         setDefaultDates();
         fetchOrders();
 
+        // Atualizar pedidos a cada 30 segundos
+        setInterval(() => {
+            fetchOrders();
+        }, 30000);
+
         // Atualizar a data final a cada minuto
         setInterval(() => {
             document.getElementById('dataFim').value = moment().format('YYYY-MM-DDTHH:mm');
