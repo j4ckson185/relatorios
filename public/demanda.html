@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Previsão de Demanda - Loja de Açaí</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4a4a4a;
+        }
+        .chart-container {
+            margin-top: 20px;
+        }
+        #demandChart {
+            width: 100%;
+            max-height: 400px;
+        }
+        .prediction-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Previsão de Demanda - Loja de Açaí</h1>
+        <div class="chart-container">
+            <canvas id="demandChart"></canvas>
+        </div>
+        <div class="prediction-info" id="predictionInfo"></div>
+    </div>
+
+    <script>
+        // Simulação de dados históricos (você substituiria isso com dados reais do Foody Delivery)
+        const historicalData = [
+            { hour: 10, demand: 5 },
+            { hour: 11, demand: 8 },
+            { hour: 12, demand: 15 },
+            { hour: 13, demand: 20 },
+            { hour: 14, demand: 18 },
+            { hour: 15, demand: 12 },
+            { hour: 16, demand: 10 },
+            { hour: 17, demand: 14 },
+            { hour: 18, demand: 22 },
+            { hour: 19, demand: 25 },
+            { hour: 20, demand: 20 },
+            { hour: 21, demand: 15 },
+            { hour: 22, demand: 10 }
+        ];
+
+        // Função para calcular a média móvel
+        function calculateMovingAverage(data, windowSize) {
+            const result = [];
+            for (let i = 0; i < data.length - windowSize + 1; i++) {
+                const windowSlice = data.slice(i, i + windowSize);
+                const average = windowSlice.reduce((sum, val) => sum + val.demand, 0) / windowSize;
+                result.push({ hour: data[i + windowSize - 1].hour, demand: average });
+            }
+            return result;
+        }
+
+        // Calcular previsão
+        const movingAverageData = calculateMovingAverage(historicalData, 3);
+
+        // Preparar dados para o gráfico
+        const labels = historicalData.map(d => d.hour + ':00');
+        const actualData = historicalData.map(d => d.demand);
+        const predictedData = movingAverageData.map(d => d.demand);
+
+        // Criar o gráfico
+        const ctx = document.getElementById('demandChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Demanda Real',
+                        data: actualData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Previsão de Demanda',
+                        data: predictedData,
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Número de Pedidos'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Hora do Dia'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Analisar picos de demanda
+        const peakDemand = Math.max(...actualData);
+        const peakHour = labels[actualData.indexOf(peakDemand)];
+
+        // Exibir informações de previsão
+        const predictionInfo = document.getElementById('predictionInfo');
+        predictionInfo.innerHTML = `
+            <h3>Análise de Demanda:</h3>
+            <p>Pico de demanda previsto: ${peakDemand} pedidos às ${peakHour}</p>
+            <p>Recomendação: Aumente o número de motoboys disponíveis entre ${peakHour} e ${labels[labels.indexOf(peakHour) + 2]}</p>
+        `;
+
+        // Aqui você adicionaria a lógica para buscar dados em tempo real do Foody Delivery
+        function fetchRealTimeData() {
+            // Simulação de busca de dados (substitua isso com uma chamada real à API do Foody Delivery)
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const newData = { hour: new Date().getHours(), demand: Math.floor(Math.random() * 30) };
+                    resolve(newData);
+                }, 5000); // Simula uma busca a cada 5 segundos
+            });
+        }
+
+        // Atualizar o gráfico com dados em tempo real
+        setInterval(async () => {
+            const newData = await fetchRealTimeData();
+            historicalData.push(newData);
+            if (historicalData.length > 24) historicalData.shift(); // Manter apenas as últimas 24 horas
+
+            const updatedMovingAverage = calculateMovingAverage(historicalData, 3);
+
+            chart.data.labels = historicalData.map(d => d.hour + ':00');
+            chart.data.datasets[0].data = historicalData.map(d => d.demand);
+            chart.data.datasets[1].data = updatedMovingAverage.map(d => d.demand);
+            chart.update();
+
+            // Atualizar análise de demanda
+            const updatedPeakDemand = Math.max(...chart.data.datasets[0].data);
+            const updatedPeakHour = chart.data.labels[chart.data.datasets[0].data.indexOf(updatedPeakDemand)];
+            predictionInfo.innerHTML = `
+                <h3>Análise de Demanda Atualizada:</h3>
+                <p>Pico de demanda previsto: ${updatedPeakDemand} pedidos às ${updatedPeakHour}</p>
+                <p>Recomendação: Ajuste o número de motoboys disponíveis conforme necessário</p>
+            `;
+        }, 5000);
+    </script>
+</body>
+</html>
