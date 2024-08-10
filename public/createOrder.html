@@ -29,13 +29,13 @@
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         .main-content { 
             flex-grow: 1; 
             display: flex; 
             flex-direction: column; 
             padding: 20px;
-            position: relative;
         }
         #map { 
             height: 400px;
@@ -138,6 +138,7 @@
             left: 20px;
             font-size: 24px;
             cursor: pointer;
+            color: #ecf0f1;
             z-index: 1000;
         }
         .side-menu {
@@ -146,7 +147,7 @@
             left: -250px;
             width: 250px;
             height: 100%;
-            background-color: #2c3e50;
+            background-color: #34495e;
             transition: 0.3s;
             z-index: 1001;
             padding-top: 60px;
@@ -163,7 +164,7 @@
             transition: 0.3s;
         }
         .side-menu a:hover {
-            background-color: #34495e;
+            background-color: #2c3e50;
         }
         .close-btn {
             position: absolute;
@@ -178,14 +179,14 @@
 <body>
     <div class="container">
         <div class="sidebar">
+            <div class="menu-icon" onclick="toggleMenu()">
+                <i class="fas fa-bars"></i>
+            </div>
             <h2>Pedidos</h2>
             <div id="orderList" class="order-list"></div>
             <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
         </div>
         <div class="main-content">
-            <div class="menu-icon" onclick="toggleMenu()">
-                <i class="fas fa-bars"></i>
-            </div>
             <div class="side-menu" id="sideMenu">
                 <span class="close-btn" onclick="toggleMenu()">&times;</span>
                 <a href="createorder.html" target="_blank"><i class="fas fa-home"></i> Home</a>
@@ -197,7 +198,7 @@
             <div id="map"></div>
             <div class="dashboard">
                 <div class="metric-card">
-                    <div class="metric-title">Total de Pedidos</div>
+                    <div class="metric-title">Total de Pedidos Hoje</div>
                     <div id="totalOrders" class="metric-value">0</div>
                 </div>
                 <div class="metric-card">
@@ -251,6 +252,7 @@
             online: 0
         };
         let currentOrders = [];
+        let allOrdersToday = [];
 
         function toggleMenu() {
             document.getElementById('sideMenu').classList.toggle('active');
@@ -285,8 +287,9 @@
 
         async function fetchOrders() {
             try {
-                const now = new Date();
-                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+                const now = new Date('2024-08-10T23:59:59-03:00');
+                const startOfDay = new Date('2024-08-10T00:00:00-03:00');
+                const startDate = formatDate(startOfDay);
                 const endDate = formatDate(now);
                 
                 const response = await axios.get(firebaseFunctionUrl, {
@@ -299,10 +302,13 @@
                     }
                 });
                 
-                currentOrders = response.data;
+                allOrdersToday = response.data;
+                currentOrders = allOrdersToday.filter(order => 
+                    ['open', 'accepted', 'onGoing', 'ready', 'dispatched'].includes(order.status)
+                );
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
-                updateDashboard(currentOrders);
+                updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -333,7 +339,7 @@
             });
         }
 
-function updateMap(orders) {
+ function updateMap(orders) {
             Object.keys(markers).forEach(key => {
                 markers[key].setMap(null);
             });
