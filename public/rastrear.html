@@ -9,141 +9,97 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            padding: 0;
             background-color: #f0f0f0;
         }
         .container {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
             text-align: center;
-            max-width: 500px;
-            width: 100%;
         }
-        h1 { color: #333; }
-        input {
-            padding: 0.5rem;
-            font-size: 1rem;
-            margin-right: 0.5rem;
-            width: 60%;
-        }
-        button {
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover { background-color: #0056b3; }
         #status {
-            margin-top: 1rem;
-            font-weight: bold;
-            text-align: left;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .error { color: red; }
+        .order-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .order-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Rastrear Pedido</h1>
-        <input type="text" id="pedidoInput" placeholder="Número do pedido">
-        <button onclick="rastrearPedido()">Rastrear</button>
         <div id="status"></div>
     </div>
 
     <script>
-        // Configuração do Firebase
+        // Configuração do Firebase (mantenha as informações existentes)
         const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId: "706144237954",
-            appId: "1:706144237954:web:345c10370972486afc779b",
-            measurementId: "G-96Y337GYT8"
+  apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
+  authDomain: "cabana-8d55e.firebaseapp.com",
+  databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
+  projectId: "cabana-8d55e",
+  storageBucket: "cabana-8d55e.appspot.com",
+  messagingSenderId: "706144237954",
+  appId: "1:706144237954:web:345c10370972486afc779b",
+  measurementId: "G-96Y337GYT8"
         };
-        firebase.initializeApp(firebaseConfig);
 
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function rastrearPedido() {
-            const numeroPedido = document.getElementById('pedidoInput').value;
+        // Função para exibir os pedidos
+        function displayOrders(orders) {
             const statusElement = document.getElementById('status');
-            statusElement.innerHTML = 'Buscando pedido...';
+            statusElement.innerHTML = '';
 
-            console.log('Tentando rastrear pedido:', numeroPedido);
-
-            try {
-                const orderRef = db.collection('foodyOrders').doc(numeroPedido);
-                console.log('Buscando documento:', orderRef.path);
-                const doc = await orderRef.get();
-
-                console.log('Documento encontrado:', doc.exists);
-
-                if (doc.exists) {
-                    const order = doc.data();
-                    console.log('Dados do pedido:', order);
-                    let statusInfo = getStatusInfo(order.status);
-
-                    statusElement.innerHTML = `
-                        <p><strong>Pedido #${order.id}</strong></p>
-                        <p>Status: ${statusInfo.display}</p>
-                        <p>${statusInfo.description}</p>
-                        <p>Cliente: ${order.customer.customerName}</p>
-                        ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
-                    `;
-                } else {
-                    console.log('Pedido não encontrado no Firestore');
-                    statusElement.innerHTML = '<p class="error">Pedido não encontrado. Certifique-se de que o pedido foi carregado na página createOrder.</p>';
-                }
-            } catch (error) {
-                console.error('Erro ao buscar pedido:', error);
-                statusElement.innerHTML = '<p class="error">Erro ao buscar pedido. Por favor, tente novamente mais tarde.</p>';
+            if (orders.length === 0) {
+                statusElement.innerHTML = '<p>Nenhum pedido encontrado.</p>';
+                return;
             }
+
+            orders.forEach(order => {
+                const orderElement = document.createElement('div');
+                orderElement.classList.add('order-item');
+                orderElement.innerHTML = `
+                    <h3>Pedido #${order.id}</h3>
+                    <p>Status: ${order.status}</p>
+                    <p>Cliente: ${order.customerName}</p>
+                    <p>Endereço: ${order.address}</p>
+                    <p>Itens: ${order.items.join(', ')}</p>
+                `;
+                statusElement.appendChild(orderElement);
+            });
         }
 
-        function getStatusInfo(status) {
-            switch(status) {
-                case 'accepted':
-                    return {
-                        display: 'Aceito',
-                        description: 'O pedido foi aceito e está sendo preparado.'
-                    };
-                case 'dispatched':
-                    return {
-                        display: 'Despachado',
-                        description: 'O motoboy está chegando na loja para coletar o pedido.'
-                    };
-                case 'onGoing':
-                    return {
-                        display: 'A Caminho',
-                        description: 'O pedido saiu para entrega e está a caminho da sua residência.'
-                    };
-                case 'ready':
-                    return {
-                        display: 'Pronto',
-                        description: 'O pedido já foi preparado e está aguardando o próximo motoboy chegar para levar.'
-                    };
-                case 'closed':
-                    return {
-                        display: 'Finalizado',
-                        description: 'O pedido já foi entregue.'
-                    };
-                default:
-                    return {
-                        display: status,
-                        description: 'Status desconhecido.'
-                    };
-            }
+        // Função para buscar pedidos do Firestore
+        function fetchOrders() {
+            db.collection("foodyOrders").onSnapshot((snapshot) => {
+                const orders = [];
+                snapshot.forEach((doc) => {
+                    orders.push({ id: doc.id, ...doc.data() });
+                });
+                displayOrders(orders);
+            }, (error) => {
+                console.error("Erro ao buscar pedidos:", error);
+            });
         }
+
+        // Iniciar a busca de pedidos quando a página carregar
+        document.addEventListener('DOMContentLoaded', fetchOrders);
     </script>
 </body>
 </html>
