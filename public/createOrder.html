@@ -110,9 +110,9 @@
             border-radius: 5px;
             margin-top: 10px;
         }
+        .status-open { color: #e74c3c; }
         .status-accepted { color: #f1c40f; }
         .status-onGoing { color: #87CEEB; }
-        .status-ready { color: #8E44AD; }
         .status-dispatched { color: #e67e22; }
         .action-button {
             background-color: #3498db;
@@ -243,8 +243,11 @@
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                const newOrders = response.data.filter(order => !currentOrders.some(co => co.id === order.id));
-                currentOrders = response.data;
+                const filteredOrders = response.data.filter(order => 
+                    ['open', 'accepted', 'onGoing', 'dispatched'].includes(order.status)
+                );
+                const newOrders = filteredOrders.filter(order => !currentOrders.some(co => co.id === order.id));
+                currentOrders = filteredOrders;
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
                 updateDashboard(newOrders);
@@ -315,9 +318,9 @@
         function getOrderMarkerIcon(status, orderId) {
             let color;
             switch (status) {
-                case 'ready': color = '#8E44AD'; break;
-                case 'onGoing': color = '#87CEEB'; break;
+                case 'open': color = '#e74c3c'; break;
                 case 'accepted': color = '#f1c40f'; break;
+                case 'onGoing': color = '#87CEEB'; break;
                 case 'dispatched': color = '#e67e22'; break;
                 default: color = 'gray';
             }
@@ -333,7 +336,7 @@
             };
         }
 
-        async function updateCourierLocation(order) {
+async function updateCourierLocation(order) {
             try {
                 const response = await axios.get(trackingUrl, {
                     headers: {
@@ -344,7 +347,7 @@
                         orderUid: order.uid
                     }
                 });
-const tracking = response.data;
+                const tracking = response.data;
                 if (tracking.courierLocationCoordinates) {
                     const { lat, lng } = tracking.courierLocationCoordinates;
                     let courierMarker = markers[`courier-${order.courier.courierName}`];
@@ -396,9 +399,9 @@ const tracking = response.data;
 
         function getStatusDisplay(status) {
             switch(status) {
+                case 'open': return 'Aberto';
                 case 'accepted': return 'Aceito';
                 case 'onGoing': return 'A Caminho';
-                case 'ready': return 'Pronto';
                 case 'dispatched': return 'Despachado';
                 default: return status;
             }
@@ -483,9 +486,9 @@ const tracking = response.data;
         function updatePrepTimes(orders) {
             const now = new Date();
             orders.forEach(order => {
-                if (order.status === 'ready' && !orderPrepTimes[order.id]) {
+                if (order.status === 'accepted' && !orderPrepTimes[order.id]) {
                     orderPrepTimes[order.id] = now.getTime();
-                } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
+                } else if ((order.status === 'onGoing' || order.status === 'dispatched') && orderPrepTimes[order.id]) {
                     const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
                     totalPrepTime += prepTime;
                     preparedOrders++;
