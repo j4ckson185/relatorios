@@ -111,7 +111,7 @@
             margin-top: 10px;
         }
         .status-open { color: #e74c3c; }
-        .status-accepted { color: #FFFF00; }
+        .status-accepted { color: #f1c40f; }
         .status-ready { color: #8E44AD; }
         .status-onGoing { color: #87CEEB; }
         .status-dispatched { color: #e67e22; }
@@ -259,6 +259,13 @@
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
+        function isWithinTimeRange(date) {
+            const hour = date.getHours();
+            const minutes = date.getMinutes();
+            const totalMinutes = hour * 60 + minutes;
+            return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
+        }
+
         async function fetchOrders() {
             try {
                 const now = new Date();
@@ -275,7 +282,10 @@
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                allOrdersToday = response.data;
+                allOrdersToday = response.data.filter(order => {
+                    const orderDate = new Date(order.creationDate);
+                    return isWithinTimeRange(orderDate);
+                });
                 const filteredOrders = allOrdersToday.filter(order => 
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
@@ -314,7 +324,7 @@
             });
         }
 
- function updateMap(orders) {
+function updateMap(orders) {
             Object.keys(markers).forEach(key => {
                 markers[key].setMap(null);
             });
@@ -352,7 +362,7 @@
             let color;
             switch (status) {
                 case 'open': color = '#e74c3c'; break;
-                case 'accepted': color = '#FFFF00'; break;
+                case 'accepted': color = '#f1c40f'; break;
                 case 'ready': color = '#8E44AD'; break;
                 case 'onGoing': color = '#87CEEB'; break;
                 case 'dispatched': color = '#e67e22'; break;
