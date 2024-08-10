@@ -6,6 +6,8 @@
     <title>Relatórios - Foody Delivery</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body {
@@ -173,22 +175,28 @@
         let allOrders = [];
         let filteredOrders = [];
 
-        function formatDate(date) {
-            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        moment.tz.setDefault("America/Sao_Paulo");
+
+        function formatDateForAPI(date) {
+            return moment(date).format('YYYY-MM-DDTHH:mm:ssZZ');
+        }
+
+        function formatDateForDisplay(dateString) {
+            return moment(dateString).format('YYYY-MM-DD HH:mm:ss');
         }
 
         function setDefaultDates() {
-            const now = new Date();
-            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const now = moment();
+            const yesterday = moment().subtract(24, 'hours');
             
-            document.getElementById('dataFim').value = now.toISOString().slice(0, 16);
-            document.getElementById('dataInicio').value = yesterday.toISOString().slice(0, 16);
+            document.getElementById('dataFim').value = now.format('YYYY-MM-DDTHH:mm');
+            document.getElementById('dataInicio').value = yesterday.format('YYYY-MM-DDTHH:mm');
         }
 
         async function fetchOrders() {
             try {
-                const dataInicio = formatDate(new Date(document.getElementById('dataInicio').value));
-                const dataFim = formatDate(new Date(document.getElementById('dataFim').value));
+                const dataInicio = formatDateForAPI(document.getElementById('dataInicio').value);
+                const dataFim = formatDateForAPI(document.getElementById('dataFim').value);
                 
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
@@ -248,7 +256,7 @@
             filteredOrders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id;
-                row.insertCell().textContent = new Date(order.createdAt).toLocaleString();
+                row.insertCell().textContent = formatDateForDisplay(order.createdAt);
                 row.insertCell().textContent = order.customer.customerName;
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
@@ -283,7 +291,7 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(filteredOrders.map(order => ({
                 'ID do Pedido': order.id,
-                'Data/Hora': new Date(order.createdAt).toLocaleString(),
+                'Data/Hora': formatDateForDisplay(order.createdAt),
                 'Cliente': order.customer.customerName,
                 'Motoqueiro': order.courier ? order.courier.courierName : 'N/A',
                 'Situação': getStatusDisplay(order.status),
@@ -306,6 +314,12 @@
         // Inicialização
         setDefaultDates();
         fetchOrders();
+
+        // Atualizar a hora atual a cada segundo
+        setInterval(() => {
+            const now = moment();
+            document.getElementById('dataFim').value = now.format('YYYY-MM-DDTHH:mm');
+        }, 1000);
     </script>
 </body>
 </html>
