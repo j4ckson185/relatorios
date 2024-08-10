@@ -200,6 +200,7 @@
             online: 0
         };
         let currentOrders = [];
+        let allOrdersToday = [];
 
         // Funções para salvar e carregar dados do localStorage
         function saveDataToLocalStorage() {
@@ -261,8 +262,8 @@
         async function fetchOrders() {
             try {
                 const now = new Date();
-                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-                const endDate = formatDate(now);
+                const startDate = formatDate(new Date(now.setHours(0,0,0,0)));
+                const endDate = formatDate(new Date());
                 
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
@@ -274,14 +275,14 @@
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                const filteredOrders = response.data.filter(order => 
+                allOrdersToday = response.data;
+                const filteredOrders = allOrdersToday.filter(order => 
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
-                const newOrders = filteredOrders.filter(order => !currentOrders.some(co => co.id === order.id));
                 currentOrders = filteredOrders;
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
-                updateDashboard(newOrders);
+                updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
                 saveDataToLocalStorage();
             } catch (error) {
@@ -313,7 +314,7 @@
             });
         }
 
-function updateMap(orders) {
+ function updateMap(orders) {
             Object.keys(markers).forEach(key => {
                 markers[key].setMap(null);
             });
@@ -497,9 +498,16 @@ function updateMap(orders) {
             }
         }
 
-        function updateDashboard(newOrders) {
-            totalOrdersCount += newOrders.length;
-            newOrders.forEach(order => {
+        function updateDashboard(allOrders) {
+            totalOrdersCount = allOrders.length;
+            totalOrdersValue = 0;
+            paymentMethods = {
+                money: 0,
+                card: 0,
+                online: 0
+            };
+
+            allOrders.forEach(order => {
                 totalOrdersValue += order.orderTotal || 0;
                 const paymentType = order.paymentMethod;
                 paymentMethods[paymentType] += order.orderTotal || 0;
