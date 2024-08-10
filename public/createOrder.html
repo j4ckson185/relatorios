@@ -128,11 +128,6 @@
         .action-button:hover {
             background-color: #2980b9;
         }
-        #controlButtons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-        }
         #paymentBreakdown {
             font-size: 12px;
             margin-top: 5px;
@@ -144,10 +139,7 @@
         <div class="sidebar">
             <h2>Pedidos</h2>
             <div id="orderList" class="order-list"></div>
-            <div id="controlButtons">
-                <button id="startButton" class="action-button" onclick="startCounters()">Iniciar Contadores</button>
-                <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
-            </div>
+            <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
         </div>
         <div class="main-content">
             <div id="map"></div>
@@ -199,14 +191,12 @@
         let orderPrepTimes = {};
         let totalPrepTime = 0;
         let preparedOrders = 0;
-        let countingStarted = false;
-        let startTime;
         let totalOrdersCount = 0;
         let totalOrdersValue = 0;
         let paymentMethods = {
-            online: 0,
+            money: 0,
             card: 0,
-            cash: 0
+            online: 0
         };
         let currentOrders = [];
 
@@ -253,12 +243,11 @@
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                currentOrders = response.data.filter(order => 
-                    ['onGoing', 'ready', 'accepted', 'dispatched'].includes(order.status)
-                );
+                const newOrders = response.data.filter(order => !currentOrders.some(co => co.id === order.id));
+                currentOrders = response.data;
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
-                updateDashboard(currentOrders);
+                updateDashboard(newOrders);
                 updatePrepTimes(currentOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -344,7 +333,7 @@
             };
         }
 
-       async function updateCourierLocation(order) {
+        async function updateCourierLocation(order) {
             try {
                 const response = await axios.get(trackingUrl, {
                     headers: {
@@ -355,7 +344,7 @@
                         orderUid: order.uid
                     }
                 });
-                const tracking = response.data;
+const tracking = response.data;
                 if (tracking.courierLocationCoordinates) {
                     const { lat, lng } = tracking.courierLocationCoordinates;
                     let courierMarker = markers[`courier-${order.courier.courierName}`];
@@ -417,14 +406,15 @@
 
         function translatePaymentMethod(method) {
             switch(method) {
-                case 'credit_card':
-                case 'debit_card':
+                case 'money':
+                    return 'Dinheiro';
+                case 'card':
+                    return 'Cartão';
+                case 'online':
                 case 'pix':
                     return 'Online';
-                case 'cash':
-                    return 'Dinheiro';
                 default:
-                    return 'Cartão';
+                    return method;
             }
         }
 
@@ -470,30 +460,24 @@
             }
         }
 
-        function updateDashboard(orders) {
-            if (countingStarted) {
-                totalOrdersCount += orders.length - currentOrders.length;
-                orders.forEach(order => {
-                    if (!currentOrders.some(co => co.id === order.id)) {
-                        totalOrdersValue += order.orderTotal || 0;
-                        const paymentType = translatePaymentMethod(order.paymentMethod);
-                        paymentMethods[paymentType.toLowerCase()] += order.orderTotal || 0;
-                    }
-                });
-            }
+        function updateDashboard(newOrders) {
+            totalOrdersCount += newOrders.length;
+            newOrders.forEach(order => {
+                totalOrdersValue += order.orderTotal || 0;
+                const paymentType = order.paymentMethod;
+                paymentMethods[paymentType] += order.orderTotal || 0;
+            });
 
             document.getElementById('totalOrders').textContent = totalOrdersCount;
-            document.getElementById('ongoingOrders').textContent = orders.filter(order => order.status === 'onGoing').length;
+            document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
             
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
             
             const paymentBreakdown = document.getElementById('paymentBreakdown');
             paymentBreakdown.innerHTML = '';
             for (const [method, value] of Object.entries(paymentMethods)) {
-                paymentBreakdown.innerHTML += `<p>${method.charAt(0).toUpperCase() + method.slice(1)}: R$ ${value.toFixed(2)}</p>`;
+                paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
-
-            currentOrders = [...orders];
         }
 
         function updatePrepTimes(orders) {
@@ -526,34 +510,13 @@
             return '0.0';
         }
 
-        function startCounters() {
-            countingStarted = true;
-            startTime = new Date();
-            totalOrdersCount = currentOrders.length;
-            totalOrdersValue = currentOrders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
-            paymentMethods = {
-                online: 0,
-                card: 0,
-                cash: 0
-            };
-            currentOrders.forEach(order => {
-                const paymentType = translatePaymentMethod(order.paymentMethod);
-                paymentMethods[paymentType.toLowerCase()] += order.orderTotal || 0;
-            });
-            document.getElementById('startButton').disabled = true;
-            document.getElementById('resetButton').disabled = false;
-            updateDashboard(currentOrders);
-        }
-
         function resetCounters() {
-            countingStarted = false;
-            startTime = null;
             totalOrdersCount = 0;
             totalOrdersValue = 0;
             paymentMethods = {
-                online: 0,
+                money: 0,
                 card: 0,
-                cash: 0
+                online: 0
             };
             totalPrepTime = 0;
             preparedOrders = 0;
@@ -563,8 +526,6 @@
             document.getElementById('ongoingOrders').textContent = '0';
             document.getElementById('totalValue').textContent = 'R$ 0.00';
             document.getElementById('paymentBreakdown').innerHTML = '';
-            document.getElementById('startButton').disabled = false;
-            document.getElementById('resetButton').disabled = true;
         }
 
         initMap();
