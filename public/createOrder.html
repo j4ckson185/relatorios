@@ -201,6 +201,36 @@
         };
         let currentOrders = [];
 
+        // Funções para salvar e carregar dados do localStorage
+        function saveDataToLocalStorage() {
+            localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
+            localStorage.setItem('totalPrepTime', totalPrepTime.toString());
+            localStorage.setItem('preparedOrders', preparedOrders.toString());
+            localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
+            localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
+            localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
+        }
+
+        function loadDataFromLocalStorage() {
+            const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
+            if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
+
+            const storedTotalPrepTime = localStorage.getItem('totalPrepTime');
+            if (storedTotalPrepTime) totalPrepTime = parseFloat(storedTotalPrepTime);
+
+            const storedPreparedOrders = localStorage.getItem('preparedOrders');
+            if (storedPreparedOrders) preparedOrders = parseInt(storedPreparedOrders);
+
+            const storedTotalOrdersCount = localStorage.getItem('totalOrdersCount');
+            if (storedTotalOrdersCount) totalOrdersCount = parseInt(storedTotalOrdersCount);
+
+            const storedTotalOrdersValue = localStorage.getItem('totalOrdersValue');
+            if (storedTotalOrdersValue) totalOrdersValue = parseFloat(storedTotalOrdersValue);
+
+            const storedPaymentMethods = localStorage.getItem('paymentMethods');
+            if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
+        }
+
         function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
             map = new google.maps.Map(document.getElementById('map'), {
@@ -253,6 +283,7 @@
                 updateMap(currentOrders);
                 updateDashboard(newOrders);
                 updatePrepTimes(currentOrders);
+                saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -282,7 +313,7 @@
             });
         }
 
-        function updateMap(orders) {
+function updateMap(orders) {
             Object.keys(markers).forEach(key => {
                 markers[key].setMap(null);
             });
@@ -338,7 +369,7 @@
             };
         }
 
-   async function updateCourierLocation(order) {
+        async function updateCourierLocation(order) {
             try {
                 const response = await axios.get(trackingUrl, {
                     headers: {
@@ -484,6 +515,8 @@
             for (const [method, value] of Object.entries(paymentMethods)) {
                 paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
+
+            saveDataToLocalStorage();
         }
 
         function updatePrepTimes(orders) {
@@ -506,6 +539,8 @@
 
             const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
             document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
+
+            saveDataToLocalStorage();
         }
 
         function getPrepTimeForOrder(orderId) {
@@ -532,8 +567,10 @@
             document.getElementById('ongoingOrders').textContent = '0';
             document.getElementById('totalValue').textContent = 'R$ 0.00';
             document.getElementById('paymentBreakdown').innerHTML = '';
+            saveDataToLocalStorage();
         }
 
+        loadDataFromLocalStorage();
         initMap();
         fetchOrders();
         setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
