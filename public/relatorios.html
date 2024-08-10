@@ -157,16 +157,17 @@
             document.getElementById('dataInicio').value = startOfDay.format('YYYY-MM-DDTHH:mm');
         }
 
-        function formatDateForAPI(date) {
-            return moment.tz(date, "America/Sao_Paulo").format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
         async function fetchOrders() {
             try {
-                const dataInicio = formatDateForAPI(document.getElementById('dataInicio').value);
-                const dataFim = formatDateForAPI(document.getElementById('dataFim').value);
+                const now = new Date();
+                const startDate = formatDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+                const endDate = formatDate(now);
                 
-                console.log('Buscando pedidos de', dataInicio, 'até', dataFim);
+                console.log('Buscando pedidos de', startDate, 'até', endDate);
 
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
@@ -174,7 +175,7 @@
                         'Content-Type': 'application/json;charset=UTF-8'
                     },
                     params: {
-                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(dataInicio)}&endDate=${encodeURIComponent(dataFim)}`
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
                 
@@ -184,7 +185,7 @@
                 applyFilters();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
-                alert('Erro ao buscar pedidos. Por favor, verifique as datas e tente novamente.');
+                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
             }
         }
 
@@ -213,10 +214,9 @@
             const pagamento = document.getElementById('pagamento').value;
 
             const filteredOrders = allOrders.filter(order => {
-                const motoqueiroCriterio = !motoqueiro || (order.courier && order.courier.courierName === motoqueiro);
-                const situacaoCriterio = !situacao || order.status === situacao;
-                const pagamentoCriterio = !pagamento || order.paymentMethod === pagamento;
-                return motoqueiroCriterio && situacaoCriterio && pagamentoCriterio;
+                return (!motoqueiro || (order.courier && order.courier.courierName === motoqueiro)) &&
+                       (!situacao || order.status === situacao) &&
+                       (!pagamento || order.paymentMethod === pagamento);
             });
 
             console.log('Pedidos filtrados:', filteredOrders);
@@ -280,9 +280,7 @@
         fetchOrders();
 
         // Atualizar pedidos a cada 30 segundos
-        setInterval(() => {
-            fetchOrders();
-        }, 30000);
+        setInterval(fetchOrders, 30000);
 
         // Atualizar a data final a cada minuto
         setInterval(() => {
