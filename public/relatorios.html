@@ -8,47 +8,40 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #f0f0f0;
-            color: #333;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-        }
-        .filter-section {
-            background-color: #fff;
+            background-color: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .filter-section {
             margin-bottom: 20px;
         }
         .filter-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .filter-item {
             flex: 1;
             margin-right: 10px;
         }
-        .filter-item:last-child {
-            margin-right: 0;
-        }
         label {
             display: block;
             margin-bottom: 5px;
-            font-weight: bold;
         }
         input, select {
             width: 100%;
@@ -56,47 +49,28 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        .button-group {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
         button {
             padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            margin-left: 10px;
         }
-        #buscarBtn {
-            background-color: #3498db;
-            color: white;
-        }
-        #exportarBtn {
-            background-color: #2ecc71;
-            color: white;
+        button:hover {
+            background-color: #45a049;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         th, td {
-            padding: 12px;
+            border: 1px solid #ddd;
+            padding: 8px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
         }
         th {
-            background-color: #2c3e50;
-            color: white;
-        }
-        tr:nth-child(even) {
             background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #e6e6e6;
         }
     </style>
 </head>
@@ -144,10 +118,8 @@
                     </select>
                 </div>
             </div>
-            <div class="button-group">
-                <button id="buscarBtn">Buscar</button>
-                <button id="exportarBtn">Exportar</button>
-            </div>
+            <button id="buscarBtn">Buscar</button>
+            <button id="exportarBtn">Exportar para Excel</button>
         </div>
         <table id="relatorioTable">
             <thead>
@@ -173,17 +145,8 @@
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         let allOrders = [];
-        let filteredOrders = [];
 
         moment.tz.setDefault("America/Sao_Paulo");
-
-        function formatDateForAPI(date) {
-            return moment(date).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-        }
-
-        function formatDateForDisplay(dateString) {
-            return moment(dateString).format('YYYY-MM-DD HH:mm:ss');
-        }
 
         function setDefaultDates() {
             const now = moment();
@@ -195,8 +158,8 @@
 
         async function fetchOrders() {
             try {
-                const dataInicio = formatDateForAPI(document.getElementById('dataInicio').value);
-                const dataFim = formatDateForAPI(document.getElementById('dataFim').value);
+                const dataInicio = moment(document.getElementById('dataInicio').value).format();
+                const dataFim = moment(document.getElementById('dataFim').value).format();
                 
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
@@ -208,9 +171,8 @@
                     }
                 });
                 
-                allOrders = response.data.filter(order => 
-                    ['open', 'accepted', 'onGoing', 'canceled', 'dispatched', 'finished', 'ready'].includes(order.status)
-                );
+                allOrders = response.data;
+                console.log('Pedidos recebidos:', allOrders);
                 updateMotoqueirosSelect();
                 applyFilters();
             } catch (error) {
@@ -242,23 +204,23 @@
             const situacao = document.getElementById('situacao').value;
             const pagamento = document.getElementById('pagamento').value;
 
-            filteredOrders = allOrders.filter(order => {
+            const filteredOrders = allOrders.filter(order => {
                 return (!motoqueiro || (order.courier && order.courier.courierName === motoqueiro)) &&
                        (!situacao || order.status === situacao) &&
                        (!pagamento || order.paymentMethod === pagamento);
             });
 
-            updateTable();
+            updateTable(filteredOrders);
         }
 
-        function updateTable() {
+        function updateTable(orders) {
             const tbody = document.querySelector('#relatorioTable tbody');
             tbody.innerHTML = '';
 
-            filteredOrders.forEach(order => {
+            orders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id;
-                row.insertCell().textContent = formatDateForDisplay(order.createdAt);
+                row.insertCell().textContent = moment(order.createdAt).format('YYYY-MM-DD HH:mm:ss');
                 row.insertCell().textContent = order.customer.customerName;
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
@@ -290,38 +252,20 @@
         }
 
         function exportToExcel() {
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('relatorioTable'));
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(filteredOrders.map(order => ({
-                'ID do Pedido': order.id,
-                'Data/Hora': formatDateForDisplay(order.createdAt),
-                'Cliente': order.customer.customerName,
-                'Motoqueiro': order.courier ? order.courier.courierName : 'N/A',
-                'Situação': getStatusDisplay(order.status),
-                'Forma de Pagamento': translatePaymentMethod(order.paymentMethod),
-                'Valor Total': `R$ ${order.orderTotal.toFixed(2)}`
-            })));
-
             XLSX.utils.book_append_sheet(wb, ws, "Relatório");
             XLSX.writeFile(wb, "Relatorio_Foody_Delivery.xlsx");
         }
 
         document.getElementById('buscarBtn').addEventListener('click', fetchOrders);
         document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
-
-        // Event listeners para filtros
         document.getElementById('motoqueiro').addEventListener('change', applyFilters);
         document.getElementById('situacao').addEventListener('change', applyFilters);
         document.getElementById('pagamento').addEventListener('change', applyFilters);
 
-        // Inicialização
         setDefaultDates();
         fetchOrders();
-
-        // Atualizar a hora atual a cada segundo
-        setInterval(() => {
-            const now = moment();
-            document.getElementById('dataFim').value = now.format('YYYY-MM-DDTHH:mm');
-        }, 1000);
     </script>
 </body>
 </html>
