@@ -277,11 +277,13 @@
         let paymentMethods = {
             money: 0,
             card: 0,
-            online: 0
+            online: 0,
+            pix: 0
         };
         let currentOrders = [];
         let allOrdersToday = [];
         let courierDeliveries = {};
+        let yesterdayValue = 0;
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -291,6 +293,7 @@
             localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
             localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
             localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
+            localStorage.setItem('yesterdayValue', yesterdayValue.toString());
         }
 
         function loadDataFromLocalStorage() {
@@ -314,9 +317,12 @@
 
             const storedCourierDeliveries = localStorage.getItem('courierDeliveries');
             if (storedCourierDeliveries) courierDeliveries = JSON.parse(storedCourierDeliveries);
+
+            const storedYesterdayValue = localStorage.getItem('yesterdayValue');
+            if (storedYesterdayValue) yesterdayValue = parseFloat(storedYesterdayValue);
         }
 
-        function initMap() {
+function initMap() {
             const centerAddress = { lat: -5.750636, lng: -35.254625 };
             map = new google.maps.Map(document.getElementById('map'), {
                 center: centerAddress,
@@ -328,7 +334,7 @@
                 map: map
             });
 
-   new google.maps.Marker({
+            new google.maps.Marker({
                 position: centerAddress,
                 map: map,
                 title: "Rua Serra do Mar, 1216, Potengi",
@@ -445,7 +451,7 @@
             const ongoingOrders = orders.filter(order => ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)).length;
             const readyOrders = orders.filter(order => order.status === 'ready').length;
             const cancelledOrders = orders.filter(order => order.status === 'cancelled').length;
-            const priorityOrders = orders.filter(order => order.status === 'accepted').length;
+            const priorityOrders = orders.filter(order => order.status === 'ready').length;
 
             document.getElementById('totalOrders').textContent = totalOrders;
             document.getElementById('ongoingOrders').textContent = ongoingOrders;
@@ -455,52 +461,60 @@
 
             const totalValue = orders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
             document.getElementById('totalValue').textContent = `R$ ${totalValue.toFixed(2)}`;
+            document.getElementById('yesterdayValue').textContent = `R$ ${yesterdayValue.toFixed(2)}`;
 
             updatePaymentBreakdown(orders);
         }
 
         function updatePaymentBreakdown(orders) {
             const paymentMethods = orders.reduce((acc, order) => {
-                acc[order.paymentMethod] = (acc[order.paymentMethod] || 0) + 1;
+                acc[order.paymentMethod] = (acc[order.paymentMethod] || 0) + (order.orderTotal || 0);
                 return acc;
             }, {});
 
             let breakdownHtml = '<h4>Métodos de Pagamento:</h4>';
-            for (const [method, count] of Object.entries(paymentMethods)) {
-                breakdownHtml += `<p>${translatePaymentMethod(method)}: ${count}</p>`;
+            for (const [method, value] of Object.entries(paymentMethods)) {
+                breakdownHtml += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
 
             document.getElementById('paymentBreakdown').innerHTML = breakdownHtml;
         }
 
         function updatePrepTimes(orders) {
+            let totalPrepTime = 0;
+            let preparedOrdersCount = 0;
+
             orders.forEach(order => {
                 if (order.readyDate && order.creationDate) {
                     const prepTime = (new Date(order.readyDate) - new Date(order.creationDate)) / 60000; // em minutos
+                    totalPrepTime += prepTime;
+                    preparedOrdersCount++;
                     document.getElementById(`prepTime-${order.id}`).textContent = `${prepTime.toFixed(0)} min`;
                 }
             });
 
-            const preparedOrders = orders.filter(order => order.readyDate && order.creationDate);
-            const totalPrepTime = preparedOrders.reduce((sum, order) => {
-                return sum + (new Date(order.readyDate) - new Date(order.creationDate)) / 60000;
-            }, 0);
-
-            const avgPrepTime = preparedOrders.length > 0 ? totalPrepTime / preparedOrders.length : 0;
+            const avgPrepTime = preparedOrdersCount > 0 ? totalPrepTime / preparedOrdersCount : 0;
             document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(0)} min`;
         }
 
         function updateCourierDeliveries(orders) {
-            const courierDeliveries = orders.reduce((acc, order) => {
+            const courierDeliveries = {};
+            orders.forEach(order => {
                 if (order.courier && order.courier.courierName) {
-                    acc[order.courier.courierName] = (acc[order.courier.courierName] || 0) + 1;
+                    if (!courierDeliveries[order.courier.courierName]) {
+                        courierDeliveries[order.courier.courierName] = { completed: 0, ongoing: 0 };
+                    }
+                    if (order.status === 'delivered') {
+                        courierDeliveries[order.courier.courierName].completed++;
+                    } else if (['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)) {
+                        courierDeliveries[order.courier.courierName].ongoing++;
+                    }
                 }
-                return acc;
-            }, {});
+            });
 
             let deliveriesHtml = '';
-            for (const [courier, count] of Object.entries(courierDeliveries)) {
-                deliveriesHtml += `<p>${courier}: ${count}</p>`;
+            for (const [courier, counts] of Object.entries(courierDeliveries)) {
+                deliveriesHtml += `<p>${courier}: ${counts.completed} finalizadas, ${counts.ongoing} em andamento</p>`;
             }
 
             document.getElementById('courierDeliveries').innerHTML = deliveriesHtml;
@@ -511,7 +525,7 @@
                 'open': 'Aberto',
                 'accepted': 'Aceito',
                 'ready': 'Pronto',
-                'onGoing': 'Em andamento',
+                'onGoing': 'A Caminho',
                 'dispatched': 'Despachado',
                 'delivered': 'Entregue',
                 'cancelled': 'Cancelado'
@@ -546,7 +560,7 @@
         }
 
         function showPriorityOrders() {
-            const priorityOrders = currentOrders.filter(order => order.status === 'accepted');
+            const priorityOrders = currentOrders.filter(order => order.status === 'ready');
             const modal = document.getElementById('priorityOrdersModal');
             const content = document.getElementById('priorityOrdersContent');
             content.innerHTML = '<h3>Pedidos Prioritários</h3>';
@@ -563,7 +577,7 @@
         }
 
         function printPriorityOrders() {
-            const priorityOrders = currentOrders.filter(order => order.status === 'accepted');
+            const priorityOrders = currentOrders.filter(order => order.status === 'ready');
             let printContent = 'Pedidos Prioritários:\n\n';
             priorityOrders.forEach(order => {
                 printContent += `Pedido #${order.id} - ${order.customer.customerName}\n`;
@@ -602,8 +616,9 @@
             preparedOrders = 0;
             totalOrdersCount = 0;
             totalOrdersValue = 0;
-            paymentMethods = { money: 0, card: 0, online: 0 };
+            paymentMethods = { money: 0, card: 0, online: 0, pix: 0 };
             courierDeliveries = {};
+            yesterdayValue = 0;
             saveDataToLocalStorage();
             updateDashboard(currentOrders);
         }
