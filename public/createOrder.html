@@ -447,7 +447,7 @@
                     return isWithinTimeRange(orderDate);
                 });
                 const filteredOrders = allOrdersToday.filter(order => 
-                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
+                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
                 currentOrders = filteredOrders;
                 priorityOrders = currentOrders.filter(order => order.status === 'accepted');
@@ -456,7 +456,7 @@
                 updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
                 updateCourierDeliveries(allOrdersToday);
-                checkForCancelledOrders(currentOrders);
+                checkForCancelledOrders(allOrdersToday);
                 fetchYesterdayOrders();
                 saveDataToLocalStorage();
             } catch (error) {
@@ -565,7 +565,6 @@
                 case 'ready': color = '#8E44AD'; break;
                 case 'onGoing': color = '#87CEEB'; break;
                 case 'dispatched': color = '#e67e22'; break;
-                case 'cancelled': color = '#95a5a6'; break;
                 default: color = 'gray';
             }
             return {
