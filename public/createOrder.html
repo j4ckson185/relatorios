@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Pedidos - Foody Delivery</title>
+    <title>Gerenciar Pedidos - Açaí Delivery</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
@@ -59,7 +59,6 @@
             font-size: 14px;
             color: #4a4a4a;
             margin-bottom: 5px;
-            font-weight: bold;
         }
         .metric-value {
             font-size: 18px;
@@ -126,7 +125,6 @@
             font-size: 16px;
             margin-top: 10px;
             transition: background-color 0.3s ease;
-            width: 100%;
         }
         .action-button:hover {
             background-color: #2980b9;
@@ -141,7 +139,7 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 1;
             left: 0;
             top: 0;
             width: 100%;
@@ -171,61 +169,8 @@
             text-decoration: none;
             cursor: pointer;
         }
-        .courier-name {
-            font-weight: bold;
-            color: #3498db;
-        }
-        .courier-deliveries {
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        .view-button {
-            background-color: #2ecc71;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .view-button:hover {
-            background-color: #27ae60;
-        }
-        .print-button {
-            background-color: #e67e22;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .print-button:hover {
-            background-color: #d35400;
-        }
-        .ongoing-orders-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .ongoing-order-item {
-            background-color: #ecf0f1;
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .ongoing-order-item h4 {
-            margin: 0 0 5px 0;
-            color: #2c3e50;
-        }
-        .same-address {
-            color: #e67e22;
-            font-weight: bold;
-        }
         .cancellation-popup {
+            display: none;
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -235,14 +180,19 @@
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
-            display: none;
         }
-        .cancellation-popup .close {
-            color: #721c24;
-            float: right;
-            font-size: 20px;
-            font-weight: bold;
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin: 2px 2px;
             cursor: pointer;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -252,7 +202,7 @@
             <h2>Pedidos</h2>
             <div id="orderList" class="order-list"></div>
             <button id="resetButton" class="action-button" onclick="resetCounters()">Zerar Contadores</button>
-            <button id="reportsButton" class="action-button" onclick="window.open('relatorios.html', '_blank')">Relatórios</button>
+            <button class="action-button" onclick="showReports()">Relatórios</button>
         </div>
         <div class="main-content">
             <div id="map"></div>
@@ -262,14 +212,15 @@
                     <div><span class="label">Total:</span> <span id="totalOrders" class="metric-value">0</span></div>
                     <div><span class="label">Em Andamento:</span> <span id="ongoingOrders" class="metric-value">0</span></div>
                     <div><span class="label">Tempo Médio de Preparo:</span> <span id="avgPrepTime" class="metric-value">0 min</span></div>
-                    <div><span class="label">Pedidos em loja:</span> <span id="readyOrders" class="metric-value">0</span> <button class="view-button" onclick="showReadyOrders()">Ver</button></div>
+                    <div><span class="label">Pedidos em loja:</span> <span id="readyOrders" class="metric-value">0</span> <button onclick="showReadyOrders()">Ver</button></div>
                     <div><span class="label">Cancelados:</span> <span id="cancelledOrders" class="metric-value">0</span></div>
-                    <div><span class="label">Prioridades:</span> <span id="priorityOrders" class="metric-value">0</span> <button class="view-button" onclick="showPriorityOrders()">Ver</button> <button class="print-button" onclick="printPriorityOrders()">Imprimir</button></div>
+                    <div><span class="label">Prioridades:</span> <span id="priorityOrders" class="metric-value">0</span> <button onclick="showPriorityOrders()">Ver</button> <button onclick="printPriorityOrders()">Imprimir</button></div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Valor Total</div>
                     <div><span class="label">Hoje:</span> <span id="totalValue" class="metric-value">R$ 0,00</span></div>
                     <div><span class="label">Ontem:</span> <span id="yesterdayValue" class="metric-value">R$ 0,00</span></div>
+                    <div><span class="label">Ticket Médio:</span> <span id="averageTicket" class="metric-value">R$ 0,00</span></div>
                     <div id="paymentBreakdown"></div>
                 </div>
                 <div class="metric-card">
@@ -298,6 +249,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="priorityOrdersContent"></div>
+            <button onclick="printPriorityOrders()">Imprimir</button>
         </div>
     </div>
 
@@ -324,6 +276,7 @@
         let map;
         let heatmap;
         let markers = {};
+        let courierMarkers = {};
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
         const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
         const authToken = '8d7c77946d534444a168bb7da794febf';
@@ -334,7 +287,6 @@
         let preparedOrders = 0;
         let totalOrdersCount = 0;
         let totalOrdersValue = 0;
-        let yesterdayOrdersValue = 0;
         let paymentMethods = {
             money: 0,
             card: 0,
@@ -343,9 +295,7 @@
         let currentOrders = [];
         let allOrdersToday = [];
         let courierDeliveries = {};
-        let cancelledOrders = 0;
-        let lastOrderStatuses = {};
-        let priorityOrders = [];
+        let yesterdayValue = 0;
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -353,14 +303,12 @@
             localStorage.setItem('preparedOrders', preparedOrders.toString());
             localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
             localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
-            localStorage.setItem('yesterdayOrdersValue', yesterdayOrdersValue.toString());
             localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
             localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
-            localStorage.setItem('cancelledOrders', cancelledOrders.toString());
-            localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+            localStorage.setItem('yesterdayValue', yesterdayValue.toString());
         }
 
-        function loadDataFromLocalStorage() {
+function loadDataFromLocalStorage() {
             const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
             if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
 
@@ -376,20 +324,14 @@
             const storedTotalOrdersValue = localStorage.getItem('totalOrdersValue');
             if (storedTotalOrdersValue) totalOrdersValue = parseFloat(storedTotalOrdersValue);
 
-            const storedYesterdayOrdersValue = localStorage.getItem('yesterdayOrdersValue');
-            if (storedYesterdayOrdersValue) yesterdayOrdersValue = parseFloat(storedYesterdayOrdersValue);
-
             const storedPaymentMethods = localStorage.getItem('paymentMethods');
             if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
 
             const storedCourierDeliveries = localStorage.getItem('courierDeliveries');
             if (storedCourierDeliveries) courierDeliveries = JSON.parse(storedCourierDeliveries);
 
-            const storedCancelledOrders = localStorage.getItem('cancelledOrders');
-            if (storedCancelledOrders) cancelledOrders = parseInt(storedCancelledOrders);
-
-            const storedPriorityOrders = localStorage.getItem('priorityOrders');
-            if (storedPriorityOrders) priorityOrders = JSON.parse(storedPriorityOrders);
+            const storedYesterdayValue = localStorage.getItem('yesterdayValue');
+            if (storedYesterdayValue) yesterdayValue = parseFloat(storedYesterdayValue);
         }
 
         function initMap() {
@@ -450,43 +392,16 @@
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
                 currentOrders = filteredOrders;
-                priorityOrders = currentOrders.filter(order => order.status === 'accepted');
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
                 updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
                 updateCourierDeliveries(allOrdersToday);
                 checkForCancelledOrders(allOrdersToday);
-                fetchYesterdayOrders();
                 saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
-            }
-        }
-
-        async function fetchYesterdayOrders() {
-            try {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const startDate = formatDate(new Date(yesterday.setHours(0,0,0,0)));
-                const endDate = formatDate(new Date(yesterday.setHours(23,59,59,999)));
-                
-                const response = await axios.get(firebaseFunctionUrl, {
-                    headers: {
-                        'Authorization': authToken,
-                        'Content-Type': 'application/json;charset=UTF-8'
-                    },
-                    params: {
-                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
-                    }
-                });
-                const yesterdayOrders = response.data.filter(order => isWithinTimeRange(new Date(order.creationDate)));
-                yesterdayOrdersValue = yesterdayOrders.reduce((total, order) => total + (order.orderTotal || 0), 0);
-                document.getElementById('yesterdayValue').textContent = `R$ ${yesterdayOrdersValue.toFixed(2)}`;
-                saveDataToLocalStorage();
-            } catch (error) {
-                console.error('Erro ao buscar pedidos de ontem:', error);
             }
         }
 
@@ -500,460 +415,253 @@
                     <h3>Pedido #${order.id}</h3>
                     <p class="status-${order.status.toLowerCase()}">${getStatusDisplay(order.status)}</p>
                     <p>Cliente: ${order.customer.customerName}</p>
-                    ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
+                    ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
                     <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
                     <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                     ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
                     <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
-                    <div class="order-options">
-                        <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
-                    </div>
                 `;
                 orderList.appendChild(orderDiv);
             });
         }
 
         function updateMap(orders) {
-            const heatmapData = [];
-            
+            // Limpar marcadores existentes
+            Object.values(markers).forEach(marker => marker.setMap(null));
+            markers = {};
+            Object.values(courierMarkers).forEach(marker => marker.setMap(null));
+            courierMarkers = {};
+
+            // Adicionar novos marcadores
             orders.forEach(order => {
                 if (order.deliveryPoint && order.deliveryPoint.coordinates) {
-                    const { lat, lng } = order.deliveryPoint.coordinates;
-                    let marker = markers[`order-${order.uid}`];
-                    
-                    if (!marker) {
-                        marker = new google.maps.Marker({
-                            position: { lat, lng },
-                            map: map,
-                            title: `Pedido #${order.id}`,
-                            icon: getOrderMarkerIcon(order.status, order.id)
-                        });
-                        markers[`order-${order.uid}`] = marker;
-
-                        marker.addListener('click', () => {
-                            showOrderDetails(order);
-                        });
-                    } else {
-                        marker.setPosition({ lat, lng });
-                        marker.setIcon(getOrderMarkerIcon(order.status, order.id));
-                    }
-
-                    heatmapData.push(new google.maps.LatLng(lat, lng));
+                    const position = {
+                        lat: order.deliveryPoint.coordinates.lat,
+                        lng: order.deliveryPoint.coordinates.lng
+                    };
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: `Pedido #${order.id}`
+                    });
+                    markers[order.id] = marker;
                 }
 
-                if (order.status === 'onGoing' || order.status === 'dispatched') {
-                    updateCourierLocation(order);
+                // Adicionar marcadores para motoboys
+                if (order.courier && order.courier.courierName && order.status === 'onGoing') {
+                    fetchCourierLocation(order.uid, order.courier.courierName);
                 }
             });
 
-            // Remove markers for orders that no longer exist
-            Object.keys(markers).forEach(key => {
-                if (key.startsWith('order-') && !orders.some(order => `order-${order.uid}` === key)) {
-                    markers[key].setMap(null);
-                    delete markers[key];
+            // Atualizar heatmap
+            const heatmapData = orders.map(order => {
+                if (order.deliveryPoint && order.deliveryPoint.coordinates) {
+                    return new google.maps.LatLng(
+                        order.deliveryPoint.coordinates.lat,
+                        order.deliveryPoint.coordinates.lng
+                    );
                 }
-            });
+            }).filter(Boolean);
 
             heatmap.setData(heatmapData);
         }
 
-        function getOrderMarkerIcon(status, orderId) {
-            let color;
-            switch (status) {
-                case 'open': color = '#e74c3c'; break;
-                case 'accepted': color = '#f1c40f'; break;
-                case 'ready': color = '#8E44AD'; break;
-                case 'onGoing': color = '#87CEEB'; break;
-                case 'dispatched': color = '#e67e22'; break;
-                default: color = 'gray';
-            }
-            return {
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                        <rect width="32" height="32" fill="${color}" stroke="black" stroke-width="1" />
-                        <text x="16" y="20" font-family="Arial" font-size="12" fill="black" text-anchor="middle">${orderId}</text>
-                    </svg>
-                `)}`,
-                scaledSize: new google.maps.Size(32, 32),
-                anchor: new google.maps.Point(16, 16)
-            };
-        }
-
-        async function updateCourierLocation(order) {
+        async function fetchCourierLocation(orderUid, courierName) {
             try {
-                const response = await axios.get(trackingUrl, {
+                const response = await axios.get(`${trackingUrl}/${orderUid}`, {
                     headers: {
                         'Authorization': authToken,
                         'Content-Type': 'application/json;charset=UTF-8'
-                    },
-                    params: {
-                        orderUid: order.uid
                     }
                 });
-                const tracking = response.data;
-                if (tracking.courierLocationCoordinates) {
-                    const { lat, lng } = tracking.courierLocationCoordinates;
-                    let courierMarker = markers[`courier-${order.courier.courierName}`];
-
-                    if (!courierMarker) {
-                        courierMarker = new google.maps.Marker({
-                            position: { lat, lng },
-                            map: map,
-                            title: `Motoboy - ${order.courier.courierName}`,
-                            icon: getCourierIcon(order.courier.courierName, order.status)
-                        });
-                        markers[`courier-${order.courier.courierName}`] = courierMarker;
-
-                        courierMarker.addListener('click', () => {
-                            showCourierDetails(order, tracking);
-                        });
+                
+                if (response.data && response.data.courierLocationCoordinates) {
+                    const position = {
+                        lat: response.data.courierLocationCoordinates.lat,
+                        lng: response.data.courierLocationCoordinates.lng
+                    };
+                    
+                    if (courierMarkers[courierName]) {
+                        courierMarkers[courierName].setPosition(position);
                     } else {
-                        courierMarker.setPosition({ lat, lng });
-                        courierMarker.setIcon(getCourierIcon(order.courier.courierName, order.status));
+                        const marker = new google.maps.Marker({
+                            position: position,
+                            map: map,
+                            title: `Motoboy: ${courierName}`,
+                            icon: {
+                                url: "https://maps.google.com/mapfiles/ms/icons/motorcycling.png",
+                                scaledSize: new google.maps.Size(32, 32)
+                            }
+                        });
+                        courierMarkers[courierName] = marker;
                     }
                 }
             } catch (error) {
-                console.error(`Erro ao buscar localização do motoboy para o pedido ${order.uid}:`, error);
+                console.error('Erro ao buscar localização do motoboy:', error);
             }
         }
 
-        function getCourierIcon(courierName, status) {
-            return {
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
-                        <rect width="60" height="20" rx="10" ry="10" fill="${status === 'onGoing' ? 'red' : 'green'}" />
-                        <text x="30" y="14" font-family="Arial" font-size="12" fill="white" text-anchor="middle">${courierName.substring(0, 5).toUpperCase()}</text>
-                        <path d="M30 25 L20 55 L40 55 Z" fill="black"/>
-                        <circle cx="30" cy="35" r="7" fill="white"/>
-                    </svg>
-                `)}`,
-                scaledSize: new google.maps.Size(60, 60),
-                anchor: new google.maps.Point(30, 30)
-            };
-        }
+        function updateDashboard(orders) {
+            const totalOrders = orders.length;
+            const ongoingOrders = orders.filter(order => ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)).length;
+            const readyOrders = orders.filter(order => order.status === 'ready').length;
+            const cancelledOrders = orders.filter(order => order.status === 'cancelled').length;
+            const priorityOrders = orders.filter(order => order.status === 'ready').length;
 
-        function centerOrderOnMap(orderUid) {
-            const marker = markers[`order-${orderUid}`] || markers[`courier-${orderUid}`];
-            if (marker) {
-                map.setCenter(marker.getPosition());
-                map.setZoom(16);
-            }
-        }
-
-        function getStatusDisplay(status) {
-            switch(status) {
-                case 'open': return 'Aberto';
-                case 'accepted': return 'Aceito';
-                case 'ready': return 'Pronto';
-                case 'onGoing': return 'A Caminho';
-                case 'dispatched': return 'Despachado';
-                case 'cancelled': return 'Cancelado';
-                default: return status;
-            }
-        }
-
-        function translatePaymentMethod(method) {
-            switch(method) {
-                case 'money': return 'Dinheiro';
-                case 'card': return 'Cartão';
-                case 'online': return 'Online';
-                default: return method;
-            }
-        }
-
-        function showOrderDetails(order) {
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <div style="max-width: 200px;">
-                        <h3>Pedido #${order.id}</h3>
-                        <p>Cliente: ${order.customer.customerName}</p>
-                        <p>Endereço: ${order.deliveryPoint.address}</p>
-                        <p>Status: ${getStatusDisplay(order.status)}</p>
-                        ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
-                        <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
-                        <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-                        ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
-                        <p>Tempo de Preparo: ${getPrepTimeForOrder(order.id)} min</p>
-                    </div>
-                `
-            });
-
-            const marker = markers[`order-${order.uid}`];
-            if (marker) {
-                infoWindow.open(map, marker);
-            }
-        }
-
-        function showCourierDetails(order, tracking) {
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <div style="max-width: 200px;">
-                        <h3>Motoboy - <span class="courier-name">${order.courier.courierName}</span></h3>
-                        <p>Status: ${getStatusDisplay(order.status)}</p>
-                        ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
-                            `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
-                        <p>Pedido atual: #${order.id}</p>
-                    </div>
-                `
-            });
-
-            const marker = markers[`courier-${order.courier.courierName}`];
-            if (marker) {
-                infoWindow.open(map, marker);
-            }
-        }
-
-        function updateDashboard(allOrders) {
-            totalOrdersCount = allOrders.length;
-            totalOrdersValue = 0;
-            paymentMethods = {
-                money: 0,
-                card: 0,
-                online: 0
-            };
-            cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
-            priorityOrders = allOrders.filter(order => order.status === 'accepted');
-
-            allOrders.forEach(order => {
-                if (order.status !== 'cancelled') {
-                    totalOrdersValue += order.orderTotal || 0;
-                    const paymentType = order.paymentMethod;
-                    paymentMethods[paymentType] = (paymentMethods[paymentType] || 0) + (order.orderTotal || 0);
-                }
-            });
-
-            document.getElementById('totalOrders').textContent = totalOrdersCount;
-            document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
-            document.getElementById('readyOrders').textContent = currentOrders.filter(order => order.status === 'ready').length;
+            document.getElementById('totalOrders').textContent = totalOrders;
+            document.getElementById('ongoingOrders').textContent = ongoingOrders;
+            document.getElementById('readyOrders').textContent = readyOrders;
             document.getElementById('cancelledOrders').textContent = cancelledOrders;
-            document.getElementById('priorityOrders').textContent = priorityOrders.length;
-            
-            document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
-            
-            const paymentBreakdown = document.getElementById('paymentBreakdown');
-            paymentBreakdown.innerHTML = '';
+            document.getElementById('priorityOrders').textContent = priorityOrders;
+
+            const totalValue = orders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
+            document.getElementById('totalValue').textContent = `R$ ${totalValue.toFixed(2)}`;
+            document.getElementById('yesterdayValue').textContent = `R$ ${yesterdayValue.toFixed(2)}`;
+
+            // Calcular e exibir o Ticket Médio
+            const averageTicket = totalOrders > 0 ? totalValue / totalOrders : 0;
+            document.getElementById('averageTicket').textContent = `R$ ${averageTicket.toFixed(2)}`;
+
+            updatePaymentBreakdown(orders);
+        }
+
+        function updatePaymentBreakdown(orders) {
+            const paymentMethods = orders.reduce((acc, order) => {
+                acc[order.paymentMethod] = (acc[order.paymentMethod] || 0) + (order.orderTotal || 0);
+                return acc;
+            }, {});
+
+            let breakdownHtml = '<h4>Métodos de Pagamento:</h4>';
             for (const [method, value] of Object.entries(paymentMethods)) {
-                paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
+                breakdownHtml += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
 
-            saveDataToLocalStorage();
+            document.getElementById('paymentBreakdown').innerHTML = breakdownHtml;
         }
 
         function updatePrepTimes(orders) {
-            const now = new Date();
+            let totalPrepTime = 0;
+            let preparedOrdersCount = 0;
+
             orders.forEach(order => {
-                if (order.status === 'open' && !orderPrepTimes[order.id]) {
-                    orderPrepTimes[order.id] = now.getTime();
-                } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
-                    const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
+                if (order.readyDate && order.creationDate) {
+                    const prepTime = (new Date(order.readyDate) - new Date(order.creationDate)) / 60000; // em minutos
                     totalPrepTime += prepTime;
-                    preparedOrders++;
-                    delete orderPrepTimes[order.id];
-                }
-
-                const prepTimeElement = document.getElementById(`prepTime-${order.id}`);
-                if (prepTimeElement) {
-                    prepTimeElement.textContent = `${getPrepTimeForOrder(order.id)} min`;
+                    preparedOrdersCount++;
+                    document.getElementById(`prepTime-${order.id}`).textContent = `${prepTime.toFixed(0)} min`;
                 }
             });
 
-            const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
-            document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
-
-            saveDataToLocalStorage();
+            const avgPrepTime = preparedOrdersCount > 0 ? totalPrepTime / preparedOrdersCount : 0;
+            document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(0)} min`;
         }
 
-        function getPrepTimeForOrder(orderId) {
-            if (orderPrepTimes[orderId]) {
-                const now = new Date();
-                return ((now.getTime() - orderPrepTimes[orderId]) / 60000).toFixed(1);
-            }
-            return '0.0';
-        }
-
-        function updateCourierDeliveries(allOrders) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            courierDeliveries = {};
-            const ongoingDeliveries = {};
-            const sameAddressDeliveries = {};
-
-            allOrders.forEach(order => {
-                if (order.courier && new Date(order.creationDate) >= today) {
-                    const courierName = order.courier.courierName;
-                    if (order.status === 'closed' || order.status === 'delivered') {
-                        courierDeliveries[courierName] = (courierDeliveries[courierName] || 0) + 1;
-                    } else if (order.status === 'onGoing') {
-                        if (!ongoingDeliveries[courierName]) {
-                            ongoingDeliveries[courierName] = [];
-                        }
-                        ongoingDeliveries[courierName].push(order);
-
-                        // Check for same address deliveries
-                        const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
-                        if (!sameAddressDeliveries[courierName]) {
-                            sameAddressDeliveries[courierName] = {};
-                        }
-                        if (!sameAddressDeliveries[courierName][address]) {
-                            sameAddressDeliveries[courierName][address] = 0;
-                        }
-                        sameAddressDeliveries[courierName][address]++;
+        function updateCourierDeliveries(orders) {
+            const courierDeliveries = {};
+            orders.forEach(order => {
+                if (order.courier && order.courier.courierName) {
+                    if (!courierDeliveries[order.courier.courierName]) {
+                        courierDeliveries[order.courier.courierName] = { completed: 0, ongoing: 0, sameAddress: {} };
+                    }
+                    if (order.status === 'delivered') {
+                        courierDeliveries[order.courier.courierName].completed++;
+                    } else if (['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)) {
+                        courierDeliveries[order.courier.courierName].ongoing++;
+                    }
+                    
+                    // Contagem de pedidos no mesmo endereço
+                    if (order.deliveryPoint && order.deliveryPoint.address) {
+                        const address = order.deliveryPoint.address;
+                        courierDeliveries[order.courier.courierName].sameAddress[address] = (courierDeliveries[order.courier.courierName].sameAddress[address] || 0) + 1;
                     }
                 }
             });
 
-            const courierDeliveriesElement = document.getElementById('courierDeliveries');
-            courierDeliveriesElement.innerHTML = '';
-            for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
-                const ongoingCount = ongoingDeliveries[courierName] ? ongoingDeliveries[courierName].length : 0;
-                let sameAddressInfo = '';
-                if (sameAddressDeliveries[courierName]) {
-                    for (const [address, count] of Object.entries(sameAddressDeliveries[courierName])) {
-                        if (count > 1) {
-                            sameAddressInfo += `<span class="same-address">${count} mesma casa</span>, `;
-                        }
+            let deliveriesHtml = '';
+            for (const [courier, counts] of Object.entries(courierDeliveries)) {
+                deliveriesHtml += `<p>${courier}: ${counts.completed} finalizadas, ${counts.ongoing} em andamento</p>`;
+                
+                // Adicionar informações sobre pedidos no mesmo endereço
+                for (const [address, count] of Object.entries(counts.sameAddress)) {
+                    if (count > 1) {
+                        deliveriesHtml += `<p style="margin-left: 15px;">- ${count} pedidos em: ${address}</p>`;
                     }
-                    sameAddressInfo = sameAddressInfo.slice(0, -2); // Remove last comma and space
                 }
-                courierDeliveriesElement.innerHTML += `
-                    <div class="courier-deliveries">
-                        <span class="courier-name">${courierName}</span>: 
-                        <strong>${deliveries}</strong> entrega${deliveries !== 1 ? 's' : ''} finalizadas
-                        ${ongoingCount > 0 ? `
-                            | <strong>${ongoingCount}</strong> em andamento
-                            ${sameAddressInfo ? `(${sameAddressInfo})` : ''}
-                            <button class="view-button" onclick="showOngoingDeliveries('${courierName}')">Ver</button>
-                        ` : ''}
-                    </div>
-                `;
             }
 
-            saveDataToLocalStorage();
+            document.getElementById('courierDeliveries').innerHTML = deliveriesHtml;
         }
 
-        function showOngoingDeliveries(courierName) {
-            const ongoingDeliveries = currentOrders.filter(order => 
-                order.courier && 
-                order.courier.courierName === courierName && 
-                order.status === 'onGoing'
-            );
+        function getStatusDisplay(status) {
+            const statusMap = {
+                'open': 'Aberto',
+                'accepted': 'Aceito',
+                'ready': 'Pronto',
+                'onGoing': 'A Caminho',
+                'dispatched': 'Despachado',
+                'delivered': 'Entregue',
+                'cancelled': 'Cancelado'
+            };
+            return statusMap[status] || status;
+        }
 
-            let content = `<h3>Pedidos em andamento de <span class="courier-name">${courierName}</span></h3>`;
-            if (ongoingDeliveries.length === 0) {
-                content += '<p>Nenhum pedido em andamento.</p>';
-            } else {
-                content += '<ul class="ongoing-orders-list">';
-                ongoingDeliveries.forEach(order => {
-                    content += `
-                        <li class="ongoing-order-item">
-                            <h4>Pedido #${order.id}</h4>
-                            <p>Cliente: ${order.customer.customerName}</p>
-                            <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
-                        </li>
-                    `;
-                });
-                content += '</ul>';
-            }
-
-            const modal = document.getElementById('ongoingModal');
-            const modalContent = document.getElementById('ongoingContent');
-            modalContent.innerHTML = content;
-            modal.style.display = 'block';
+        function translatePaymentMethod(method) {
+            const methodMap = {
+                'money': 'Dinheiro',
+                'card': 'Cartão',
+                'online': 'Online',
+                'pix': 'PIX'
+            };
+            return methodMap[method] || method;
         }
 
         function showReadyOrders() {
             const readyOrders = currentOrders.filter(order => order.status === 'ready');
-            let content = `<h3>Pedidos Prontos</h3>`;
-            if (readyOrders.length === 0) {
-                content += '<p>Nenhum pedido pronto no momento.</p>';
-            } else {
-                content += '<ul class="ongoing-orders-list">';
-                readyOrders.forEach(order => {
-                    content += `
-                        <li class="ongoing-order-item">
-                            <h4>Pedido #${order.id}</h4>
-                            <p>Cliente: ${order.customer.customerName}</p>
-                        </li>
-                    `;
-                });
-                content += '</ul>';
-            }
-
             const modal = document.getElementById('readyOrdersModal');
-            const modalContent = document.getElementById('readyOrdersContent');
-            modalContent.innerHTML = content;
+            const content = document.getElementById('readyOrdersContent');
+            content.innerHTML = '<h3>Pedidos Prontos para Entrega</h3>';
+            readyOrders.forEach(order => {
+                content.innerHTML += `
+                    <div>
+                        <p>Pedido #${order.id} - ${order.customer.customerName}</p>
+                        <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
+                    </div>
+                `;
+            });
             modal.style.display = 'block';
         }
 
-        function showPriorityOrders() {
+ function showPriorityOrders() {
+            const priorityOrders = currentOrders.filter(order => order.status === 'ready');
             const modal = document.getElementById('priorityOrdersModal');
             const content = document.getElementById('priorityOrdersContent');
-
-            let ordersHtml = '<h3>Pedidos Prioritários</h3>';
-            if (priorityOrders.length === 0) {
-                ordersHtml += '<p>Nenhum pedido prioritário no momento.</p>';
-            } else {
-                ordersHtml += '<ul class="ongoing-orders-list">';
-                priorityOrders.forEach(order => {
-                    ordersHtml += `
-                        <li class="ongoing-order-item">
-                            <h4>Pedido #${order.id}</h4>
-                            <p>Cliente: ${order.customer.customerName}</p>
-                            <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
-                        </li>
-                    `;
-                });
-                ordersHtml += '</ul>';
-            }
-
-            content.innerHTML = ordersHtml;
+            content.innerHTML = '<h3>Pedidos Prioritários</h3>';
+            priorityOrders.forEach(order => {
+                content.innerHTML += `
+                    <div>
+                        <p>Pedido #${order.id} - ${order.customer.customerName}</p>
+                        <p>Total: R$ ${order.orderTotal.toFixed(2)}</p>
+                        <p>Observações: ${order.notes || 'Nenhuma'}</p>
+                    </div>
+                `;
+            });
             modal.style.display = 'block';
         }
 
         function printPriorityOrders() {
-            const printWindow = window.open('', '', 'height=400,width=600');
-            let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
-            printContent += '<h3>Pedidos Prioritários</h3>';
-            if (priorityOrders.length === 0) {
-                printContent += '<p>Nenhum pedido prioritário no momento.</p>';
-            } else {
-                priorityOrders.forEach(order => {
-                    printContent += `<p>Pedido #${order.id}</p>`;
-                    printContent += `<p>Cliente: ${order.customer.customerName}</p>`;
-                    printContent += `<p>Endereço: ${order.deliveryPoint.address}</p>`;
-                    printContent += `<p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>`;
-                    printContent += '<hr>';
-                });
-            }
-            printContent += '</body></html>';
-            printWindow.document.write(printContent);
+            const priorityOrders = currentOrders.filter(order => order.status === 'ready');
+            let printContent = 'Pedidos Prioritários:\n\n';
+            priorityOrders.forEach(order => {
+                printContent += `Pedido #${order.id} - ${order.customer.customerName}\n`;
+                printContent += `Total: R$ ${order.orderTotal.toFixed(2)}\n`;
+                printContent += `Observações: ${order.notes || 'Nenhuma'}\n\n`;
+            });
+            
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<pre>' + printContent + '</pre>');
             printWindow.document.close();
             printWindow.print();
         }
-
-        function checkForCancelledOrders(orders) {
-            orders.forEach(order => {
-                if (order.status === 'cancelled' && lastOrderStatuses[order.id] !== 'cancelled') {
-                    showCancellationPopup(order);
-                }
-                lastOrderStatuses[order.id] = order.status;
-            });
-        }
-
-function showCancellationPopup(order) {
-    const popup = document.getElementById('cancellationPopup');
-    const message = document.getElementById('cancellationMessage');
-    message.textContent = `O pedido ${order.id} foi cancelado!${order.courier ? ` Motoboy: ${order.courier.courierName}` : ''}`;
-    popup.style.display = 'block';
-    
-    // Configuração para fechar automaticamente após 2 minutos
-    setTimeout(() => {
-        closeCancellationPopup();
-    }, 120000); // 120000 milissegundos = 2 minutos
-}
 
         function closeCancellationPopup() {
             const popup = document.getElementById('cancellationPopup');
@@ -962,63 +670,74 @@ function showCancellationPopup(order) {
             }
         }
 
+        function showCancellationPopup(message) {
+            const popup = document.getElementById('cancellationPopup');
+            const messageElement = document.getElementById('cancellationMessage');
+            if (popup && messageElement) {
+                messageElement.textContent = message;
+                popup.style.display = 'block';
+                setTimeout(() => {
+                    popup.style.display = 'none';
+                }, 120000); // 2 minutos
+            }
+        }
+
+        function checkForCancelledOrders(newOrders) {
+            const cancelledOrders = newOrders.filter(order => order.status === 'cancelled');
+            cancelledOrders.forEach(order => {
+                const courierName = order.courier ? order.courier.courierName : 'Nenhum motoboy atribuído';
+                showCancellationPopup(`Pedido #${order.id} foi cancelado. Motoboy: ${courierName}`);
+            });
+        }
+
         function resetCounters() {
-            totalOrdersCount = 0;
-            totalOrdersValue = 0;
-            yesterdayOrdersValue = 0;
-            paymentMethods = {
-                money: 0,
-                card: 0,
-                online: 0
-            };
+            orderPrepTimes = {};
             totalPrepTime = 0;
             preparedOrders = 0;
-            orderPrepTimes = {};
+            totalOrdersCount = 0;
+            totalOrdersValue = 0;
+            paymentMethods = { money: 0, card: 0, online: 0 };
             courierDeliveries = {};
-            cancelledOrders = 0;
-            priorityOrders = [];
-            document.getElementById('avgPrepTime').textContent = '0.0 min';
-            document.getElementById('totalOrders').textContent = '0';
-            document.getElementById('ongoingOrders').textContent = '0';
-            document.getElementById('readyOrders').textContent = '0';
-            document.getElementById('cancelledOrders').textContent = '0';
-            document.getElementById('priorityOrders').textContent = '0';
-            document.getElementById('totalValue').textContent = 'R$ 0.00';
-            document.getElementById('yesterdayValue').textContent = 'R$ 0.00';
-            document.getElementById('paymentBreakdown').innerHTML = '';
-            document.getElementById('courierDeliveries').innerHTML = '';
+            yesterdayValue = 0;
             saveDataToLocalStorage();
+            updateDashboard(currentOrders);
         }
 
-        // Inicialização da aplicação
-        loadDataFromLocalStorage();
-        initMap();
-        fetchOrders();
-        setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
-
-        // Configuração dos modais
-        const modals = document.querySelectorAll('.modal');
-        const closeSpans = document.querySelectorAll('.close');
-
-        closeSpans.forEach((span) => {
-            span.onclick = function() {
-                const modal = span.closest('.modal');
-                if (modal) {
-                    modal.style.display = 'none';
-                }
-            }
-        });
-
-        window.onclick = function(event) {
-            modals.forEach(modal => {
-                if (event.target == modal) {
-                    modal.style.display = 'none';
-                }
-            });
-            if (event.target == document.getElementById('cancellationPopup')) {
-                closeCancellationPopup();
-            }
+        function showReports() {
+            // Implemente a lógica para exibir relatórios aqui
+            alert('Funcionalidade de relatórios em desenvolvimento.');
         }
+
+        // Event Listeners
+        window.onload = () => {
+            initMap();
+            loadDataFromLocalStorage();
+            fetchOrders();
+            setInterval(fetchOrders, 30000); // Atualiza a cada 30 segundos
+
+            // Fechar modais
+            const modals = document.getElementsByClassName('modal');
+            const closeButtons = document.getElementsByClassName('close');
+            
+            for (let i = 0; i < closeButtons.length; i++) {
+                closeButtons[i].onclick = function() {
+                    for (let j = 0; j < modals.length; j++) {
+                        modals[j].style.display = 'none';
+                    }
+                }
+            }
+
+            window.onclick = function(event) {
+                for (let i = 0; i < modals.length; i++) {
+                    if (event.target == modals[i]) {
+                        modals[i].style.display = 'none';
+                    }
+                }
+            }
+
+            // Fechar popup de cancelamento
+            document.querySelector('.cancellation-popup .close').onclick = closeCancellationPopup;
+        };
     </script>
 </body>
 </html>
