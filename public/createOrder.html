@@ -181,6 +181,19 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
         }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin: 2px 2px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -262,6 +275,7 @@
         let map;
         let heatmap;
         let markers = {};
+        let courierMarkers = {};
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
         const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
         const authToken = '8d7c77946d534444a168bb7da794febf';
@@ -280,6 +294,7 @@
         let currentOrders = [];
         let allOrdersToday = [];
         let courierDeliveries = {};
+        let yesterdayValue = 0;
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -289,9 +304,10 @@
             localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
             localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
             localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
+            localStorage.setItem('yesterdayValue', yesterdayValue.toString());
         }
 
-        function loadDataFromLocalStorage() {
+function loadDataFromLocalStorage() {
             const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
             if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
 
@@ -312,6 +328,9 @@
 
             const storedCourierDeliveries = localStorage.getItem('courierDeliveries');
             if (storedCourierDeliveries) courierDeliveries = JSON.parse(storedCourierDeliveries);
+
+            const storedYesterdayValue = localStorage.getItem('yesterdayValue');
+            if (storedYesterdayValue) yesterdayValue = parseFloat(storedYesterdayValue);
         }
 
         function initMap() {
@@ -326,7 +345,7 @@
                 map: map
             });
 
-new google.maps.Marker({
+            new google.maps.Marker({
                 position: centerAddress,
                 map: map,
                 title: "Rua Serra do Mar, 1216, Potengi",
@@ -409,6 +428,8 @@ new google.maps.Marker({
             // Limpar marcadores existentes
             Object.values(markers).forEach(marker => marker.setMap(null));
             markers = {};
+            Object.values(courierMarkers).forEach(marker => marker.setMap(null));
+            courierMarkers = {};
 
             // Adicionar novos marcadores
             orders.forEach(order => {
@@ -424,6 +445,11 @@ new google.maps.Marker({
                     });
                     markers[order.id] = marker;
                 }
+
+                // Adicionar marcadores para motoboys
+                if (order.courier && order.courier.courierName && order.status === 'onGoing') {
+                    fetchCourierLocation(order.uid, order.courier.courierName);
+                }
             });
 
             // Atualizar heatmap
@@ -437,6 +463,41 @@ new google.maps.Marker({
             }).filter(Boolean);
 
             heatmap.setData(heatmapData);
+        }
+
+        async function fetchCourierLocation(orderUid, courierName) {
+            try {
+                const response = await axios.get(`${trackingUrl}/${orderUid}`, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    }
+                });
+                
+                if (response.data && response.data.courierLocationCoordinates) {
+                    const position = {
+                        lat: response.data.courierLocationCoordinates.lat,
+                        lng: response.data.courierLocationCoordinates.lng
+                    };
+                    
+                    if (courierMarkers[courierName]) {
+                        courierMarkers[courierName].setPosition(position);
+                    } else {
+                        const marker = new google.maps.Marker({
+                            position: position,
+                            map: map,
+                            title: `Motoboy: ${courierName}`,
+                            icon: {
+                                url: "https://maps.google.com/mapfiles/ms/icons/motorcycling.png",
+                                scaledSize: new google.maps.Size(32, 32)
+                            }
+                        });
+                        courierMarkers[courierName] = marker;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao buscar localização do motoboy:', error);
+            }
         }
 
         function updateDashboard(orders) {
@@ -454,52 +515,73 @@ new google.maps.Marker({
 
             const totalValue = orders.reduce((sum, order) => sum + (order.orderTotal || 0), 0);
             document.getElementById('totalValue').textContent = `R$ ${totalValue.toFixed(2)}`;
+            document.getElementById('yesterdayValue').textContent = `R$ ${yesterdayValue.toFixed(2)}`;
 
             updatePaymentBreakdown(orders);
         }
 
         function updatePaymentBreakdown(orders) {
             const paymentMethods = orders.reduce((acc, order) => {
-                acc[order.paymentMethod] = (acc[order.paymentMethod] || 0) + 1;
+                acc[order.paymentMethod] = (acc[order.paymentMethod] || 0) + (order.orderTotal || 0);
                 return acc;
             }, {});
 
             let breakdownHtml = '<h4>Métodos de Pagamento:</h4>';
-            for (const [method, count] of Object.entries(paymentMethods)) {
-                breakdownHtml += `<p>${translatePaymentMethod(method)}: ${count}</p>`;
+            for (const [method, value] of Object.entries(paymentMethods)) {
+                breakdownHtml += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
 
             document.getElementById('paymentBreakdown').innerHTML = breakdownHtml;
         }
 
         function updatePrepTimes(orders) {
+            let totalPrepTime = 0;
+            let preparedOrdersCount = 0;
+
             orders.forEach(order => {
                 if (order.readyDate && order.creationDate) {
                     const prepTime = (new Date(order.readyDate) - new Date(order.creationDate)) / 60000; // em minutos
+                    totalPrepTime += prepTime;
+                    preparedOrdersCount++;
                     document.getElementById(`prepTime-${order.id}`).textContent = `${prepTime.toFixed(0)} min`;
                 }
             });
 
-            const preparedOrders = orders.filter(order => order.readyDate && order.creationDate);
-            const totalPrepTime = preparedOrders.reduce((sum, order) => {
-                return sum + (new Date(order.readyDate) - new Date(order.creationDate)) / 60000;
-            }, 0);
-
-            const avgPrepTime = preparedOrders.length > 0 ? totalPrepTime / preparedOrders.length : 0;
+            const avgPrepTime = preparedOrdersCount > 0 ? totalPrepTime / preparedOrdersCount : 0;
             document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(0)} min`;
         }
 
         function updateCourierDeliveries(orders) {
-            const courierDeliveries = orders.reduce((acc, order) => {
+            const courierDeliveries = {};
+            orders.forEach(order => {
                 if (order.courier && order.courier.courierName) {
-                    acc[order.courier.courierName] = (acc[order.courier.courierName] || 0) + 1;
+                    if (!courierDeliveries[order.courier.courierName]) {
+                        courierDeliveries[order.courier.courierName] = { completed: 0, ongoing: 0, sameAddress: {} };
+                    }
+                    if (order.status === 'delivered') {
+                        courierDeliveries[order.courier.courierName].completed++;
+                    } else if (['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)) {
+                        courierDeliveries[order.courier.courierName].ongoing++;
+                    }
+                    
+                    // Contagem de pedidos no mesmo endereço
+                    if (order.deliveryPoint && order.deliveryPoint.address) {
+                        const address = order.deliveryPoint.address;
+                        courierDeliveries[order.courier.courierName].sameAddress[address] = (courierDeliveries[order.courier.courierName].sameAddress[address] || 0) + 1;
+                    }
                 }
-                return acc;
-            }, {});
+            });
 
             let deliveriesHtml = '';
-            for (const [courier, count] of Object.entries(courierDeliveries)) {
-                deliveriesHtml += `<p>${courier}: ${count}</p>`;
+            for (const [courier, counts] of Object.entries(courierDeliveries)) {
+                deliveriesHtml += `<p>${courier}: ${counts.completed} finalizadas, ${counts.ongoing} em andamento</p>`;
+                
+                // Adicionar informações sobre pedidos no mesmo endereço
+                for (const [address, count] of Object.entries(counts.sameAddress)) {
+                    if (count > 1) {
+                        deliveriesHtml += `<p style="margin-left: 15px;">- ${count} pedidos em: ${address}</p>`;
+                    }
+                }
             }
 
             document.getElementById('courierDeliveries').innerHTML = deliveriesHtml;
@@ -544,7 +626,7 @@ new google.maps.Marker({
             modal.style.display = 'block';
         }
 
-        function showPriorityOrders() {
+function showPriorityOrders() {
             const priorityOrders = currentOrders.filter(order => order.status === 'ready');
             const modal = document.getElementById('priorityOrdersModal');
             const content = document.getElementById('priorityOrdersContent');
@@ -589,16 +671,14 @@ new google.maps.Marker({
             if (popup && messageElement) {
                 messageElement.textContent = message;
                 popup.style.display = 'block';
-                setTimeout(() => {
-                    popup.style.display = 'none';
-                }, 5000);
             }
         }
 
         function checkForCancelledOrders(newOrders) {
             const cancelledOrders = newOrders.filter(order => order.status === 'cancelled');
             cancelledOrders.forEach(order => {
-                showCancellationPopup(`Pedido #${order.id} foi cancelado.`);
+                const courierName = order.courier ? order.courier.courierName : 'Nenhum motoboy atribuído';
+                showCancellationPopup(`Pedido #${order.id} foi cancelado. Motoboy: ${courierName}`);
             });
         }
 
@@ -610,6 +690,7 @@ new google.maps.Marker({
             totalOrdersValue = 0;
             paymentMethods = { money: 0, card: 0, online: 0 };
             courierDeliveries = {};
+            yesterdayValue = 0;
             saveDataToLocalStorage();
             updateDashboard(currentOrders);
         }
@@ -645,6 +726,9 @@ new google.maps.Marker({
                     }
                 }
             }
+
+            // Fechar popup de cancelamento
+            document.querySelector('.cancellation-popup .close').onclick = closeCancellationPopup;
         };
     </script>
 </body>
