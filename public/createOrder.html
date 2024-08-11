@@ -38,27 +38,25 @@
             overflow-y: auto;
         }
         #map { 
-            height: 400px;
+            height: 60vh;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
         .dashboard {
             display: flex;
-            flex-wrap: wrap;
             justify-content: space-between;
             margin-bottom: 20px;
         }
         .metric-card {
             background-color: #fff;
             border-radius: 8px;
-            padding: 10px;
-            width: 19%;
+            padding: 15px;
+            width: 32%;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 10px;
         }
         .metric-title {
-            font-size: 12px;
+            font-size: 14px;
             color: #7f8c8d;
             margin-bottom: 5px;
         }
@@ -148,12 +146,10 @@
             <div id="map"></div>
             <div class="dashboard">
                 <div class="metric-card">
-                    <div class="metric-title">Total de Pedidos</div>
-                    <div id="totalOrders" class="metric-value">0</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-title">Pedidos em Andamento</div>
-                    <div id="ongoingOrders" class="metric-value">0</div>
+                    <div class="metric-title">Resumo de Pedidos</div>
+                    <div id="totalOrders" class="metric-value">Total: 0</div>
+                    <div id="ongoingOrders" class="metric-value">Em Andamento: 0</div>
+                    <div id="avgPrepTime" class="metric-value">Tempo Médio de Preparo: 0 min</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Valor Total</div>
@@ -161,12 +157,8 @@
                     <div id="paymentBreakdown"></div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">Tempo Médio de Preparo</div>
-                    <div id="avgPrepTime" class="metric-value">0 min</div>
-                </div>
-                <div class="metric-card">
                     <div class="metric-title">Previsão de Demanda</div>
-                    <div id="demandPrediction" class="metric-value"></div>
+                    <div id="demandPrediction" class="metric-value">0 pedidos na próxima hora</div>
                 </div>
             </div>
         </div>
@@ -209,7 +201,6 @@
         let allOrdersToday = [];
         let demandPredictions = {};
 
-        // Funções para salvar e carregar dados do localStorage
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
             localStorage.setItem('totalPrepTime', totalPrepTime.toString());
@@ -337,33 +328,43 @@ function updateOrderList(orders) {
 }
 
 function updateMap(orders) {
-    Object.keys(markers).forEach(key => {
-        markers[key].setMap(null);
-    });
-    markers = {};
-
     const heatmapData = [];
     
     orders.forEach(order => {
         if (order.deliveryPoint && order.deliveryPoint.coordinates) {
             const { lat, lng } = order.deliveryPoint.coordinates;
-            const marker = new google.maps.Marker({
-                position: { lat, lng },
-                map: map,
-                title: `Pedido #${order.id}`,
-                icon: getOrderMarkerIcon(order.status, order.id)
-            });
-            markers[`order-${order.uid}`] = marker;
+            let marker = markers[`order-${order.uid}`];
+            
+            if (!marker) {
+                marker = new google.maps.Marker({
+                    position: { lat, lng },
+                    map: map,
+                    title: `Pedido #${order.id}`,
+                    icon: getOrderMarkerIcon(order.status, order.id)
+                });
+                markers[`order-${order.uid}`] = marker;
 
-            marker.addListener('click', () => {
-                showOrderDetails(order);
-            });
+                marker.addListener('click', () => {
+                    showOrderDetails(order);
+                });
+            } else {
+                marker.setPosition({ lat, lng });
+                marker.setIcon(getOrderMarkerIcon(order.status, order.id));
+            }
 
             heatmapData.push(new google.maps.LatLng(lat, lng));
         }
 
         if (order.status === 'onGoing' || order.status === 'dispatched') {
             updateCourierLocation(order);
+        }
+    });
+
+    // Remove markers for orders that no longer exist
+    Object.keys(markers).forEach(key => {
+        if (key.startsWith('order-') && !orders.some(order => `order-${order.uid}` === key)) {
+            markers[key].setMap(null);
+            delete markers[key];
         }
     });
 
@@ -531,8 +532,8 @@ function updateDashboard(allOrders) {
         paymentMethods[paymentType] = (paymentMethods[paymentType] || 0) + (order.orderTotal || 0);
     });
 
-    document.getElementById('totalOrders').textContent = totalOrdersCount;
-    document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
+    document.getElementById('totalOrders').textContent = `Total: ${totalOrdersCount}`;
+    document.getElementById('ongoingOrders').textContent = `Em Andamento: ${currentOrders.filter(order => order.status === 'onGoing').length}`;
     
     document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
     
@@ -564,10 +565,7 @@ function updatePrepTimes(orders) {
     });
 
     const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
-    const avgPrepTimeElement = document.getElementById('avgPrepTime');
-    if (avgPrepTimeElement) {
-        avgPrepTimeElement.textContent = `${avgPrepTime.toFixed(1)} min`;
-    }
+    document.getElementById('avgPrepTime').textContent = `Tempo Médio de Preparo: ${avgPrepTime.toFixed(1)} min`;
 
     saveDataToLocalStorage();
 }
@@ -578,26 +576,6 @@ function getPrepTimeForOrder(orderId) {
         return ((now.getTime() - orderPrepTimes[orderId]) / 60000).toFixed(1);
     }
     return '0.0';
-}
-
-function resetCounters() {
-    totalOrdersCount = 0;
-    totalOrdersValue = 0;
-    paymentMethods = {
-        money: 0,
-        card: 0,
-        online: 0
-    };
-    totalPrepTime = 0;
-    preparedOrders = 0;
-    orderPrepTimes = {};
-    document.getElementById('avgPrepTime').textContent = '0.0 min';
-    document.getElementById('totalOrders').textContent = '0';
-    document.getElementById('ongoingOrders').textContent = '0';
-    document.getElementById('totalValue').textContent = 'R$ 0.00';
-    document.getElementById('paymentBreakdown').innerHTML = '';
-    document.getElementById('demandPrediction').textContent = '0';
-    saveDataToLocalStorage();
 }
 
 function updateDemandPrediction(allOrders) {
@@ -628,10 +606,27 @@ function updateDemandPrediction(allOrders) {
     const nextHour = (currentHour + 1) % 24;
     const predictedDemand = demandPredictions[currentDay]?.[nextHour] || 0;
 
-    const demandPredictionElement = document.getElementById('demandPrediction');
-    if (demandPredictionElement) {
-        demandPredictionElement.textContent = `${predictedDemand.toFixed(0)} pedidos na próxima hora`;
-    }
+    document.getElementById('demandPrediction').textContent = `${predictedDemand.toFixed(0)} pedidos na próxima hora`;
+}
+
+function resetCounters() {
+    totalOrdersCount = 0;
+    totalOrdersValue = 0;
+    paymentMethods = {
+        money: 0,
+        card: 0,
+        online: 0
+    };
+    totalPrepTime = 0;
+    preparedOrders = 0;
+    orderPrepTimes = {};
+    document.getElementById('avgPrepTime').textContent = 'Tempo Médio de Preparo: 0.0 min';
+    document.getElementById('totalOrders').textContent = 'Total: 0';
+    document.getElementById('ongoingOrders').textContent = 'Em Andamento: 0';
+    document.getElementById('totalValue').textContent = 'R$ 0.00';
+    document.getElementById('paymentBreakdown').innerHTML = '';
+    document.getElementById('demandPrediction').textContent = '0 pedidos na próxima hora';
+    saveDataToLocalStorage();
 }
 
 loadDataFromLocalStorage();
