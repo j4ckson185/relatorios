@@ -57,7 +57,7 @@
         }
         .metric-title {
             font-size: 14px;
-            color: #7f8c8d;
+            color: #4a4a4a;
             margin-bottom: 5px;
         }
         .metric-value {
@@ -133,6 +133,9 @@
             font-size: 12px;
             margin-top: 5px;
         }
+        .label {
+            color: #4a4a4a;
+        }
     </style>
 </head>
 <body>
@@ -147,9 +150,9 @@
             <div class="dashboard">
                 <div class="metric-card">
                     <div class="metric-title">Resumo de Pedidos</div>
-                    <div id="totalOrders" class="metric-value">Total: 0</div>
-                    <div id="ongoingOrders" class="metric-value">Em Andamento: 0</div>
-                    <div id="avgPrepTime" class="metric-value">Tempo Médio de Preparo: 0 min</div>
+                    <div><span class="label">Total:</span> <span id="totalOrders" class="metric-value">0</span></div>
+                    <div><span class="label">Em Andamento:</span> <span id="ongoingOrders" class="metric-value">0</span></div>
+                    <div><span class="label">Tempo Médio de Preparo:</span> <span id="avgPrepTime" class="metric-value">0 min</span></div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Valor Total</div>
@@ -157,8 +160,8 @@
                     <div id="paymentBreakdown"></div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-title">Previsão de Demanda</div>
-                    <div id="demandPrediction" class="metric-value">0 pedidos na próxima hora</div>
+                    <div class="metric-title">Entregas por Motoboy (Hoje)</div>
+                    <div id="courierDeliveries"></div>
                 </div>
             </div>
         </div>
@@ -199,7 +202,7 @@
         };
         let currentOrders = [];
         let allOrdersToday = [];
-        let demandPredictions = {};
+        let courierDeliveries = {};
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -208,7 +211,7 @@
             localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
             localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
             localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
-            localStorage.setItem('demandPredictions', JSON.stringify(demandPredictions));
+            localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
         }
 
         function loadDataFromLocalStorage() {
@@ -230,8 +233,8 @@
             const storedPaymentMethods = localStorage.getItem('paymentMethods');
             if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
 
-            const storedDemandPredictions = localStorage.getItem('demandPredictions');
-            if (storedDemandPredictions) demandPredictions = JSON.parse(storedDemandPredictions);
+            const storedCourierDeliveries = localStorage.getItem('courierDeliveries');
+            if (storedCourierDeliveries) courierDeliveries = JSON.parse(storedCourierDeliveries);
         }
 
         function initMap() {
@@ -296,7 +299,7 @@
                 updateMap(currentOrders);
                 updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
-                updateDemandPrediction(allOrdersToday);
+                updateCourierDeliveries(allOrdersToday);
                 saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -304,335 +307,323 @@
             }
         }
 
-function updateOrderList(orders) {
-    const orderList = document.getElementById('orderList');
-    orderList.innerHTML = '';
-    orders.forEach(order => {
-        const orderDiv = document.createElement('div');
-        orderDiv.className = 'order-item';
-        orderDiv.innerHTML = `
-            <h3>Pedido #${order.id}</h3>
-            <p class="status-${order.status.toLowerCase()}">${getStatusDisplay(order.status)}</p>
-            <p>Cliente: ${order.customer.customerName}</p>
-            ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
-            <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
-            <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-            ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
-            <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
-            <div class="order-options">
-                <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
-            </div>
-        `;
-        orderList.appendChild(orderDiv);
-    });
-}
+        function updateOrderList(orders) {
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '';
+            orders.forEach(order => {
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'order-item';
+                orderDiv.innerHTML = `
+                    <h3>Pedido #${order.id}</h3>
+                    <p class="status-${order.status.toLowerCase()}">${getStatusDisplay(order.status)}</p>
+                    <p>Cliente: ${order.customer.customerName}</p>
+                    ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
+                    <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
+                    <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                    ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
+ <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
+                    <div class="order-options">
+                        <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
+                    </div>
+                `;
+                orderList.appendChild(orderDiv);
+            });
+        }
 
-function updateMap(orders) {
-    const heatmapData = [];
-    
-    orders.forEach(order => {
-        if (order.deliveryPoint && order.deliveryPoint.coordinates) {
-            const { lat, lng } = order.deliveryPoint.coordinates;
-            let marker = markers[`order-${order.uid}`];
+        function updateMap(orders) {
+            const heatmapData = [];
             
-            if (!marker) {
-                marker = new google.maps.Marker({
-                    position: { lat, lng },
-                    map: map,
-                    title: `Pedido #${order.id}`,
-                    icon: getOrderMarkerIcon(order.status, order.id)
-                });
-                markers[`order-${order.uid}`] = marker;
+            orders.forEach(order => {
+                if (order.deliveryPoint && order.deliveryPoint.coordinates) {
+                    const { lat, lng } = order.deliveryPoint.coordinates;
+                    let marker = markers[`order-${order.uid}`];
+                    
+                    if (!marker) {
+                        marker = new google.maps.Marker({
+                            position: { lat, lng },
+                            map: map,
+                            title: `Pedido #${order.id}`,
+                            icon: getOrderMarkerIcon(order.status, order.id)
+                        });
+                        markers[`order-${order.uid}`] = marker;
 
-                marker.addListener('click', () => {
-                    showOrderDetails(order);
+                        marker.addListener('click', () => {
+                            showOrderDetails(order);
+                        });
+                    } else {
+                        marker.setPosition({ lat, lng });
+                        marker.setIcon(getOrderMarkerIcon(order.status, order.id));
+                    }
+
+                    heatmapData.push(new google.maps.LatLng(lat, lng));
+                }
+
+                if (order.status === 'onGoing' || order.status === 'dispatched') {
+                    updateCourierLocation(order);
+                }
+            });
+
+            // Remove markers for orders that no longer exist
+            Object.keys(markers).forEach(key => {
+                if (key.startsWith('order-') && !orders.some(order => `order-${order.uid}` === key)) {
+                    markers[key].setMap(null);
+                    delete markers[key];
+                }
+            });
+
+            heatmap.setData(heatmapData);
+        }
+
+        function getOrderMarkerIcon(status, orderId) {
+            let color;
+            switch (status) {
+                case 'open': color = '#e74c3c'; break;
+                case 'accepted': color = '#f1c40f'; break;
+                case 'ready': color = '#8E44AD'; break;
+                case 'onGoing': color = '#87CEEB'; break;
+                case 'dispatched': color = '#e67e22'; break;
+                default: color = 'gray';
+            }
+            return {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                        <rect width="32" height="32" fill="${color}" stroke="black" stroke-width="1" />
+                        <text x="16" y="20" font-family="Arial" font-size="12" fill="black" text-anchor="middle">${orderId}</text>
+                    </svg>
+                `)}`,
+                scaledSize: new google.maps.Size(32, 32),
+                anchor: new google.maps.Point(16, 16)
+            };
+        }
+
+        async function updateCourierLocation(order) {
+            try {
+                const response = await axios.get(trackingUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        orderUid: order.uid
+                    }
                 });
-            } else {
-                marker.setPosition({ lat, lng });
-                marker.setIcon(getOrderMarkerIcon(order.status, order.id));
+                const tracking = response.data;
+                if (tracking.courierLocationCoordinates) {
+                    const { lat, lng } = tracking.courierLocationCoordinates;
+                    let courierMarker = markers[`courier-${order.courier.courierName}`];
+
+                    if (!courierMarker) {
+                        courierMarker = new google.maps.Marker({
+                            position: { lat, lng },
+                            map: map,
+                            title: `Motoboy - ${order.courier.courierName}`,
+                            icon: getCourierIcon(order.courier.courierName, order.status)
+                        });
+                        markers[`courier-${order.courier.courierName}`] = courierMarker;
+
+                        courierMarker.addListener('click', () => {
+                            showCourierDetails(order, tracking);
+                        });
+                    } else {
+                        courierMarker.setPosition({ lat, lng });
+                        courierMarker.setIcon(getCourierIcon(order.courier.courierName, order.status));
+                    }
+                }
+            } catch (error) {
+                console.error(`Erro ao buscar localização do motoboy para o pedido ${order.uid}:`, error);
+            }
+        }
+
+        function getCourierIcon(courierName, status) {
+            return {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
+                        <rect width="60" height="20" rx="10" ry="10" fill="${status === 'onGoing' ? 'red' : 'green'}" />
+                        <text x="30" y="14" font-family="Arial" font-size="12" fill="white" text-anchor="middle">${courierName.substring(0, 5).toUpperCase()}</text>
+                        <path d="M30 25 L20 55 L40 55 Z" fill="black"/>
+                        <circle cx="30" cy="35" r="7" fill="white"/>
+                    </svg>
+                `)}`,
+                scaledSize: new google.maps.Size(60, 60),
+                anchor: new google.maps.Point(30, 30)
+            };
+        }
+
+        function centerOrderOnMap(orderUid) {
+            const marker = markers[`order-${orderUid}`] || markers[`courier-${orderUid}`];
+            if (marker) {
+                map.setCenter(marker.getPosition());
+                map.setZoom(16);
+            }
+        }
+
+        function getStatusDisplay(status) {
+            switch(status) {
+                case 'open': return 'Aberto';
+                case 'accepted': return 'Aceito';
+                case 'ready': return 'Pronto';
+                case 'onGoing': return 'A Caminho';
+                case 'dispatched': return 'Despachado';
+                default: return status;
+            }
+        }
+
+        function translatePaymentMethod(method) {
+            switch(method) {
+                case 'money': return 'Dinheiro';
+                case 'card': return 'Cartão';
+                case 'online':
+                case 'pix': return 'Online';
+                default: return method;
+            }
+        }
+
+        function showOrderDetails(order) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="max-width: 200px;">
+                        <h3>Pedido #${order.id}</h3>
+                        <p>Cliente: ${order.customer.customerName}</p>
+                        <p>Endereço: ${order.deliveryPoint.address}</p>
+                        <p>Status: ${getStatusDisplay(order.status)}</p>
+                        ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
+                        <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
+                        <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                        ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
+                        <p>Tempo de Preparo: ${getPrepTimeForOrder(order.id)} min</p>
+                    </div>
+                `
+            });
+
+            const marker = markers[`order-${order.uid}`];
+            if (marker) {
+                infoWindow.open(map, marker);
+            }
+        }
+
+        function showCourierDetails(order, tracking) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="max-width: 200px;">
+                        <h3>Motoboy - ${order.courier.courierName}</h3>
+                        <p>Status: ${getStatusDisplay(order.status)}</p>
+                        ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
+                            `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
+                        <p>Pedido atual: #${order.id}</p>
+                    </div>
+                `
+            });
+
+            const marker = markers[`courier-${order.courier.courierName}`];
+            if (marker) {
+                infoWindow.open(map, marker);
+            }
+        }
+
+        function updateDashboard(allOrders) {
+            totalOrdersCount = allOrders.length;
+            totalOrdersValue = 0;
+            paymentMethods = {
+                money: 0,
+                card: 0,
+                online: 0
+            };
+
+            allOrders.forEach(order => {
+                totalOrdersValue += order.orderTotal || 0;
+                const paymentType = order.paymentMethod;
+                paymentMethods[paymentType] = (paymentMethods[paymentType] || 0) + (order.orderTotal || 0);
+            });
+
+            document.getElementById('totalOrders').textContent = totalOrdersCount;
+            document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
+            
+            document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
+            
+            const paymentBreakdown = document.getElementById('paymentBreakdown');
+            paymentBreakdown.innerHTML = '';
+            for (const [method, value] of Object.entries(paymentMethods)) {
+                paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
             }
 
-            heatmapData.push(new google.maps.LatLng(lat, lng));
+            saveDataToLocalStorage();
         }
 
-        if (order.status === 'onGoing' || order.status === 'dispatched') {
-            updateCourierLocation(order);
+        function updatePrepTimes(orders) {
+            const now = new Date();
+            orders.forEach(order => {
+                if (order.status === 'open' && !orderPrepTimes[order.id]) {
+                    orderPrepTimes[order.id] = now.getTime();
+                } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
+                    const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
+                    totalPrepTime += prepTime;
+                    preparedOrders++;
+                    delete orderPrepTimes[order.id];
+                }
+
+                const prepTimeElement = document.getElementById(`prepTime-${order.id}`);
+                if (prepTimeElement) {
+                    prepTimeElement.textContent = `${getPrepTimeForOrder(order.id)} min`;
+                }
+            });
+
+            const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
+            document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
+
+            saveDataToLocalStorage();
         }
-    });
 
-    // Remove markers for orders that no longer exist
-    Object.keys(markers).forEach(key => {
-        if (key.startsWith('order-') && !orders.some(order => `order-${order.uid}` === key)) {
-            markers[key].setMap(null);
-            delete markers[key];
-        }
-    });
-
-    heatmap.setData(heatmapData);
-}
-
-function getOrderMarkerIcon(status, orderId) {
-    let color;
-    switch (status) {
-        case 'open': color = '#e74c3c'; break;
-        case 'accepted': color = '#f1c40f'; break;
-        case 'ready': color = '#8E44AD'; break;
-        case 'onGoing': color = '#87CEEB'; break;
-        case 'dispatched': color = '#e67e22'; break;
-        default: color = 'gray';
-    }
-    return {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                <rect width="32" height="32" fill="${color}" stroke="black" stroke-width="1" />
-                <text x="16" y="20" font-family="Arial" font-size="12" fill="black" text-anchor="middle">${orderId}</text>
-            </svg>
-        `)}`,
-        scaledSize: new google.maps.Size(32, 32),
-        anchor: new google.maps.Point(16, 16)
-    };
-}
-
-async function updateCourierLocation(order) {
-    try {
-        const response = await axios.get(trackingUrl, {
-            headers: {
-                'Authorization': authToken,
-                'Content-Type': 'application/json;charset=UTF-8'
-            },
-            params: {
-                orderUid: order.uid
+        function getPrepTimeForOrder(orderId) {
+            if (orderPrepTimes[orderId]) {
+                const now = new Date();
+                return ((now.getTime() - orderPrepTimes[orderId]) / 60000).toFixed(1);
             }
-        });
-        const tracking = response.data;
-        if (tracking.courierLocationCoordinates) {
-            const { lat, lng } = tracking.courierLocationCoordinates;
-            let courierMarker = markers[`courier-${order.courier.courierName}`];
+            return '0.0';
+        }
 
-            if (!courierMarker) {
-                courierMarker = new google.maps.Marker({
-                    position: { lat, lng },
-                    map: map,
-                    title: `Motoboy - ${order.courier.courierName}`,
-                    icon: getCourierIcon(order.courier.courierName, order.status)
-                });
-                markers[`courier-${order.courier.courierName}`] = courierMarker;
+        function updateCourierDeliveries(allOrders) {
+            courierDeliveries = {};
+            allOrders.forEach(order => {
+                if (order.courier && order.status === 'delivered') {
+                    const courierName = order.courier.courierName;
+                    courierDeliveries[courierName] = (courierDeliveries[courierName] || 0) + 1;
+                }
+            });
 
-                courierMarker.addListener('click', () => {
-                    showCourierDetails(order, tracking);
-                });
-            } else {
-                courierMarker.setPosition({ lat, lng });
-                courierMarker.setIcon(getCourierIcon(order.courier.courierName, order.status));
+            const courierDeliveriesElement = document.getElementById('courierDeliveries');
+            courierDeliveriesElement.innerHTML = '';
+            for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
+                courierDeliveriesElement.innerHTML += `<p>${courierName}: ${deliveries} entregas</p>`;
             }
-        }
-    } catch (error) {
-        console.error(`Erro ao buscar localização do motoboy para o pedido ${order.uid}:`, error);
-    }
-}
 
-function getCourierIcon(courierName, status) {
-    return {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
-                <rect width="60" height="20" rx="10" ry="10" fill="${status === 'onGoing' ? 'red' : 'green'}" />
-                <text x="30" y="14" font-family="Arial" font-size="12" fill="white" text-anchor="middle">${courierName.substring(0, 5).toUpperCase()}</text>
-                <path d="M30 25 L20 55 L40 55 Z" fill="black"/>
-                <circle cx="30" cy="35" r="7" fill="white"/>
-            </svg>
-        `)}`,
-        scaledSize: new google.maps.Size(60, 60),
-        anchor: new google.maps.Point(30, 30)
-    };
-}
-
-function centerOrderOnMap(orderUid) {
-    const marker = markers[`order-${orderUid}`] || markers[`courier-${orderUid}`];
-    if (marker) {
-        map.setCenter(marker.getPosition());
-        map.setZoom(16);
-    }
-}
-
-function getStatusDisplay(status) {
-    switch(status) {
-        case 'open': return 'Aberto';
-        case 'accepted': return 'Aceito';
-        case 'ready': return 'Pronto';
-        case 'onGoing': return 'A Caminho';
-        case 'dispatched': return 'Despachado';
-        default: return status;
-    }
-}
-
-function translatePaymentMethod(method) {
-    switch(method) {
-        case 'money': return 'Dinheiro';
-        case 'card': return 'Cartão';
-        case 'online':
-        case 'pix': return 'Online';
-        default: return method;
-    }
-}
-
-function showOrderDetails(order) {
-    const infoWindow = new google.maps.InfoWindow({
-        content: `
-            <div style="max-width: 200px;">
-                <h3>Pedido #${order.id}</h3>
-                <p>Cliente: ${order.customer.customerName}</p>
-                <p>Endereço: ${order.deliveryPoint.address}</p>
-                <p>Status: ${getStatusDisplay(order.status)}</p>
-                ${order.courier ? `<p>Motoboy: ${order.courier.courierName}</p>` : ''}
-                <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
-                <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-                ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
-                <p>Tempo de Preparo: ${getPrepTimeForOrder(order.id)} min</p>
-            </div>
-        `
-    });
-
-    const marker = markers[`order-${order.uid}`];
-    if (marker) {
-        infoWindow.open(map, marker);
-    }
-}
-
-function showCourierDetails(order, tracking) {
-    const infoWindow = new google.maps.InfoWindow({
-        content: `
-            <div style="max-width: 200px;">
-                <h3>Motoboy - ${order.courier.courierName}</h3>
-                <p>Status: ${getStatusDisplay(order.status)}</p>
-                ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
-                    `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
-                <p>Pedido atual: #${order.id}</p>
-            </div>
-        `
-    });
-
-    const marker = markers[`courier-${order.courier.courierName}`];
-    if (marker) {
-        infoWindow.open(map, marker);
-    }
-}
-
-function updateDashboard(allOrders) {
-    totalOrdersCount = allOrders.length;
-    totalOrdersValue = 0;
-    paymentMethods = {
-        money: 0,
-        card: 0,
-        online: 0
-    };
-
-    allOrders.forEach(order => {
-        totalOrdersValue += order.orderTotal || 0;
-        const paymentType = order.paymentMethod;
-        paymentMethods[paymentType] = (paymentMethods[paymentType] || 0) + (order.orderTotal || 0);
-    });
-
-    document.getElementById('totalOrders').textContent = `Total: ${totalOrdersCount}`;
-    document.getElementById('ongoingOrders').textContent = `Em Andamento: ${currentOrders.filter(order => order.status === 'onGoing').length}`;
-    
-    document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
-    
-    const paymentBreakdown = document.getElementById('paymentBreakdown');
-    paymentBreakdown.innerHTML = '';
-    for (const [method, value] of Object.entries(paymentMethods)) {
-        paymentBreakdown.innerHTML += `<p>${translatePaymentMethod(method)}: R$ ${value.toFixed(2)}</p>`;
-    }
-
-    saveDataToLocalStorage();
-}
-
-function updatePrepTimes(orders) {
-    const now = new Date();
-    orders.forEach(order => {
-        if (order.status === 'open' && !orderPrepTimes[order.id]) {
-            orderPrepTimes[order.id] = now.getTime();
-        } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
-            const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
-            totalPrepTime += prepTime;
-            preparedOrders++;
-            delete orderPrepTimes[order.id];
+            saveDataToLocalStorage();
         }
 
-        const prepTimeElement = document.getElementById(`prepTime-${order.id}`);
-        if (prepTimeElement) {
-            prepTimeElement.textContent = `${getPrepTimeForOrder(order.id)} min`;
+        function resetCounters() {
+            totalOrdersCount = 0;
+            totalOrdersValue = 0;
+            paymentMethods = {
+                money: 0,
+                card: 0,
+                online: 0
+            };
+            totalPrepTime = 0;
+            preparedOrders = 0;
+            orderPrepTimes = {};
+            courierDeliveries = {};
+            document.getElementById('avgPrepTime').textContent = '0.0 min';
+            document.getElementById('totalOrders').textContent = '0';
+            document.getElementById('ongoingOrders').textContent = '0';
+            document.getElementById('totalValue').textContent = 'R$ 0.00';
+            document.getElementById('paymentBreakdown').innerHTML = '';
+            document.getElementById('courierDeliveries').innerHTML = '';
+            saveDataToLocalStorage();
         }
-    });
 
-    const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
-    document.getElementById('avgPrepTime').textContent = `Tempo Médio de Preparo: ${avgPrepTime.toFixed(1)} min`;
-
-    saveDataToLocalStorage();
-}
-
-function getPrepTimeForOrder(orderId) {
-    if (orderPrepTimes[orderId]) {
-        const now = new Date();
-        return ((now.getTime() - orderPrepTimes[orderId]) / 60000).toFixed(1);
-    }
-    return '0.0';
-}
-
-function updateDemandPrediction(allOrders) {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentDay = now.getDay();
-
-    // Agrupa pedidos por hora e dia da semana
-    const ordersByHourAndDay = allOrders.reduce((acc, order) => {
-        const orderDate = new Date(order.creationDate);
-        const orderHour = orderDate.getHours();
-        const orderDay = orderDate.getDay();
-        const key = `${orderDay}-${orderHour}`;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(order);
-        return acc;
-    }, {});
-
-    // Calcula a média de pedidos para cada hora e dia da semana
-    Object.keys(ordersByHourAndDay).forEach(key => {
-        const [day, hour] = key.split('-').map(Number);
-        const averageOrders = ordersByHourAndDay[key].length;
-        if (!demandPredictions[day]) demandPredictions[day] = {};
-        demandPredictions[day][hour] = averageOrders;
-    });
-
-    // Prevê a demanda para a próxima hora
-    const nextHour = (currentHour + 1) % 24;
-    const predictedDemand = demandPredictions[currentDay]?.[nextHour] || 0;
-
-    document.getElementById('demandPrediction').textContent = `${predictedDemand.toFixed(0)} pedidos na próxima hora`;
-}
-
-function resetCounters() {
-    totalOrdersCount = 0;
-    totalOrdersValue = 0;
-    paymentMethods = {
-        money: 0,
-        card: 0,
-        online: 0
-    };
-    totalPrepTime = 0;
-    preparedOrders = 0;
-    orderPrepTimes = {};
-    document.getElementById('avgPrepTime').textContent = 'Tempo Médio de Preparo: 0.0 min';
-    document.getElementById('totalOrders').textContent = 'Total: 0';
-    document.getElementById('ongoingOrders').textContent = 'Em Andamento: 0';
-    document.getElementById('totalValue').textContent = 'R$ 0.00';
-    document.getElementById('paymentBreakdown').innerHTML = '';
-    document.getElementById('demandPrediction').textContent = '0 pedidos na próxima hora';
-    saveDataToLocalStorage();
-}
-
-loadDataFromLocalStorage();
-initMap();
-fetchOrders();
-setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
+        loadDataFromLocalStorage();
+        initMap();
+        fetchOrders();
+        setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
     </script>
 </body>
 </html>
