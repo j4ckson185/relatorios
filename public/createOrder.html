@@ -194,6 +194,19 @@
         .view-button:hover {
             background-color: #27ae60;
         }
+        .print-button {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .print-button:hover {
+            background-color: #d35400;
+        }
         .ongoing-orders-list {
             list-style-type: none;
             padding: 0;
@@ -251,6 +264,7 @@
                     <div><span class="label">Tempo Médio de Preparo:</span> <span id="avgPrepTime" class="metric-value">0 min</span></div>
                     <div><span class="label">Pedidos em loja:</span> <span id="readyOrders" class="metric-value">0</span> <button class="view-button" onclick="showReadyOrders()">Ver</button></div>
                     <div><span class="label">Cancelados:</span> <span id="cancelledOrders" class="metric-value">0</span></div>
+                    <div><span class="label">Prioridades:</span> <span id="priorityOrders" class="metric-value">0</span> <button class="view-button" onclick="showPriorityOrders()">Ver</button> <button class="print-button" onclick="printPriorityOrders()">Imprimir</button></div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Valor Total</div>
@@ -277,6 +291,13 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="readyOrdersContent"></div>
+        </div>
+    </div>
+
+    <div id="priorityOrdersModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="priorityOrdersContent"></div>
         </div>
     </div>
 
@@ -324,6 +345,7 @@
         let courierDeliveries = {};
         let cancelledOrders = 0;
         let lastOrderStatuses = {};
+        let priorityOrders = [];
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -335,9 +357,10 @@
             localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
             localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
             localStorage.setItem('cancelledOrders', cancelledOrders.toString());
+            localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
         }
 
-function loadDataFromLocalStorage() {
+        function loadDataFromLocalStorage() {
             const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
             if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
 
@@ -364,6 +387,9 @@ function loadDataFromLocalStorage() {
 
             const storedCancelledOrders = localStorage.getItem('cancelledOrders');
             if (storedCancelledOrders) cancelledOrders = parseInt(storedCancelledOrders);
+
+            const storedPriorityOrders = localStorage.getItem('priorityOrders');
+            if (storedPriorityOrders) priorityOrders = JSON.parse(storedPriorityOrders);
         }
 
         function initMap() {
@@ -424,6 +450,7 @@ function loadDataFromLocalStorage() {
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
                 );
                 currentOrders = filteredOrders;
+                priorityOrders = currentOrders.filter(order => order.status === 'accepted');
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
                 updateDashboard(allOrdersToday);
@@ -677,7 +704,7 @@ function loadDataFromLocalStorage() {
             }
         }
 
-function updateDashboard(allOrders) {
+        function updateDashboard(allOrders) {
             totalOrdersCount = allOrders.length;
             totalOrdersValue = 0;
             paymentMethods = {
@@ -686,6 +713,7 @@ function updateDashboard(allOrders) {
                 online: 0
             };
             cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
+            priorityOrders = allOrders.filter(order => order.status === 'accepted');
 
             allOrders.forEach(order => {
                 if (order.status !== 'cancelled') {
@@ -699,6 +727,7 @@ function updateDashboard(allOrders) {
             document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
             document.getElementById('readyOrders').textContent = currentOrders.filter(order => order.status === 'ready').length;
             document.getElementById('cancelledOrders').textContent = cancelledOrders;
+            document.getElementById('priorityOrders').textContent = priorityOrders.length;
             
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
             
@@ -859,6 +888,53 @@ function updateDashboard(allOrders) {
             modal.style.display = 'block';
         }
 
+        function showPriorityOrders() {
+            const modal = document.getElementById('priorityOrdersModal');
+            const content = document.getElementById('priorityOrdersContent');
+
+            let ordersHtml = '<h3>Pedidos Prioritários</h3>';
+            if (priorityOrders.length === 0) {
+                ordersHtml += '<p>Nenhum pedido prioritário no momento.</p>';
+            } else {
+                ordersHtml += '<ul class="ongoing-orders-list">';
+                priorityOrders.forEach(order => {
+                    ordersHtml += `
+                        <li class="ongoing-order-item">
+                            <h4>Pedido #${order.id}</h4>
+                            <p>Cliente: ${order.customer.customerName}</p>
+                            <p>Endereço: ${order.deliveryPoint.address}</p>
+                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                        </li>
+                    `;
+                });
+                ordersHtml += '</ul>';
+            }
+
+            content.innerHTML = ordersHtml;
+            modal.style.display = 'block';
+        }
+
+        function printPriorityOrders() {
+            const printWindow = window.open('', '', 'height=400,width=600');
+            let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
+            printContent += '<h3>Pedidos Prioritários</h3>';
+            if (priorityOrders.length === 0) {
+                printContent += '<p>Nenhum pedido prioritário no momento.</p>';
+            } else {
+                priorityOrders.forEach(order => {
+                    printContent += `<p>Pedido #${order.id}</p>`;
+                    printContent += `<p>Cliente: ${order.customer.customerName}</p>`;
+                    printContent += `<p>Endereço: ${order.deliveryPoint.address}</p>`;
+                    printContent += `<p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>`;
+                    printContent += '<hr>';
+                });
+            }
+            printContent += '</body></html>';
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
         function checkForCancelledOrders(orders) {
             orders.forEach(order => {
                 if (order.status === 'cancelled' && lastOrderStatuses[order.id] !== 'cancelled') {
@@ -876,7 +952,10 @@ function updateDashboard(allOrders) {
         }
 
         function closeCancellationPopup() {
-            document.getElementById('cancellationPopup').style.display = 'none';
+            const popup = document.getElementById('cancellationPopup');
+            if (popup) {
+                popup.style.display = 'none';
+            }
         }
 
         function resetCounters() {
@@ -893,11 +972,13 @@ function updateDashboard(allOrders) {
             orderPrepTimes = {};
             courierDeliveries = {};
             cancelledOrders = 0;
+            priorityOrders = [];
             document.getElementById('avgPrepTime').textContent = '0.0 min';
             document.getElementById('totalOrders').textContent = '0';
             document.getElementById('ongoingOrders').textContent = '0';
             document.getElementById('readyOrders').textContent = '0';
             document.getElementById('cancelledOrders').textContent = '0';
+            document.getElementById('priorityOrders').textContent = '0';
             document.getElementById('totalValue').textContent = 'R$ 0.00';
             document.getElementById('yesterdayValue').textContent = 'R$ 0.00';
             document.getElementById('paymentBreakdown').innerHTML = '';
