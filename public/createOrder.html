@@ -430,10 +430,36 @@ function loadDataFromLocalStorage() {
                 updatePrepTimes(currentOrders);
                 updateCourierDeliveries(allOrdersToday);
                 checkForCancelledOrders(currentOrders);
+                fetchYesterdayOrders();
                 saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
+            }
+        }
+
+        async function fetchYesterdayOrders() {
+            try {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const startDate = formatDate(new Date(yesterday.setHours(0,0,0,0)));
+                const endDate = formatDate(new Date(yesterday.setHours(23,59,59,999)));
+                
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+                    }
+                });
+                const yesterdayOrders = response.data.filter(order => isWithinTimeRange(new Date(order.creationDate)));
+                yesterdayOrdersValue = yesterdayOrders.reduce((total, order) => total + (order.orderTotal || 0), 0);
+                document.getElementById('yesterdayValue').textContent = `R$ ${yesterdayOrdersValue.toFixed(2)}`;
+                saveDataToLocalStorage();
+            } catch (error) {
+                console.error('Erro ao buscar pedidos de ontem:', error);
             }
         }
 
