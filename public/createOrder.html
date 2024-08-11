@@ -943,12 +943,17 @@
             });
         }
 
-        function showCancellationPopup(order) {
-            const popup = document.getElementById('cancellationPopup');
-            const message = document.getElementById('cancellationMessage');
-            message.textContent = `O pedido ${order.id} foi cancelado!${order.courier ? ` Motoboy: ${order.courier.courierName}` : ''}`;
-            popup.style.display = 'block';
-        }
+function showCancellationPopup(order) {
+    const popup = document.getElementById('cancellationPopup');
+    const message = document.getElementById('cancellationMessage');
+    message.textContent = `O pedido ${order.id} foi cancelado!${order.courier ? ` Motoboy: ${order.courier.courierName}` : ''}`;
+    popup.style.display = 'block';
+    
+    // Configuração para fechar automaticamente após 2 minutos
+    setTimeout(() => {
+        closeCancellationPopup();
+    }, 120000); // 120000 milissegundos = 2 minutos
+}
 
         function closeCancellationPopup() {
             const popup = document.getElementById('cancellationPopup');
