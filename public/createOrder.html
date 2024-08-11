@@ -995,9 +995,12 @@
         const modals = document.querySelectorAll('.modal');
         const closeSpans = document.querySelectorAll('.close');
 
-        closeSpans.forEach((span, index) => {
+        closeSpans.forEach((span) => {
             span.onclick = function() {
-                modals[index].style.display = 'none';
+                const modal = span.closest('.modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
             }
         });
 
