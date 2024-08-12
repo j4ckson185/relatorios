@@ -8,7 +8,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&libraries=visualization"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&libraries=visualization">
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body {
@@ -337,9 +338,12 @@
                     <div><span class="label">Total:</span> <span id="totalOrders" class="metric-value">0</span></div>
                     <div><span class="label">Em Andamento:</span> <span id="ongoingOrders" class="metric-value">0</span></div>
                     <div><span class="label">Tempo Médio de Preparo:</span> <span id="avgPrepTime" class="metric-value">0 min</span></div>
-                    <div><span class="label">Pedidos em loja:</span> <span id="readyOrders" class="metric-value">0</span> <button class="view-button" onclick="showReadyOrders()">Ver</button></div>
+                    <div><span class="label">Pedidos em loja:</span> <span id="readyOrders" class="metric-value">0</span> <button
+                            class="view-button" onclick="showReadyOrders()">Ver</button></div>
                     <div><span class="label">Cancelados:</span> <span id="cancelledOrders" class="metric-value">0</span></div>
-                    <div><span class="label">Prioridades:</span> <span id="priorityOrders" class="metric-value">0</span> <button class="view-button" onclick="showPriorityOrders()">Ver</button> <button class="print-button" onclick="printPriorityOrders()">Imprimir</button></div>
+                    <div><span class="label">Prioridades:</span> <span id="priorityOrders" class="metric-value">0</span> <button
+                            class="view-button" onclick="showPriorityOrders()">Ver</button> <button class="print-button"
+                            onclick="printPriorityOrders()">Imprimir</button></div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Valor Total</div>
@@ -372,19 +376,19 @@
 
     <div id="priorityOrdersModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close">&times;"></span>
             <div id="priorityOrdersContent"></div>
         </div>
     </div>
 
     <div id="cancellationPopup" class="cancellation-popup">
-        <span class="close" onclick="closeCancellationPopup()">&times;</span>
+        <span class="close" onclick="hideCancellationNotification()">&times;</span>
         <p id="cancellationMessage"></p>
         <button class="hide-notification-button" onclick="hideCancellationNotification()">Ocultar notificação</button>
     </div>
 
     <div id="sameAddressPopup" class="same-address-popup">
-        <span class="close" onclick="closeSameAddressPopup()">&times;</span>
+        <span class="close" onclick="hideSameAddressNotification()">&times;</span>
         <p id="sameAddressMessage"></p>
         <button class="hide-notification-button" onclick="hideSameAddressNotification()">Ocultar notificação</button>
     </div>
@@ -432,6 +436,7 @@
         let sameAddressOrders = {};
         let shownSameAddressNotifications = new Set();
         let lastShownNotificationTime = 0;
+        let hideNotification = false;
         let hiddenNotifications = {
             cancellation: false,
             sameAddress: false
@@ -817,7 +822,7 @@
                         <h3>Motoboy - <span class="courier-name">${order.courier.courierName}</span></h3>
                         <p>Status: ${getStatusDisplay(order.status)}</p>
                         ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ?
-                    `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
+                        `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
                         <p>Pedido atual: #${order.id}</p>
                     </div>
                 `
@@ -980,7 +985,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                             <p>Status: ${getStatusDisplay(order.status)}</p>
                         </li>
                     `;
@@ -1033,7 +1038,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                         </li>
                     `;
                 });
@@ -1081,9 +1086,12 @@
             const message = document.getElementById('cancellationMessage');
             message.textContent = `O pedido ${order.id} foi cancelado!${order.courier ? ` Motoboy: ${order.courier.courierName}` : ''}`;
             popup.style.display = 'block';
-            setTimeout(() => {
-                closeCancellationPopup();
-            }, 60000); // 1 minuto
+        }
+
+        function hideCancellationNotification() {
+            hiddenNotifications.cancellation = true;
+            saveDataToLocalStorage();
+            closeCancellationPopup();
         }
 
         function closeCancellationPopup() {
@@ -1091,12 +1099,6 @@
             if (popup) {
                 popup.style.display = 'none';
             }
-        }
-
-        function hideCancellationNotification() {
-            hiddenNotifications.cancellation = true;
-            closeCancellationPopup();
-            saveDataToLocalStorage();
         }
 
         function checkForSameAddressOrders(orders) {
@@ -1173,17 +1175,17 @@
             lastShownNotificationTime = now;
         }
 
+        function hideSameAddressNotification() {
+            hiddenNotifications.sameAddress = true;
+            saveDataToLocalStorage();
+            closeSameAddressPopup();
+        }
+
         function closeSameAddressPopup() {
             const popup = document.getElementById('sameAddressPopup');
             if (popup) {
                 popup.style.display = 'none';
             }
-        }
-
-        function hideSameAddressNotification() {
-            hiddenNotifications.sameAddress = true;
-            closeSameAddressPopup();
-            saveDataToLocalStorage();
         }
 
         function resetCounters() {
@@ -1233,7 +1235,7 @@
         const closeSpans = document.querySelectorAll('.close');
 
         closeSpans.forEach((span) => {
-            span.onclick = function() {
+            span.onclick = function () {
                 const modal = span.closest('.modal');
                 if (modal) {
                     modal.style.display = 'none';
@@ -1241,7 +1243,7 @@
             }
         });
 
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             modals.forEach(modal => {
                 if (event.target == modal) {
                     modal.style.display = 'none';
