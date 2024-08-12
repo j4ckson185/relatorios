@@ -322,6 +322,7 @@
     <div id="cancellationPopup" class="cancellation-popup">
         <span class="close" onclick="closeCancellationPopup()">&times;</span>
         <p id="cancellationMessage"></p>
+        <button class="hide-notification-button" onclick="hideCancellationNotification()">Ocultar notificação</button>
     </div>
 
     <div id="sameAddressPopup" class="same-address-popup">
@@ -646,7 +647,7 @@
                         });
                         markers[`courier-${order.courier.courierName}`] = courierMarker;
 
-  courierMarker.addListener('click', () => {
+                        courierMarker.addListener('click', () => {
                             showCourierDetails(order, tracking);
                         });
                     } else {
@@ -896,7 +897,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
                             <p>Status: ${getStatusDisplay(order.status)}</p>
                         </li>
                     `;
@@ -949,7 +950,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
                         </li>
                     `;
                 });
@@ -960,7 +961,7 @@
             modal.style.display = 'block';
         }
 
-  function printPriorityOrders() {
+        function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -997,7 +998,7 @@
             popup.style.display = 'block';
             setTimeout(() => {
                 closeCancellationPopup();
-            }, 120000); // 2 minutos
+            }, 60000); // 1 minuto
         }
 
         function closeCancellationPopup() {
@@ -1005,6 +1006,10 @@
             if (popup) {
                 popup.style.display = 'none';
             }
+        }
+
+        function hideCancellationNotification() {
+            closeCancellationPopup();
         }
 
         function checkForSameAddressOrders(orders) {
@@ -1089,10 +1094,7 @@
         }
 
         function hideSameAddressNotification() {
-            const popup = document.getElementById('sameAddressPopup');
-            popup.style.display = 'none';
-            hideNotification = true;
-            saveDataToLocalStorage();
+            closeSameAddressPopup();
         }
 
         function resetCounters() {
