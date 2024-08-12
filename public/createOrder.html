@@ -414,20 +414,7 @@ function isWithinTimeRange(date) {
                 console.log('Pedidos recebidos:', response.data);
                 allOrdersToday = response.data
                 
-                currentOrders = filteredOrders;
-                updateOrderList(currentOrders);
-                updateMap(currentOrders);
-                updateDashboard(allOrdersToday);
-                updatePrepTimes(currentOrders);
-                updateCourierDeliveries(allOrdersToday);
-                checkForCancelledOrders(currentOrders);
-                fetchYesterdayOrders();
-                saveDataToLocalStorage();
-            } catch (error) {
-                console.error('Erro ao buscar pedidos:', error);
-                document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
-            }
-        }
+   
 
         async function fetchYesterdayOrders() {
             try {
