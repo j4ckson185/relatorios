@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,112 +11,144 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&libraries=visualization"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
-        body { 
+        body {
             font-family: 'Roboto', sans-serif;
-            margin: 0; 
-            padding: 0; 
-            background-color: #f0f0f0; 
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
             color: #333;
         }
-        .container { 
-            display: flex; 
+
+        .container {
+            display: flex;
             height: 100vh;
         }
-        .sidebar { 
-            width: 300px; 
-            background-color: #2c3e50; 
-            padding: 20px; 
-            overflow-y: auto; 
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+
+        .sidebar {
+            width: 300px;
+            background-color: #2c3e50;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
         }
-        .main-content { 
-            flex-grow: 1; 
-            display: flex; 
-            flex-direction: column; 
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
             padding: 20px;
             overflow-y: auto;
         }
-        #map { 
+
+        #map {
             height: 60vh;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
+
         .dashboard {
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
         }
+
         .metric-card {
             background-color: #fff;
             border-radius: 8px;
             padding: 15px;
             width: 32%;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+
         .metric-title {
             font-size: 14px;
             color: #4a4a4a;
             margin-bottom: 5px;
             font-weight: bold;
         }
+
         .metric-value {
             font-size: 18px;
             font-weight: bold;
             color: #2c3e50;
         }
-        .order-list { 
+
+        .order-list {
             flex-grow: 1;
-            overflow-y: auto; 
+            overflow-y: auto;
         }
-        .order-item { 
-            background-color: #fff; 
-            margin-bottom: 10px; 
-            padding: 15px; 
-            border-radius: 8px; 
+
+        .order-item {
+            background-color: #fff;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 8px;
             position: relative;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        .order-item:hover { 
+
+        .order-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
+
         h2 {
             color: #ecf0f1;
             margin-bottom: 20px;
             font-size: 24px;
             text-align: center;
         }
-        .order-options { 
-            position: absolute; 
-            right: 10px; 
-            top: 10px; 
+
+        .order-options {
+            position: absolute;
+            right: 10px;
+            top: 10px;
         }
-        .order-options i { 
-            cursor: pointer; 
+
+        .order-options i {
+            cursor: pointer;
             margin-left: 5px;
             color: #3498db;
             transition: color 0.3s ease;
         }
+
         .order-options i:hover {
             color: #2980b9;
         }
-        .error { 
-            color: #e74c3c; 
-            font-weight: bold; 
+
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
             background-color: #fadbd8;
             padding: 10px;
             border-radius: 5px;
             margin-top: 10px;
         }
-        .status-open { color: #e74c3c; }
-        .status-accepted { color: #f1c40f; }
-        .status-ready { color: #8E44AD; }
-        .status-onGoing { color: #87CEEB; }
-        .status-dispatched { color: #e67e22; }
+
+        .status-open {
+            color: #e74c3c;
+        }
+
+        .status-accepted {
+            color: #f1c40f;
+        }
+
+        .status-ready {
+            color: #8E44AD;
+        }
+
+        .status-onGoing {
+            color: #87CEEB;
+        }
+
+        .status-dispatched {
+            color: #e67e22;
+        }
+
         .action-button {
             background-color: #3498db;
             color: white;
@@ -128,16 +161,20 @@
             transition: background-color 0.3s ease;
             width: 100%;
         }
+
         .action-button:hover {
             background-color: #2980b9;
         }
+
         #paymentBreakdown {
             font-size: 12px;
             margin-top: 5px;
         }
+
         .label {
             color: #4a4a4a;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -147,8 +184,9 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0, 0, 0, 0.4);
         }
+
         .modal-content {
             background-color: #fefefe;
             margin: 15% auto;
@@ -158,6 +196,7 @@
             max-width: 600px;
             border-radius: 8px;
         }
+
         .close {
             color: #aaa;
             float: right;
@@ -165,22 +204,26 @@
             font-weight: bold;
             cursor: pointer;
         }
+
         .close:hover,
         .close:focus {
             color: #000;
             text-decoration: none;
             cursor: pointer;
         }
+
         .courier-name {
             font-weight: bold;
             color: #3498db;
         }
+
         .courier-deliveries {
             margin-bottom: 10px;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
+
         .view-button {
             background-color: #2ecc71;
             color: white;
@@ -191,9 +234,11 @@
             font-size: 12px;
             margin-left: 10px;
         }
+
         .view-button:hover {
             background-color: #27ae60;
         }
+
         .print-button {
             background-color: #e67e22;
             color: white;
@@ -204,28 +249,35 @@
             font-size: 12px;
             margin-left: 10px;
         }
+
         .print-button:hover {
             background-color: #d35400;
         }
+
         .ongoing-orders-list {
             list-style-type: none;
             padding: 0;
         }
+
         .ongoing-order-item {
             background-color: #ecf0f1;
             margin-bottom: 10px;
             padding: 10px;
             border-radius: 5px;
         }
+
         .ongoing-order-item h4 {
             margin: 0 0 5px 0;
             color: #2c3e50;
         }
+
         .same-address {
             color: #e67e22;
             font-weight: bold;
         }
-        .cancellation-popup, .same-address-popup {
+
+        .cancellation-popup,
+        .same-address-popup {
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -233,23 +285,42 @@
             color: #721c24;
             padding: 15px;
             border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             display: none;
         }
-        .cancellation-popup .close, .same-address-popup .close {
+
+        .cancellation-popup .close,
+        .same-address-popup .close {
             color: #721c24;
             float: right;
             font-size: 20px;
             font-weight: bold;
             cursor: pointer;
         }
+
         #averageTicket {
             font-weight: bold;
             color: #27ae60;
         }
+
+        .hide-notification-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .hide-notification-button:hover {
+            background-color: #2980b9;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="sidebar">
@@ -301,7 +372,7 @@
 
     <div id="priorityOrdersModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close">&times;"></span>
             <div id="priorityOrdersContent"></div>
         </div>
     </div>
@@ -309,11 +380,13 @@
     <div id="cancellationPopup" class="cancellation-popup">
         <span class="close" onclick="closeCancellationPopup()">&times;</span>
         <p id="cancellationMessage"></p>
+        <button class="hide-notification-button" onclick="hideCancellationNotification()">Ocultar notificação</button>
     </div>
 
     <div id="sameAddressPopup" class="same-address-popup">
         <span class="close" onclick="closeSameAddressPopup()">&times;</span>
         <p id="sameAddressMessage"></p>
+        <button class="hide-notification-button" onclick="hideSameAddressNotification()">Ocultar notificação</button>
     </div>
 
     <script>
@@ -330,7 +403,7 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-const db = firebase.firestore();
+        const db = firebase.firestore();
         let map;
         let heatmap;
         let markers = {};
@@ -359,6 +432,10 @@ const db = firebase.firestore();
         let sameAddressOrders = {};
         let shownSameAddressNotifications = new Set();
         let lastShownNotificationTime = 0;
+        let hiddenNotifications = {
+            cancellation: false,
+            sameAddress: false
+        };
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -374,6 +451,7 @@ const db = firebase.firestore();
             localStorage.setItem('sameAddressOrders', JSON.stringify(sameAddressOrders));
             localStorage.setItem('shownSameAddressNotifications', JSON.stringify(Array.from(shownSameAddressNotifications)));
             localStorage.setItem('lastShownNotificationTime', lastShownNotificationTime.toString());
+            localStorage.setItem('hiddenNotifications', JSON.stringify(hiddenNotifications));
         }
 
         function loadDataFromLocalStorage() {
@@ -415,6 +493,9 @@ const db = firebase.firestore();
 
             const storedLastShownNotificationTime = localStorage.getItem('lastShownNotificationTime');
             if (storedLastShownNotificationTime) lastShownNotificationTime = parseInt(storedLastShownNotificationTime);
+
+            const storedHiddenNotifications = localStorage.getItem('hiddenNotifications');
+            if (storedHiddenNotifications) hiddenNotifications = JSON.parse(storedHiddenNotifications);
         }
 
         function initMap() {
@@ -445,18 +526,15 @@ const db = firebase.firestore();
         }
 
         function isWithinTimeRange(date) {
-            const hour = date.getHours();
-            const minutes = date.getMinutes();
-            const totalMinutes = hour * 60 + minutes;
-            return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
+            return true; // Permitir pedidos a qualquer hora
         }
 
         async function fetchOrders() {
             try {
                 const now = new Date();
-                const startDate = formatDate(new Date(now.setHours(0,0,0,0)));
+                const startDate = formatDate(new Date(now.setHours(0, 0, 0, 0)));
                 const endDate = formatDate(new Date());
-                
+
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
@@ -471,7 +549,7 @@ const db = firebase.firestore();
                     const orderDate = new Date(order.creationDate);
                     return isWithinTimeRange(orderDate);
                 });
-                const filteredOrders = allOrdersToday.filter(order => 
+                const filteredOrders = allOrdersToday.filter(order =>
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
                 currentOrders = filteredOrders;
@@ -495,9 +573,9 @@ const db = firebase.firestore();
             try {
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                const startDate = formatDate(new Date(yesterday.setHours(0,0,0,0)));
-                const endDate = formatDate(new Date(yesterday.setHours(23,59,59,999)));
-                
+                const startDate = formatDate(new Date(yesterday.setHours(0, 0, 0, 0)));
+                const endDate = formatDate(new Date(yesterday.setHours(23, 59, 59, 999)));
+
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
@@ -541,12 +619,12 @@ const db = firebase.firestore();
 
         function updateMap(orders) {
             const heatmapData = [];
-            
+
             orders.forEach(order => {
                 if (order.deliveryPoint && order.deliveryPoint.coordinates) {
                     const { lat, lng } = order.deliveryPoint.coordinates;
                     let marker = markers[`order-${order.uid}`];
-                    
+
                     if (!marker) {
                         marker = new google.maps.Marker({
                             position: { lat, lng },
@@ -586,12 +664,23 @@ const db = firebase.firestore();
         function getOrderMarkerIcon(status, orderId) {
             let color;
             switch (status) {
-                case 'open': color = '#e74c3c'; break;
-                case 'accepted': color = '#f1c40f'; break;
-                case 'ready': color = '#8E44AD'; break;
-                case 'onGoing': color = '#87CEEB'; break;
-                case 'dispatched': color = '#e67e22'; break;
-                default: color = 'gray';
+                case 'open':
+                    color = '#e74c3c';
+                    break;
+                case 'accepted':
+                    color = '#f1c40f';
+                    break;
+                case 'ready':
+                    color = '#8E44AD';
+                    break;
+                case 'onGoing':
+                    color = '#87CEEB';
+                    break;
+                case 'dispatched':
+                    color = '#e67e22';
+                    break;
+                default:
+                    color = 'gray';
             }
             return {
                 url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
@@ -630,7 +719,7 @@ const db = firebase.firestore();
                         });
                         markers[`courier-${order.courier.courierName}`] = courierMarker;
 
-courierMarker.addListener('click', () => {
+                        courierMarker.addListener('click', () => {
                             showCourierDetails(order, tracking);
                         });
                     } else {
@@ -649,8 +738,8 @@ courierMarker.addListener('click', () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
                         <rect width="60" height="20" rx="10" ry="10" fill="${status === 'onGoing' ? 'red' : 'green'}" />
                         <text x="30" y="14" font-family="Arial" font-size="12" fill="white" text-anchor="middle">${courierName.substring(0, 5).toUpperCase()}</text>
-                        <path d="M30 25 L20 55 L40 55 Z" fill="black"/>
-                        <circle cx="30" cy="35" r="7" fill="white"/>
+                        <path d="M30 25 L20 55 L40 55 Z" fill="black" />
+                        <circle cx="30" cy="35" r="7" fill="white" />
                     </svg>
                 `)}`,
                 scaledSize: new google.maps.Size(60, 60),
@@ -667,23 +756,34 @@ courierMarker.addListener('click', () => {
         }
 
         function getStatusDisplay(status) {
-            switch(status) {
-                case 'open': return 'Aberto';
-                case 'accepted': return 'Aceito';
-                case 'ready': return 'Pronto';
-                case 'onGoing': return 'A Caminho';
-                case 'dispatched': return 'Despachado';
-                case 'cancelled': return 'Cancelado';
-                default: return status;
+            switch (status) {
+                case 'open':
+                    return 'Aberto';
+                case 'accepted':
+                    return 'Aceito';
+                case 'ready':
+                    return 'Pronto';
+                case 'onGoing':
+                    return 'A Caminho';
+                case 'dispatched':
+                    return 'Despachado';
+                case 'cancelled':
+                    return 'Cancelado';
+                default:
+                    return status;
             }
         }
 
         function translatePaymentMethod(method) {
-            switch(method) {
-                case 'money': return 'Dinheiro';
-                case 'card': return 'Cartão';
-                case 'online': return 'Online';
-                default: return method;
+            switch (method) {
+                case 'money':
+                    return 'Dinheiro';
+                case 'card':
+                    return 'Cartão';
+                case 'online':
+                    return 'Online';
+                default:
+                    return method;
             }
         }
 
@@ -716,8 +816,8 @@ courierMarker.addListener('click', () => {
                     <div style="max-width: 200px;">
                         <h3>Motoboy - <span class="courier-name">${order.courier.courierName}</span></h3>
                         <p>Status: ${getStatusDisplay(order.status)}</p>
-                        ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ? 
-                            `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
+                        ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ?
+                        `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
                         <p>Pedido atual: #${order.id}</p>
                     </div>
                 `
@@ -753,13 +853,13 @@ courierMarker.addListener('click', () => {
             document.getElementById('readyOrders').textContent = currentOrders.filter(order => order.status === 'ready').length;
             document.getElementById('cancelledOrders').textContent = cancelledOrders;
             document.getElementById('priorityOrders').textContent = priorityOrders.length;
-            
+
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
-            
+
             const completedOrders = allOrders.filter(order => order.status !== 'cancelled');
             const averageTicket = completedOrders.length > 0 ? totalOrdersValue / completedOrders.length : 0;
             document.getElementById('averageTicket').textContent = `R$ ${averageTicket.toFixed(2)}`;
-            
+
             const paymentBreakdown = document.getElementById('paymentBreakdown');
             paymentBreakdown.innerHTML = '';
             for (const [method, value] of Object.entries(paymentMethods)) {
@@ -804,7 +904,7 @@ courierMarker.addListener('click', () => {
         function updateCourierDeliveries(allOrders) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             courierDeliveries = {};
             const ongoingDeliveries = {};
             sameAddressOrders = {};
@@ -863,9 +963,9 @@ courierMarker.addListener('click', () => {
         }
 
         function showOngoingDeliveries(courierName) {
-            const ongoingDeliveries = currentOrders.filter(order => 
-                order.courier && 
-                order.courier.courierName === courierName && 
+            const ongoingDeliveries = currentOrders.filter(order =>
+                order.courier &&
+                order.courier.courierName === courierName &&
                 ['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
             );
 
@@ -933,7 +1033,7 @@ courierMarker.addListener('click', () => {
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                         </li>
                     `;
                 });
@@ -944,7 +1044,7 @@ courierMarker.addListener('click', () => {
             modal.style.display = 'block';
         }
 
-function printPriorityOrders() {
+        function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -955,7 +1055,7 @@ function printPriorityOrders() {
                     printContent += `<p>Pedido #${order.id}</p>`;
                     printContent += `<p>Cliente: ${order.customer.customerName}</p>`;
                     printContent += `<p>Endereço: ${order.deliveryPoint.address}</p>`;
-                    printContent += `<p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>`;
+                    printContent += `<p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>`;
                     printContent += '<hr>';
                 });
             }
@@ -975,13 +1075,13 @@ function printPriorityOrders() {
         }
 
         function showCancellationPopup(order) {
+            if (hiddenNotifications.cancellation) {
+                return;
+            }
             const popup = document.getElementById('cancellationPopup');
             const message = document.getElementById('cancellationMessage');
             message.textContent = `O pedido ${order.id} foi cancelado!${order.courier ? ` Motoboy: ${order.courier.courierName}` : ''}`;
             popup.style.display = 'block';
-            setTimeout(() => {
-                closeCancellationPopup();
-            }, 120000); // 2 minutos
         }
 
         function closeCancellationPopup() {
@@ -989,6 +1089,12 @@ function printPriorityOrders() {
             if (popup) {
                 popup.style.display = 'none';
             }
+        }
+
+        function hideCancellationNotification() {
+            hiddenNotifications.cancellation = true;
+            closeCancellationPopup();
+            saveDataToLocalStorage();
         }
 
         function checkForSameAddressOrders(orders) {
@@ -1001,7 +1107,7 @@ function printPriorityOrders() {
                 }
                 const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
                 const location = `${order.deliveryPoint.coordinates.lat},${order.deliveryPoint.coordinates.lng}`;
-                
+
                 if (!sameAddressMap[address]) {
                     sameAddressMap[address] = [];
                 }
@@ -1031,7 +1137,7 @@ function printPriorityOrders() {
                 }
             }
 
-            if (shouldShowNotification) {
+            if (shouldShowNotification && !hiddenNotifications.sameAddress) {
                 showSameAddressPopup(sameAddressMap, locationMap);
             } else {
                 closeSameAddressPopup();
@@ -1072,6 +1178,12 @@ function printPriorityOrders() {
             }
         }
 
+        function hideSameAddressNotification() {
+            hiddenNotifications.sameAddress = true;
+            closeSameAddressPopup();
+            saveDataToLocalStorage();
+        }
+
         function resetCounters() {
             totalOrdersCount = 0;
             totalOrdersValue = 0;
@@ -1090,6 +1202,10 @@ function printPriorityOrders() {
             sameAddressOrders = {};
             shownSameAddressNotifications.clear();
             lastShownNotificationTime = 0;
+            hiddenNotifications = {
+                cancellation: false,
+                sameAddress: false
+            };
             document.getElementById('avgPrepTime').textContent = '0.0 min';
             document.getElementById('totalOrders').textContent = '0';
             document.getElementById('ongoingOrders').textContent = '0';
@@ -1115,7 +1231,7 @@ function printPriorityOrders() {
         const closeSpans = document.querySelectorAll('.close');
 
         closeSpans.forEach((span) => {
-            span.onclick = function() {
+            span.onclick = function () {
                 const modal = span.closest('.modal');
                 if (modal) {
                     modal.style.display = 'none';
@@ -1123,7 +1239,7 @@ function printPriorityOrders() {
             }
         });
 
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             modals.forEach(modal => {
                 if (event.target == modal) {
                     modal.style.display = 'none';
@@ -1138,4 +1254,5 @@ function printPriorityOrders() {
         }
     </script>
 </body>
+
 </html>
