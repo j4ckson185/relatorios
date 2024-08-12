@@ -344,7 +344,7 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-   const db = firebase.firestore();
+        const db = firebase.firestore();
         let map;
         let heatmap;
         let markers = {};
@@ -646,7 +646,7 @@
                         });
                         markers[`courier-${order.courier.courierName}`] = courierMarker;
 
-  courierMarker.addListener('click', () => {
+                        courierMarker.addListener('click', () => {
                             showCourierDetails(order, tracking);
                         });
                     } else {
@@ -960,7 +960,7 @@
             modal.style.display = 'block';
         }
 
-  function printPriorityOrders() {
+        function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -997,7 +997,7 @@
             popup.style.display = 'block';
             setTimeout(() => {
                 closeCancellationPopup();
-            }, 120000); // 2 minutos
+            }, 60000); // 1 minuto
         }
 
         function closeCancellationPopup() {
@@ -1047,7 +1047,7 @@
                 }
             }
 
-            if (shouldShowNotification) {
+            if (shouldShowNotification && !hideNotification) {
                 showSameAddressPopup(sameAddressMap, locationMap);
             } else {
                 closeSameAddressPopup();
@@ -1079,6 +1079,9 @@
             message.innerHTML = content;
             popup.style.display = 'block';
             lastShownNotificationTime = now;
+            setTimeout(() => {
+                closeSameAddressPopup();
+            }, 60000); // 1 minuto
         }
 
         function closeSameAddressPopup() {
@@ -1086,6 +1089,12 @@
             if (popup) {
                 popup.style.display = 'none';
             }
+        }
+
+        function hideSameAddressNotification() {
+            hideNotification = true;
+            closeSameAddressPopup();
+            saveDataToLocalStorage();
         }
 
         function resetCounters() {
@@ -1106,6 +1115,7 @@
             sameAddressOrders = {};
             shownSameAddressNotifications.clear();
             lastShownNotificationTime = 0;
+            hideNotification = false;
             document.getElementById('avgPrepTime').textContent = '0.0 min';
             document.getElementById('totalOrders').textContent = '0';
             document.getElementById('ongoingOrders').textContent = '0';
