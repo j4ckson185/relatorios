@@ -427,10 +427,24 @@ function isWithinTimeRange(date) {
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                allOrdersToday = response.data.filter(order => {
-                    const orderDate = new Date(order.creationDate);
-                    return isWithinTimeRange(orderDate);
-                });
+allOrdersToday = response.data.filter(order => {
+    const orderDate = new Date(order.creationDate);
+    const now = new Date();
+    
+    // Se o pedido for de hoje
+    if (orderDate.getDate() === now.getDate()) {
+        return isWithinTimeRange(orderDate);
+    }
+    
+    // Se o pedido for de ontem e depois das 22:30
+    if (orderDate.getDate() === now.getDate() - 1) {
+        const hour = orderDate.getHours();
+        const minutes = orderDate.getMinutes();
+        return hour >= 22 && minutes >= 30;
+    }
+    
+    return false;
+});
                 const filteredOrders = allOrdersToday.filter(order => 
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
                 );
