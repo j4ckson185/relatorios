@@ -393,13 +393,9 @@ function loadDataFromLocalStorage() {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
-        function isWithinTimeRange(date) {
-            const hour = date.getHours();
-            const minutes = date.getMinutes();
-            const totalMinutes = hour * 60 + minutes;
-            return totalMinutes >= 01 * 60 + 00 && totalMinutes <= 01 * 60 + 30;
-        }
-
+function isWithinTimeRange(date) {
+    return true;
+}
         async function fetchOrders() {
             try {
                 const now = new Date();
@@ -416,10 +412,7 @@ function loadDataFromLocalStorage() {
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                allOrdersToday = response.data.filter(order => {
-                    const orderDate = new Date(order.creationDate);
-                    return isWithinTimeRange(orderDate);
-                });
+                allOrdersToday = response.data.filter;
                 const filteredOrders = allOrdersToday.filter(order => 
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
                 );
