@@ -393,23 +393,12 @@ function loadDataFromLocalStorage() {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
-function isWithinTimeRange(date) {
-    const hour = date.getHours();
-    const minutes = date.getMinutes();
-    const totalMinutes = hour * 60 + minutes;
-    
-    // Se for depois da meia-noite e antes das 5 da manhã
-    if (hour < 5 || (hour === 5 && minutes === 0)) {
-        return true;
-    }
-    
-    // Se for depois das 22:30 do dia anterior
-    if (hour >= 22 && minutes >= 30) {
-        return true;
-    }
-    
-    return false;
-}
+        function isWithinTimeRange(date) {
+            const hour = date.getHours();
+            const minutes = date.getMinutes();
+            const totalMinutes = hour * 60 + minutes;
+            return totalMinutes >= 01 * 60 + 00 && totalMinutes <= 22 * 60 + 30;
+        }
 
         async function fetchOrders() {
             try {
@@ -427,24 +416,10 @@ function isWithinTimeRange(date) {
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-allOrdersToday = response.data.filter(order => {
-    const orderDate = new Date(order.creationDate);
-    const now = new Date();
-    
-    // Se o pedido for de hoje
-    if (orderDate.getDate() === now.getDate()) {
-        return isWithinTimeRange(orderDate);
-    }
-    
-    // Se o pedido for de ontem e depois das 22:30
-    if (orderDate.getDate() === now.getDate() - 1) {
-        const hour = orderDate.getHours();
-        const minutes = orderDate.getMinutes();
-        return hour >= 22 && minutes >= 30;
-    }
-    
-    return false;
-});
+                allOrdersToday = response.data.filter(order => {
+                    const orderDate = new Date(order.creationDate);
+                    return isWithinTimeRange(orderDate);
+                });
                 const filteredOrders = allOrdersToday.filter(order => 
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
                 );
