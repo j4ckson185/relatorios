@@ -646,7 +646,7 @@
                         });
                         markers[`courier-${order.courier.courierName}`] = courierMarker;
 
-                        courierMarker.addListener('click', () => {
+  courierMarker.addListener('click', () => {
                             showCourierDetails(order, tracking);
                         });
                     } else {
@@ -896,7 +896,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                             <p>Status: ${getStatusDisplay(order.status)}</p>
                         </li>
                     `;
@@ -949,7 +949,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
                         </li>
                     `;
                 });
@@ -960,7 +960,7 @@
             modal.style.display = 'block';
         }
 
-        function printPriorityOrders() {
+  function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -1089,8 +1089,9 @@
         }
 
         function hideSameAddressNotification() {
+            const popup = document.getElementById('sameAddressPopup');
+            popup.style.display = 'none';
             hideNotification = true;
-            closeSameAddressPopup();
             saveDataToLocalStorage();
         }
 
