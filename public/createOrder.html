@@ -194,19 +194,6 @@
         .view-button:hover {
             background-color: #27ae60;
         }
-        .print-button {
-            background-color: #e67e22;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .print-button:hover {
-            background-color: #d35400;
-        }
         .ongoing-orders-list {
             list-style-type: none;
             padding: 0;
@@ -225,7 +212,7 @@
             color: #e67e22;
             font-weight: bold;
         }
-        .cancellation-popup, .same-address-popup {
+        .cancellation-popup {
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -237,16 +224,12 @@
             z-index: 1000;
             display: none;
         }
-        .cancellation-popup .close, .same-address-popup .close {
+        .cancellation-popup .close {
             color: #721c24;
             float: right;
             font-size: 20px;
             font-weight: bold;
             cursor: pointer;
-        }
-        #averageTicket {
-            font-weight: bold;
-            color: #27ae60;
         }
     </style>
 </head>
@@ -268,13 +251,11 @@
                     <div><span class="label">Tempo Médio de Preparo:</span> <span id="avgPrepTime" class="metric-value">0 min</span></div>
                     <div><span class="label">Pedidos em loja:</span> <span id="readyOrders" class="metric-value">0</span> <button class="view-button" onclick="showReadyOrders()">Ver</button></div>
                     <div><span class="label">Cancelados:</span> <span id="cancelledOrders" class="metric-value">0</span></div>
-                    <div><span class="label">Prioridades:</span> <span id="priorityOrders" class="metric-value">0</span> <button class="view-button" onclick="showPriorityOrders()">Ver</button> <button class="print-button" onclick="printPriorityOrders()">Imprimir</button></div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Valor Total</div>
                     <div><span class="label">Hoje:</span> <span id="totalValue" class="metric-value">R$ 0,00</span></div>
                     <div><span class="label">Ontem:</span> <span id="yesterdayValue" class="metric-value">R$ 0,00</span></div>
-                    <div><span class="label">Ticket Médio:</span> <span id="averageTicket" class="metric-value">R$ 0,00</span></div>
                     <div id="paymentBreakdown"></div>
                 </div>
                 <div class="metric-card">
@@ -299,21 +280,9 @@
         </div>
     </div>
 
-    <div id="priorityOrdersModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="priorityOrdersContent"></div>
-        </div>
-    </div>
-
     <div id="cancellationPopup" class="cancellation-popup">
         <span class="close" onclick="closeCancellationPopup()">&times;</span>
         <p id="cancellationMessage"></p>
-    </div>
-
-    <div id="sameAddressPopup" class="same-address-popup">
-        <span class="close" onclick="closeSameAddressPopup()">&times;</span>
-        <p id="sameAddressMessage"></p>
     </div>
 
     <script>
@@ -330,7 +299,7 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-const db = firebase.firestore();
+        const db = firebase.firestore();
         let map;
         let heatmap;
         let markers = {};
@@ -355,10 +324,6 @@ const db = firebase.firestore();
         let courierDeliveries = {};
         let cancelledOrders = 0;
         let lastOrderStatuses = {};
-        let priorityOrders = [];
-        let sameAddressOrders = {};
-        let shownSameAddressNotifications = new Set();
-        let lastShownNotificationTime = 0;
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -370,13 +335,9 @@ const db = firebase.firestore();
             localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
             localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
             localStorage.setItem('cancelledOrders', cancelledOrders.toString());
-            localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
-            localStorage.setItem('sameAddressOrders', JSON.stringify(sameAddressOrders));
-            localStorage.setItem('shownSameAddressNotifications', JSON.stringify(Array.from(shownSameAddressNotifications)));
-            localStorage.setItem('lastShownNotificationTime', lastShownNotificationTime.toString());
         }
 
-        function loadDataFromLocalStorage() {
+function loadDataFromLocalStorage() {
             const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
             if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
 
@@ -403,18 +364,6 @@ const db = firebase.firestore();
 
             const storedCancelledOrders = localStorage.getItem('cancelledOrders');
             if (storedCancelledOrders) cancelledOrders = parseInt(storedCancelledOrders);
-
-            const storedPriorityOrders = localStorage.getItem('priorityOrders');
-            if (storedPriorityOrders) priorityOrders = JSON.parse(storedPriorityOrders);
-
-            const storedSameAddressOrders = localStorage.getItem('sameAddressOrders');
-            if (storedSameAddressOrders) sameAddressOrders = JSON.parse(storedSameAddressOrders);
-
-            const storedShownSameAddressNotifications = localStorage.getItem('shownSameAddressNotifications');
-            if (storedShownSameAddressNotifications) shownSameAddressNotifications = new Set(JSON.parse(storedShownSameAddressNotifications));
-
-            const storedLastShownNotificationTime = localStorage.getItem('lastShownNotificationTime');
-            if (storedLastShownNotificationTime) lastShownNotificationTime = parseInt(storedLastShownNotificationTime);
         }
 
         function initMap() {
@@ -478,36 +427,20 @@ function isWithinTimeRange(date) {
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-allOrdersToday = response.data.filter(order => {
-    const orderDate = new Date(order.creationDate);
-    const now = new Date();
-    
-    // Se o pedido for de hoje
-    if (orderDate.getDate() === now.getDate()) {
-        return isWithinTimeRange(orderDate);
-    }
-    
-    // Se o pedido for de ontem e depois das 22:30
-    if (orderDate.getDate() === now.getDate() - 1) {
-        const hour = orderDate.getHours();
-        const minutes = orderDate.getMinutes();
-        return hour >= 22 && minutes >= 30;
-    }
-    
-    return false;
-});
+                allOrdersToday = response.data.filter(order => {
+                    const orderDate = new Date(order.creationDate);
+                    return isWithinTimeRange(orderDate);
+                });
                 const filteredOrders = allOrdersToday.filter(order => 
-                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
+                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
                 );
                 currentOrders = filteredOrders;
-                priorityOrders = currentOrders.filter(order => order.status === 'accepted');
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
                 updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
                 updateCourierDeliveries(allOrdersToday);
-                checkForCancelledOrders(allOrdersToday);
-                checkForSameAddressOrders(allOrdersToday);
+                checkForCancelledOrders(currentOrders);
                 fetchYesterdayOrders();
                 saveDataToLocalStorage();
             } catch (error) {
@@ -616,6 +549,7 @@ allOrdersToday = response.data.filter(order => {
                 case 'ready': color = '#8E44AD'; break;
                 case 'onGoing': color = '#87CEEB'; break;
                 case 'dispatched': color = '#e67e22'; break;
+                case 'cancelled': color = '#95a5a6'; break;
                 default: color = 'gray';
             }
             return {
@@ -655,7 +589,7 @@ allOrdersToday = response.data.filter(order => {
                         });
                         markers[`courier-${order.courier.courierName}`] = courierMarker;
 
- courierMarker.addListener('click', () => {
+                        courierMarker.addListener('click', () => {
                             showCourierDetails(order, tracking);
                         });
                     } else {
@@ -754,7 +688,7 @@ allOrdersToday = response.data.filter(order => {
             }
         }
 
-        function updateDashboard(allOrders) {
+function updateDashboard(allOrders) {
             totalOrdersCount = allOrders.length;
             totalOrdersValue = 0;
             paymentMethods = {
@@ -763,7 +697,6 @@ allOrdersToday = response.data.filter(order => {
                 online: 0
             };
             cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
-            priorityOrders = allOrders.filter(order => order.status === 'accepted');
 
             allOrders.forEach(order => {
                 if (order.status !== 'cancelled') {
@@ -777,13 +710,8 @@ allOrdersToday = response.data.filter(order => {
             document.getElementById('ongoingOrders').textContent = currentOrders.filter(order => order.status === 'onGoing').length;
             document.getElementById('readyOrders').textContent = currentOrders.filter(order => order.status === 'ready').length;
             document.getElementById('cancelledOrders').textContent = cancelledOrders;
-            document.getElementById('priorityOrders').textContent = priorityOrders.length;
             
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
-            
-            const completedOrders = allOrders.filter(order => order.status !== 'cancelled');
-            const averageTicket = completedOrders.length > 0 ? totalOrdersValue / completedOrders.length : 0;
-            document.getElementById('averageTicket').textContent = `R$ ${averageTicket.toFixed(2)}`;
             
             const paymentBreakdown = document.getElementById('paymentBreakdown');
             paymentBreakdown.innerHTML = '';
@@ -832,14 +760,14 @@ allOrdersToday = response.data.filter(order => {
             
             courierDeliveries = {};
             const ongoingDeliveries = {};
-            sameAddressOrders = {};
+            const sameAddressDeliveries = {};
 
             allOrders.forEach(order => {
                 if (order.courier && new Date(order.creationDate) >= today) {
                     const courierName = order.courier.courierName;
                     if (order.status === 'closed' || order.status === 'delivered') {
                         courierDeliveries[courierName] = (courierDeliveries[courierName] || 0) + 1;
-                    } else if (['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)) {
+                    } else if (order.status === 'onGoing') {
                         if (!ongoingDeliveries[courierName]) {
                             ongoingDeliveries[courierName] = [];
                         }
@@ -847,13 +775,13 @@ allOrdersToday = response.data.filter(order => {
 
                         // Check for same address deliveries
                         const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
-                        if (!sameAddressOrders[courierName]) {
-                            sameAddressOrders[courierName] = {};
+                        if (!sameAddressDeliveries[courierName]) {
+                            sameAddressDeliveries[courierName] = {};
                         }
-                        if (!sameAddressOrders[courierName][address]) {
-                            sameAddressOrders[courierName][address] = [];
+                        if (!sameAddressDeliveries[courierName][address]) {
+                            sameAddressDeliveries[courierName][address] = 0;
                         }
-                        sameAddressOrders[courierName][address].push(order.id);
+                        sameAddressDeliveries[courierName][address]++;
                     }
                 }
             });
@@ -863,10 +791,10 @@ allOrdersToday = response.data.filter(order => {
             for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
                 const ongoingCount = ongoingDeliveries[courierName] ? ongoingDeliveries[courierName].length : 0;
                 let sameAddressInfo = '';
-                if (sameAddressOrders[courierName]) {
-                    for (const [address, orders] of Object.entries(sameAddressOrders[courierName])) {
-                        if (orders.length > 1) {
-                            sameAddressInfo += `<span class="same-address">${orders.length} mesma casa</span>, `;
+                if (sameAddressDeliveries[courierName]) {
+                    for (const [address, count] of Object.entries(sameAddressDeliveries[courierName])) {
+                        if (count > 1) {
+                            sameAddressInfo += `<span class="same-address">${count} mesma casa</span>, `;
                         }
                     }
                     sameAddressInfo = sameAddressInfo.slice(0, -2); // Remove last comma and space
@@ -891,7 +819,7 @@ allOrdersToday = response.data.filter(order => {
             const ongoingDeliveries = currentOrders.filter(order => 
                 order.courier && 
                 order.courier.courierName === courierName && 
-                ['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
+                order.status === 'onGoing'
             );
 
             let content = `<h3>Pedidos em andamento de <span class="courier-name">${courierName}</span></h3>`;
@@ -906,7 +834,6 @@ allOrdersToday = response.data.filter(order => {
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
                             <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
-                            <p>Status: ${getStatusDisplay(order.status)}</p>
                         </li>
                     `;
                 });
@@ -943,53 +870,6 @@ allOrdersToday = response.data.filter(order => {
             modal.style.display = 'block';
         }
 
-        function showPriorityOrders() {
-            const modal = document.getElementById('priorityOrdersModal');
-            const content = document.getElementById('priorityOrdersContent');
-
-            let ordersHtml = '<h3>Pedidos Prioritários</h3>';
-            if (priorityOrders.length === 0) {
-                ordersHtml += '<p>Nenhum pedido prioritário no momento.</p>';
-            } else {
-                ordersHtml += '<ul class="ongoing-orders-list">';
-                priorityOrders.forEach(order => {
-                    ordersHtml += `
-                        <li class="ongoing-order-item">
-                            <h4>Pedido #${order.id}</h4>
-                            <p>Cliente: ${order.customer.customerName}</p>
-                            <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
-                        </li>
-                    `;
-                });
-                ordersHtml += '</ul>';
-            }
-
-            content.innerHTML = ordersHtml;
-            modal.style.display = 'block';
-        }
-
- function printPriorityOrders() {
-            const printWindow = window.open('', '', 'height=400,width=600');
-            let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
-            printContent += '<h3>Pedidos Prioritários</h3>';
-            if (priorityOrders.length === 0) {
-                printContent += '<p>Nenhum pedido prioritário no momento.</p>';
-            } else {
-                priorityOrders.forEach(order => {
-                    printContent += `<p>Pedido #${order.id}</p>`;
-                    printContent += `<p>Cliente: ${order.customer.customerName}</p>`;
-                    printContent += `<p>Endereço: ${order.deliveryPoint.address}</p>`;
-                    printContent += `<p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>`;
-                    printContent += '<hr>';
-                });
-            }
-            printContent += '</body></html>';
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
         function checkForCancelledOrders(orders) {
             orders.forEach(order => {
                 if (order.status === 'cancelled' && lastOrderStatuses[order.id] !== 'cancelled') {
@@ -1004,97 +884,10 @@ allOrdersToday = response.data.filter(order => {
             const message = document.getElementById('cancellationMessage');
             message.textContent = `O pedido ${order.id} foi cancelado!${order.courier ? ` Motoboy: ${order.courier.courierName}` : ''}`;
             popup.style.display = 'block';
-            setTimeout(() => {
-                closeCancellationPopup();
-            }, 120000); // 2 minutos
         }
 
         function closeCancellationPopup() {
-            const popup = document.getElementById('cancellationPopup');
-            if (popup) {
-                popup.style.display = 'none';
-            }
-        }
-
-        function checkForSameAddressOrders(orders) {
-            const sameAddressMap = {};
-            const locationMap = {};
-
-            orders.forEach(order => {
-                if (order.status === 'closed' || order.status === 'cancelled') {
-                    return;
-                }
-                const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
-                const location = `${order.deliveryPoint.coordinates.lat},${order.deliveryPoint.coordinates.lng}`;
-                
-                if (!sameAddressMap[address]) {
-                    sameAddressMap[address] = [];
-                }
-                sameAddressMap[address].push(order);
-
-                if (!locationMap[location]) {
-                    locationMap[location] = [];
-                }
-                locationMap[location].push(order);
-            });
-
-            let shouldShowNotification = false;
-
-            for (const [address, addressOrders] of Object.entries(sameAddressMap)) {
-                if (addressOrders.length > 1) {
-                    shouldShowNotification = true;
-                    break;
-                }
-            }
-
-            if (!shouldShowNotification) {
-                for (const [location, locationOrders] of Object.entries(locationMap)) {
-                    if (locationOrders.length > 1) {
-                        shouldShowNotification = true;
-                        break;
-                    }
-                }
-            }
-
-            if (shouldShowNotification) {
-                showSameAddressPopup(sameAddressMap, locationMap);
-            } else {
-                closeSameAddressPopup();
-            }
-        }
-
-        function showSameAddressPopup(sameAddressMap, locationMap) {
-            const now = new Date().getTime();
-            if (now - lastShownNotificationTime < 120000) { // 2 minutos
-                return;
-            }
-
-            const popup = document.getElementById('sameAddressPopup');
-            const message = document.getElementById('sameAddressMessage');
-            let content = '<strong>Pedidos para o mesmo endereço:</strong><br>';
-
-            for (const [address, orders] of Object.entries(sameAddressMap)) {
-                if (orders.length > 1) {
-                    content += `${address}: Pedidos ${orders.map(order => order.id).join(', ')}<br>`;
-                }
-            }
-
-            for (const [location, orders] of Object.entries(locationMap)) {
-                if (orders.length > 1) {
-                    content += `Localização ${location}: Pedidos ${orders.map(order => order.id).join(', ')}<br>`;
-                }
-            }
-
-            message.innerHTML = content;
-            popup.style.display = 'block';
-            lastShownNotificationTime = now;
-        }
-
-        function closeSameAddressPopup() {
-            const popup = document.getElementById('sameAddressPopup');
-            if (popup) {
-                popup.style.display = 'none';
-            }
+            document.getElementById('cancellationPopup').style.display = 'none';
         }
 
         function resetCounters() {
@@ -1111,19 +904,13 @@ allOrdersToday = response.data.filter(order => {
             orderPrepTimes = {};
             courierDeliveries = {};
             cancelledOrders = 0;
-            priorityOrders = [];
-            sameAddressOrders = {};
-            shownSameAddressNotifications.clear();
-            lastShownNotificationTime = 0;
             document.getElementById('avgPrepTime').textContent = '0.0 min';
             document.getElementById('totalOrders').textContent = '0';
             document.getElementById('ongoingOrders').textContent = '0';
             document.getElementById('readyOrders').textContent = '0';
             document.getElementById('cancelledOrders').textContent = '0';
-            document.getElementById('priorityOrders').textContent = '0';
             document.getElementById('totalValue').textContent = 'R$ 0.00';
             document.getElementById('yesterdayValue').textContent = 'R$ 0.00';
-            document.getElementById('averageTicket').textContent = 'R$ 0.00';
             document.getElementById('paymentBreakdown').innerHTML = '';
             document.getElementById('courierDeliveries').innerHTML = '';
             saveDataToLocalStorage();
@@ -1139,12 +926,9 @@ allOrdersToday = response.data.filter(order => {
         const modals = document.querySelectorAll('.modal');
         const closeSpans = document.querySelectorAll('.close');
 
-        closeSpans.forEach((span) => {
+        closeSpans.forEach((span, index) => {
             span.onclick = function() {
-                const modal = span.closest('.modal');
-                if (modal) {
-                    modal.style.display = 'none';
-                }
+                modals[index].style.display = 'none';
             }
         });
 
@@ -1156,9 +940,6 @@ allOrdersToday = response.data.filter(order => {
             });
             if (event.target == document.getElementById('cancellationPopup')) {
                 closeCancellationPopup();
-            }
-            if (event.target == document.getElementById('sameAddressPopup')) {
-                closeSameAddressPopup();
             }
         }
     </script>
