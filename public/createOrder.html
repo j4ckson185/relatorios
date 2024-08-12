@@ -357,6 +357,7 @@ const db = firebase.firestore();
         let lastOrderStatuses = {};
         let priorityOrders = [];
         let sameAddressOrders = {};
+        let shownSameAddressNotifications = new Set();
 
         function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -370,6 +371,7 @@ const db = firebase.firestore();
             localStorage.setItem('cancelledOrders', cancelledOrders.toString());
             localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
             localStorage.setItem('sameAddressOrders', JSON.stringify(sameAddressOrders));
+            localStorage.setItem('shownSameAddressNotifications', JSON.stringify(Array.from(shownSameAddressNotifications)));
         }
 
         function loadDataFromLocalStorage() {
@@ -405,6 +407,9 @@ const db = firebase.firestore();
 
             const storedSameAddressOrders = localStorage.getItem('sameAddressOrders');
             if (storedSameAddressOrders) sameAddressOrders = JSON.parse(storedSameAddressOrders);
+
+            const storedShownSameAddressNotifications = localStorage.getItem('shownSameAddressNotifications');
+            if (storedShownSameAddressNotifications) shownSameAddressNotifications = new Set(JSON.parse(storedShownSameAddressNotifications));
         }
 
         function initMap() {
@@ -633,7 +638,7 @@ const db = firebase.firestore();
             }
         }
 
-        function getCourierIcon(courierName, status) {
+function getCourierIcon(courierName, status) {
             return {
                 url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
                     <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
@@ -934,7 +939,7 @@ const db = firebase.firestore();
             modal.style.display = 'block';
         }
 
-function printPriorityOrders() {
+   function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -993,7 +998,11 @@ function printPriorityOrders() {
 
             for (const [address, addressOrders] of Object.entries(sameAddressMap)) {
                 if (addressOrders.length > 1) {
-                    showSameAddressPopup(address, addressOrders);
+                    const orderIds = addressOrders.map(order => order.id).join('-');
+                    if (!shownSameAddressNotifications.has(orderIds)) {
+                        showSameAddressPopup(address, addressOrders);
+                        shownSameAddressNotifications.add(orderIds);
+                    }
                 }
             }
         }
@@ -1031,6 +1040,7 @@ function printPriorityOrders() {
             cancelledOrders = 0;
             priorityOrders = [];
             sameAddressOrders = {};
+            shownSameAddressNotifications.clear();
             document.getElementById('avgPrepTime').textContent = '0.0 min';
             document.getElementById('totalOrders').textContent = '0';
             document.getElementById('ongoingOrders').textContent = '0';
