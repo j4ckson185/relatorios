@@ -896,7 +896,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
                             <p>Status: ${getStatusDisplay(order.status)}</p>
                         </li>
                     `;
@@ -949,7 +949,7 @@
                             <h4>Pedido #${order.id}</h4>
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
-                            <p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                            <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
                         </li>
                     `;
                 });
@@ -971,7 +971,7 @@
                     printContent += `<p>Pedido #${order.id}</p>`;
                     printContent += `<p>Cliente: ${order.customer.customerName}</p>`;
                     printContent += `<p>Endereço: ${order.deliveryPoint.address}</p>`;
-                    printContent += `<p>Valor: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>`;
+                    printContent += `<p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>`;
                     printContent += '<hr>';
                 });
             }
@@ -997,7 +997,7 @@
             popup.style.display = 'block';
             setTimeout(() => {
                 closeCancellationPopup();
-            }, 60000); // 1 minuto
+            }, 120000); // 2 minutos
         }
 
         function closeCancellationPopup() {
@@ -1056,7 +1056,7 @@
 
         function showSameAddressPopup(sameAddressMap, locationMap) {
             const now = new Date().getTime();
-            if (now - lastShownNotificationTime < 60000) { // 1 minuto
+            if (now - lastShownNotificationTime < 120000) { // 2 minutos
                 return;
             }
 
@@ -1086,6 +1086,12 @@
             if (popup) {
                 popup.style.display = 'none';
             }
+        }
+
+        function hideSameAddressNotification() {
+            hideNotification = true;
+            closeSameAddressPopup();
+            saveDataToLocalStorage();
         }
 
         function resetCounters() {
