@@ -225,7 +225,7 @@
             color: #e67e22;
             font-weight: bold;
         }
-        .cancellation-popup {
+        .cancellation-popup, .same-address-popup {
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -237,7 +237,7 @@
             z-index: 1000;
             display: none;
         }
-        .cancellation-popup .close {
+        .cancellation-popup .close, .same-address-popup .close {
             color: #721c24;
             float: right;
             font-size: 20px;
@@ -311,6 +311,11 @@
         <p id="cancellationMessage"></p>
     </div>
 
+    <div id="sameAddressPopup" class="same-address-popup">
+        <span class="close" onclick="closeSameAddressPopup()">&times;</span>
+        <p id="sameAddressMessage"></p>
+    </div>
+
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
@@ -325,7 +330,7 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        const db = firebase.firestore();
+const db = firebase.firestore();
         let map;
         let heatmap;
         let markers = {};
@@ -351,8 +356,9 @@
         let cancelledOrders = 0;
         let lastOrderStatuses = {};
         let priorityOrders = [];
+        let sameAddressOrders = {};
 
-function saveDataToLocalStorage() {
+        function saveDataToLocalStorage() {
             localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
             localStorage.setItem('totalPrepTime', totalPrepTime.toString());
             localStorage.setItem('preparedOrders', preparedOrders.toString());
@@ -363,6 +369,7 @@ function saveDataToLocalStorage() {
             localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
             localStorage.setItem('cancelledOrders', cancelledOrders.toString());
             localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+            localStorage.setItem('sameAddressOrders', JSON.stringify(sameAddressOrders));
         }
 
         function loadDataFromLocalStorage() {
@@ -395,6 +402,9 @@ function saveDataToLocalStorage() {
 
             const storedPriorityOrders = localStorage.getItem('priorityOrders');
             if (storedPriorityOrders) priorityOrders = JSON.parse(storedPriorityOrders);
+
+            const storedSameAddressOrders = localStorage.getItem('sameAddressOrders');
+            if (storedSameAddressOrders) sameAddressOrders = JSON.parse(storedSameAddressOrders);
         }
 
         function initMap() {
@@ -455,13 +465,14 @@ function saveDataToLocalStorage() {
                     ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
                 );
                 currentOrders = filteredOrders;
-                priorityOrders = currentOrders.filter(order => order.status === 'ready');
+                priorityOrders = currentOrders.filter(order => order.status === 'accepted');
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
                 updateDashboard(allOrdersToday);
                 updatePrepTimes(currentOrders);
                 updateCourierDeliveries(allOrdersToday);
                 checkForCancelledOrders(allOrdersToday);
+                checkForSameAddressOrders(allOrdersToday);
                 fetchYesterdayOrders();
                 saveDataToLocalStorage();
             } catch (error) {
@@ -666,7 +677,7 @@ function saveDataToLocalStorage() {
             }
         }
 
-function showOrderDetails(order) {
+        function showOrderDetails(order) {
             const infoWindow = new google.maps.InfoWindow({
                 content: `
                     <div style="max-width: 200px;">
@@ -717,7 +728,7 @@ function showOrderDetails(order) {
                 online: 0
             };
             cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
-            priorityOrders = allOrders.filter(order => order.status === 'ready');
+            priorityOrders = allOrders.filter(order => order.status === 'accepted');
 
             allOrders.forEach(order => {
                 if (order.status !== 'cancelled') {
@@ -735,7 +746,6 @@ function showOrderDetails(order) {
             
             document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
             
-            // Cálculo do Ticket Médio
             const completedOrders = allOrders.filter(order => order.status !== 'cancelled');
             const averageTicket = completedOrders.length > 0 ? totalOrdersValue / completedOrders.length : 0;
             document.getElementById('averageTicket').textContent = `R$ ${averageTicket.toFixed(2)}`;
@@ -787,14 +797,14 @@ function showOrderDetails(order) {
             
             courierDeliveries = {};
             const ongoingDeliveries = {};
-            const sameAddressDeliveries = {};
+            sameAddressOrders = {};
 
             allOrders.forEach(order => {
                 if (order.courier && new Date(order.creationDate) >= today) {
                     const courierName = order.courier.courierName;
                     if (order.status === 'closed' || order.status === 'delivered') {
                         courierDeliveries[courierName] = (courierDeliveries[courierName] || 0) + 1;
-                    } else if (order.status === 'onGoing') {
+                    } else if (['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)) {
                         if (!ongoingDeliveries[courierName]) {
                             ongoingDeliveries[courierName] = [];
                         }
@@ -802,13 +812,13 @@ function showOrderDetails(order) {
 
                         // Check for same address deliveries
                         const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
-                        if (!sameAddressDeliveries[courierName]) {
-                            sameAddressDeliveries[courierName] = {};
+                        if (!sameAddressOrders[courierName]) {
+                            sameAddressOrders[courierName] = {};
                         }
-                        if (!sameAddressDeliveries[courierName][address]) {
-                            sameAddressDeliveries[courierName][address] = 0;
+                        if (!sameAddressOrders[courierName][address]) {
+                            sameAddressOrders[courierName][address] = [];
                         }
-                        sameAddressDeliveries[courierName][address]++;
+                        sameAddressOrders[courierName][address].push(order.id);
                     }
                 }
             });
@@ -818,10 +828,10 @@ function showOrderDetails(order) {
             for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
                 const ongoingCount = ongoingDeliveries[courierName] ? ongoingDeliveries[courierName].length : 0;
                 let sameAddressInfo = '';
-                if (sameAddressDeliveries[courierName]) {
-                    for (const [address, count] of Object.entries(sameAddressDeliveries[courierName])) {
-                        if (count > 1) {
-                            sameAddressInfo += `<span class="same-address">${count} mesma casa</span>, `;
+                if (sameAddressOrders[courierName]) {
+                    for (const [address, orders] of Object.entries(sameAddressOrders[courierName])) {
+                        if (orders.length > 1) {
+                            sameAddressInfo += `<span class="same-address">${orders.length} mesma casa</span>, `;
                         }
                     }
                     sameAddressInfo = sameAddressInfo.slice(0, -2); // Remove last comma and space
@@ -846,7 +856,7 @@ function showOrderDetails(order) {
             const ongoingDeliveries = currentOrders.filter(order => 
                 order.courier && 
                 order.courier.courierName === courierName && 
-                order.status === 'onGoing'
+                ['accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
             );
 
             let content = `<h3>Pedidos em andamento de <span class="courier-name">${courierName}</span></h3>`;
@@ -861,6 +871,7 @@ function showOrderDetails(order) {
                             <p>Cliente: ${order.customer.customerName}</p>
                             <p>Endereço: ${order.deliveryPoint.address}</p>
                             <p>Valor: R$ ${order.orderTotal.toFixed(2)}</p>
+                            <p>Status: ${getStatusDisplay(order.status)}</p>
                         </li>
                     `;
                 });
@@ -923,7 +934,7 @@ function showOrderDetails(order) {
             modal.style.display = 'block';
         }
 
-        function printPriorityOrders() {
+function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -970,7 +981,41 @@ function showOrderDetails(order) {
             }
         }
 
-function resetCounters() {
+        function checkForSameAddressOrders(orders) {
+            const sameAddressMap = {};
+            orders.forEach(order => {
+                const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
+                if (!sameAddressMap[address]) {
+                    sameAddressMap[address] = [];
+                }
+                sameAddressMap[address].push(order);
+            });
+
+            for (const [address, addressOrders] of Object.entries(sameAddressMap)) {
+                if (addressOrders.length > 1) {
+                    showSameAddressPopup(address, addressOrders);
+                }
+            }
+        }
+
+        function showSameAddressPopup(address, orders) {
+            const popup = document.getElementById('sameAddressPopup');
+            const message = document.getElementById('sameAddressMessage');
+            message.innerHTML = `<strong>${orders.length} pedidos para o mesmo endereço:</strong><br>${address}<br>Pedidos: ${orders.map(order => order.id).join(', ')}`;
+            popup.style.display = 'block';
+            setTimeout(() => {
+                closeSameAddressPopup();
+            }, 120000); // 2 minutos
+        }
+
+        function closeSameAddressPopup() {
+            const popup = document.getElementById('sameAddressPopup');
+            if (popup) {
+                popup.style.display = 'none';
+            }
+        }
+
+        function resetCounters() {
             totalOrdersCount = 0;
             totalOrdersValue = 0;
             yesterdayOrdersValue = 0;
@@ -985,6 +1030,7 @@ function resetCounters() {
             courierDeliveries = {};
             cancelledOrders = 0;
             priorityOrders = [];
+            sameAddressOrders = {};
             document.getElementById('avgPrepTime').textContent = '0.0 min';
             document.getElementById('totalOrders').textContent = '0';
             document.getElementById('ongoingOrders').textContent = '0';
@@ -1026,6 +1072,9 @@ function resetCounters() {
             });
             if (event.target == document.getElementById('cancellationPopup')) {
                 closeCancellationPopup();
+            }
+            if (event.target == document.getElementById('sameAddressPopup')) {
+                closeSameAddressPopup();
             }
         }
     </script>
