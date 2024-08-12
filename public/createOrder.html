@@ -412,10 +412,8 @@ function isWithinTimeRange(date) {
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                allOrdersToday = response.data.filter;
-                const filteredOrders = allOrdersToday.filter(order => 
-                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched', 'cancelled'].includes(order.status)
-                );
+                allOrdersToday = response.data
+                
                 currentOrders = filteredOrders;
                 updateOrderList(currentOrders);
                 updateMap(currentOrders);
