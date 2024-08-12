@@ -616,7 +616,7 @@ const db = firebase.firestore();
                         orderUid: order.uid
                     }
                 });
-const tracking = response.data;
+                const tracking = response.data;
                 if (tracking.courierLocationCoordinates) {
                     const { lat, lng } = tracking.courierLocationCoordinates;
                     let courierMarker = markers[`courier-${order.courier.courierName}`];
@@ -630,7 +630,7 @@ const tracking = response.data;
                         });
                         markers[`courier-${order.courier.courierName}`] = courierMarker;
 
-                        courierMarker.addListener('click', () => {
+ courierMarker.addListener('click', () => {
                             showCourierDetails(order, tracking);
                         });
                     } else {
@@ -918,7 +918,7 @@ const tracking = response.data;
             modal.style.display = 'block';
         }
 
-    function showPriorityOrders() {
+        function showPriorityOrders() {
             const modal = document.getElementById('priorityOrdersModal');
             const content = document.getElementById('priorityOrdersContent');
 
@@ -944,7 +944,7 @@ const tracking = response.data;
             modal.style.display = 'block';
         }
 
-        function printPriorityOrders() {
+ function printPriorityOrders() {
             const printWindow = window.open('', '', 'height=400,width=600');
             let printContent = '<html><head><title>Pedidos Prioritários</title></head><body>';
             printContent += '<h3>Pedidos Prioritários</h3>';
@@ -996,6 +996,9 @@ const tracking = response.data;
             const locationMap = {};
 
             orders.forEach(order => {
+                if (order.status === 'closed' || order.status === 'cancelled') {
+                    return;
+                }
                 const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
                 const location = `${order.deliveryPoint.coordinates.lat},${order.deliveryPoint.coordinates.lng}`;
                 
@@ -1010,20 +1013,32 @@ const tracking = response.data;
                 locationMap[location].push(order);
             });
 
+            let shouldShowNotification = false;
+
             for (const [address, addressOrders] of Object.entries(sameAddressMap)) {
                 if (addressOrders.length > 1) {
-                    showSameAddressPopup(address, addressOrders);
+                    shouldShowNotification = true;
+                    break;
                 }
             }
 
-            for (const [location, locationOrders] of Object.entries(locationMap)) {
-                if (locationOrders.length > 1) {
-                    showSameAddressPopup(`Localização: ${location}`, locationOrders);
+            if (!shouldShowNotification) {
+                for (const [location, locationOrders] of Object.entries(locationMap)) {
+                    if (locationOrders.length > 1) {
+                        shouldShowNotification = true;
+                        break;
+                    }
                 }
+            }
+
+            if (shouldShowNotification) {
+                showSameAddressPopup(sameAddressMap, locationMap);
+            } else {
+                closeSameAddressPopup();
             }
         }
 
-        function showSameAddressPopup(address, orders) {
+        function showSameAddressPopup(sameAddressMap, locationMap) {
             const now = new Date().getTime();
             if (now - lastShownNotificationTime < 120000) { // 2 minutos
                 return;
@@ -1031,12 +1046,23 @@ const tracking = response.data;
 
             const popup = document.getElementById('sameAddressPopup');
             const message = document.getElementById('sameAddressMessage');
-            message.innerHTML = `<strong>${orders.length} pedidos para o mesmo endereço:</strong><br>${address}<br>Pedidos: ${orders.map(order => order.id).join(', ')}`;
+            let content = '<strong>Pedidos para o mesmo endereço:</strong><br>';
+
+            for (const [address, orders] of Object.entries(sameAddressMap)) {
+                if (orders.length > 1) {
+                    content += `${address}: Pedidos ${orders.map(order => order.id).join(', ')}<br>`;
+                }
+            }
+
+            for (const [location, orders] of Object.entries(locationMap)) {
+                if (orders.length > 1) {
+                    content += `Localização ${location}: Pedidos ${orders.map(order => order.id).join(', ')}<br>`;
+                }
+            }
+
+            message.innerHTML = content;
             popup.style.display = 'block';
             lastShownNotificationTime = now;
-            setTimeout(() => {
-                closeSameAddressPopup();
-            }, 120000); // 2 minutos
         }
 
         function closeSameAddressPopup() {
