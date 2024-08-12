@@ -448,7 +448,7 @@ const db = firebase.firestore();
             const hour = date.getHours();
             const minutes = date.getMinutes();
             const totalMinutes = hour * 60 + minutes;
-            return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
+            return totalMinutes >= 00 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
         }
 
         async function fetchOrders() {
