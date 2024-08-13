@@ -136,6 +136,7 @@
             <thead>
                 <tr>
                     <th>ID do Pedido</th>
+                    <th>UID do Pedido</th> <!-- Novo campo para UID -->
                     <th>Data/Hora de Chegada</th>
                     <th>Cliente</th>
                     <th>Motoqueiro</th>
@@ -255,6 +256,7 @@
             orders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id;
+                row.insertCell().textContent = order.uid;  // Exibir o UID do pedido
                 row.insertCell().textContent = moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss');
                 row.insertCell().textContent = order.customer.customerName;
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
