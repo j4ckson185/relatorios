@@ -184,7 +184,7 @@
                 const now = moment();
                 const startDate = formatDate(moment(selectedDate).startOf('day'));
                 const endDate = formatDate(now < moment(selectedDate).endOf('day') ? now : moment(selectedDate).endOf('day'));
-                
+
                 console.log('Buscando pedidos de', startDate, 'até', endDate);
 
                 const response = await axios.get(firebaseFunctionUrl, {
@@ -196,14 +196,18 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
-                
+
                 allOrders = response.data;
                 console.log('Pedidos recebidos:', allOrders);
                 updateMotoqueirosSelect();
                 applyFilters();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
-                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
+                if (!navigator.onLine) {
+                    alert('Erro ao buscar pedidos: Verifique sua conexão com a internet.');
+                } else {
+                    alert('Erro ao buscar pedidos. Por favor, tente novamente.');
+                }
             }
         }
 
@@ -282,43 +286,32 @@
                 'cancelled': 'Cancelado',
                 'dispatched': 'Despachado',
                 'finished': 'Finalizado',
-                'ready': 'Pronto',
-                'closed': 'Finalizado'
+                'ready': 'Pronto'
             };
-            return statusMap[status] || status;
+            return statusMap[status] || 'Desconhecido';
         }
 
         function translatePaymentMethod(method) {
-            const methodMap = {
+            const paymentMap = {
                 'money': 'Dinheiro',
                 'card': 'Cartão',
                 'online': 'Online'
             };
-            return methodMap[method] || method;
+            return paymentMap[method] || 'Desconhecido';
         }
 
         function exportToExcel() {
-            const ws = XLSX.utils.table_to_sheet(document.getElementById('relatorioTable'));
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Relatório");
-            XLSX.writeFile(wb, "Relatorio_Foody_Delivery.xlsx");
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('relatorioTable'));
+            XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
+            XLSX.writeFile(wb, 'Pedidos_Foody_Delivery.xlsx');
         }
 
         document.getElementById('buscarBtn').addEventListener('click', fetchOrders);
         document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
-        document.getElementById('motoqueiro').addEventListener('change', applyFilters);
-        document.getElementById('situacao').addEventListener('change', applyFilters);
-        document.querySelectorAll('input[name="pagamento"]').forEach(checkbox => {
-            checkbox.addEventListener('change', applyFilters);
-        });
 
-        setDefaultDate();
-        fetchOrders();
-
-        // Atualizar pedidos a cada 30 segundos
-        setInterval(() => {
-            fetchOrders().then(() => applyFilters());
-        }, 30000);
+        // Configurar a data padrão quando a página carregar
+        window.addEventListener('load', setDefaultDate);
     </script>
 </body>
 </html>
