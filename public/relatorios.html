@@ -136,12 +136,12 @@
             <thead>
                 <tr>
                     <th>ID do Pedido</th>
-                    <th>UID do Pedido</th> <!-- Novo campo para UID -->
                     <th>Data/Hora de Chegada</th>
                     <th>Cliente</th>
                     <th>Motoqueiro</th>
                     <th>Situação</th>
                     <th>Forma de Pagamento</th>
+                    <th>Endereço</th>
                     <th>Valor Total</th>
                 </tr>
             </thead>
@@ -240,8 +240,8 @@
             const filteredOrders = allOrders.filter(order => {
                 const statusMatch = !currentFilters.situacao ||
                     order.status === currentFilters.situacao ||
-                    (currentFilters.situacao === 'finished' && order.status === 'Finalizado') ||
-                    (currentFilters.situacao === 'canceled' && order.status === 'Cancelado');
+                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
+                    (currentFilters.situacao === 'canceled' && order.status === 'cancelled');
                 return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
                        statusMatch &&
                        (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
@@ -259,12 +259,12 @@
             orders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id || 'N/A';
-                row.insertCell().textContent = order.uid || 'N/A';  // Exibir o UID do pedido
                 row.insertCell().textContent = order.createdAt ? moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss') : 'N/A';
                 row.insertCell().textContent = order.customer ? order.customer.customerName : 'N/A';
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
+                row.insertCell().textContent = order.address || 'N/A'; // Adicionando o campo Endereço
                 row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
 
                 totalValue += order.orderTotal || 0;
@@ -285,7 +285,8 @@
                 'cancelled': 'Cancelado',
                 'dispatched': 'Despachado',
                 'finished': 'Finalizado',
-                'ready': 'Pronto'
+                'ready': 'Pronto',
+                'closed': 'Finalizado' // Exibindo "Finalizado" para "closed"
             };
             return statusMap[status] || status; // Exibe o status real se não estiver no mapa
         }
