@@ -525,15 +525,12 @@
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
 
-function isWithinTimeRange(date) {
-    const hour = date.getHours();
-    const minutes = date.getMinutes();
-    const totalMinutes = hour * 60 + minutes;
-    return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 23 * 60 + 30;
-}
         function isWithinTimeRange(date) {
-    return true;
-}
+            const hour = date.getHours();
+            const minutes = date.getMinutes();
+            const totalMinutes = hour * 60 + minutes;
+            return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 23 * 60 + 30;
+        }
 
         async function fetchOrders() {
             try {
