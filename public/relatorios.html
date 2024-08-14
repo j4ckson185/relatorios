@@ -181,6 +181,9 @@
         async function fetchOrders() {
             try {
                 const selectedDate = document.getElementById('dataInicio').value;
+                if (!selectedDate) {
+                    return; // Não busca pedidos se a data não estiver selecionada
+                }
                 const now = moment();
                 const startDate = formatDate(moment(selectedDate).startOf('day'));
                 const endDate = formatDate(now < moment(selectedDate).endOf('day') ? now : moment(selectedDate).endOf('day'));
@@ -203,11 +206,7 @@
                 applyFilters();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
-                if (!navigator.onLine) {
-                    alert('Erro ao buscar pedidos: Verifique sua conexão com a internet.');
-                } else {
-                    alert('Erro ao buscar pedidos. Por favor, tente novamente.');
-                }
+                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
             }
         }
 
@@ -239,10 +238,10 @@
             };
 
             const filteredOrders = allOrders.filter(order => {
-                const statusMatch = !currentFilters.situacao || 
-                                    order.status === currentFilters.situacao || 
-                                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
-                                    (currentFilters.situacao === 'canceled' && order.status === 'cancelled');
+                const statusMatch = !currentFilters.situacao ||
+                    order.status === currentFilters.situacao ||
+                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
+                    (currentFilters.situacao === 'canceled' && order.status === 'cancelled');
                 return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
                        statusMatch &&
                        (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
@@ -259,16 +258,16 @@
 
             orders.forEach(order => {
                 const row = tbody.insertRow();
-                row.insertCell().textContent = order.id;
-                row.insertCell().textContent = order.uid;  // Exibir o UID do pedido
-                row.insertCell().textContent = moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss');
-                row.insertCell().textContent = order.customer.customerName;
+                row.insertCell().textContent = order.id || 'N/A';
+                row.insertCell().textContent = order.uid || 'N/A';  // Exibir o UID do pedido
+                row.insertCell().textContent = order.createdAt ? moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss') : 'N/A';
+                row.insertCell().textContent = order.customer ? order.customer.customerName : 'N/A';
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
-                row.insertCell().textContent = `R$ ${order.orderTotal.toFixed(2)}`;
+                row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
 
-                totalValue += order.orderTotal;
+                totalValue += order.orderTotal || 0;
             });
 
             document.getElementById('totalEntregas').textContent = orders.length;
@@ -288,7 +287,7 @@
                 'finished': 'Finalizado',
                 'ready': 'Pronto'
             };
-            return statusMap[status] || 'Desconhecido';
+            return statusMap[status] || status; // Exibe o status real se não estiver no mapa
         }
 
         function translatePaymentMethod(method) {
@@ -297,7 +296,7 @@
                 'card': 'Cartão',
                 'online': 'Online'
             };
-            return paymentMap[method] || 'Desconhecido';
+            return paymentMap[method] || method; // Exibe o método real se não estiver no mapa
         }
 
         function exportToExcel() {
@@ -312,6 +311,11 @@
 
         // Configurar a data padrão quando a página carregar
         window.addEventListener('load', setDefaultDate);
+
+        // Atualizar pedidos a cada 30 segundos
+        setInterval(() => {
+            fetchOrders().then(() => applyFilters());
+        }, 30000);
     </script>
 </body>
 </html>
