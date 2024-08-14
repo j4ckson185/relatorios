@@ -240,8 +240,8 @@
             const filteredOrders = allOrders.filter(order => {
                 const statusMatch = !currentFilters.situacao ||
                     order.status === currentFilters.situacao ||
-                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
-                    (currentFilters.situacao === 'canceled' && order.status === 'cancelled');
+                    (currentFilters.situacao === 'finished' && order.status === 'Finalizado') ||
+                    (currentFilters.situacao === 'canceled' && order.status === 'Cancelado');
                 return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
                        statusMatch &&
                        (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
