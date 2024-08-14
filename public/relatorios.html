@@ -259,12 +259,11 @@
             orders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id || 'N/A';
-                row.insertCell().textContent = order.createdAt ? moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss') : 'N/A';
+                row.insertCell().textContent = order.createdAt ? moment(order.createdAt).format('yyyy-MM-dd'T'HH:mm:ssX') : 'N/A';
                 row.insertCell().textContent = order.customer ? order.customer.customerName : 'N/A';
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
-                row.insertCell().textContent = order.address || 'N/A'; // Adicionando o campo Endereço
                 row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
 
                 totalValue += order.orderTotal || 0;
