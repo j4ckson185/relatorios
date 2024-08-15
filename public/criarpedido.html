@@ -18,11 +18,12 @@
         </div>
 
         <form id="orderForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="id">
-                    ID
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderId">
+                    ID do Pedido
                 </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="id" type="text" placeholder="ID">
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderId" type="text" placeholder="ID do Pedido">
+            </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="customerName">
                     Nome do Cliente
@@ -166,6 +167,7 @@
                 const items = parseItems(document.getElementById('items').value);
                 
                 const order = {
+                    id: document.getElementById('orderId').value,
                     customer: {
                         name: document.getElementById('customerName').value,
                         phone: document.getElementById('customerPhone').value
