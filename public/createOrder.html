@@ -483,6 +483,7 @@
     // Novas variáveis para rastreamento de tempo em rota
     let courierTimeTrackingStart = {};
     let courierActiveOrders = {};
+    let courierLastRouteTime = {};
 
     function saveDataToLocalStorage() {
         localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
@@ -1167,6 +1168,7 @@ orderList.appendChild(orderDiv);
         preparedOrders = 0;
         orderPrepTimes = {};
         courierDeliveries = {};
+        courierLastRouteTime = {};
         cancelledOrders = 0;
         priorityOrders = [];
         sameAddressOrders = {};
@@ -1264,73 +1266,83 @@ orderList.appendChild(orderDiv);
         }
     }
 
-    function updateCourierTimeTracking() {
-        const trackingDiv = document.getElementById('courierTimeTracking');
-        let content = '<h3>Tempo em Rota dos Motoboys</h3>';
+function updateCourierTimeTracking() {
+    const trackingDiv = document.getElementById('courierTimeTracking');
+    let content = '<h3>Tempo em Rota dos Motoboys</h3>';
 
-        for (const [courierName, startTime] of Object.entries(courierTimeTrackingStart)) {
-            const activeOrders = courierActiveOrders[courierName] || [];
-            const allOnGoing = activeOrders.every(order => order.status === 'onGoing');
-            
-            let timeInRoute = '00:00:00';
-            if (allOnGoing && startTime) {
-                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-                timeInRoute = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
-            }
+    for (const courierName of new Set([...Object.keys(courierActiveOrders), ...Object.keys(courierLastRouteTime)])) {
+        const activeOrders = courierActiveOrders[courierName] || [];
+        const allOnGoing = activeOrders.every(order => order.status === 'onGoing');
+        const startTime = courierTimeTrackingStart[courierName];
+        
+        let timeInRoute = '00:00:00';
+        let statusMessage = '';
 
-            content += `
-                <div class="courier-time-item">
-                    <span class="courier-name">${courierName}</span>: 
-                    <strong>${timeInRoute}</strong>
-                    (${activeOrders.length} pedido${activeOrders.length !== 1 ? 's' : ''} ativos)
-                </div>
-            `;
+        if (allOnGoing && startTime) {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            timeInRoute = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
+            statusMessage = `(${activeOrders.length} pedido${activeOrders.length !== 1 ? 's' : ''} ativos)`;
+        } else if (courierLastRouteTime[courierName]) {
+            timeInRoute = courierLastRouteTime[courierName];
+            statusMessage = '(Última rota)';
         }
 
-        trackingDiv.innerHTML = content;
+        content += `
+            <div class="courier-time-item">
+                <span class="courier-name">${courierName}</span>: 
+                <strong>${timeInRoute}</strong>
+                ${statusMessage}
+            </div>
+        `;
     }
 
-    function updateCourierStatus(orders) {
-        for (const order of orders) {
-            if (order.courier) {
-                const courierName = order.courier.courierName;
-                if (!courierActiveOrders[courierName]) {
-                    courierActiveOrders[courierName] = [];
-                }
+    trackingDiv.innerHTML = content;
+}
 
-                // Adiciona ou atualiza o pedido na lista de pedidos ativos do motoboy
-                const existingOrderIndex = courierActiveOrders[courierName].findIndex(o => o.id === order.id);
-                if (existingOrderIndex !== -1) {
-                    courierActiveOrders[courierName][existingOrderIndex] = order;
-                } else {
-                    courierActiveOrders[courierName].push(order);
-                }
-
-                // Remove pedidos concluídos ou cancelados
-                courierActiveOrders[courierName] = courierActiveOrders[courierName].filter(o => 
-                    ['accepted', 'ready', 'onGoing', 'dispatched'].includes(o.status)
-                );
-
-                // Atualiza o tempo de início se todos os pedidos estiverem 'onGoing'
-                const allOnGoing = courierActiveOrders[courierName].every(o => o.status === 'onGoing');
-                if (allOnGoing && !courierTimeTrackingStart[courierName]) {
-                    courierTimeTrackingStart[courierName] = Date.now();
-                } else if (!allOnGoing) {
-                    delete courierTimeTrackingStart[courierName];
-                }
+function updateCourierStatus(orders) {
+    for (const order of orders) {
+        if (order.courier) {
+            const courierName = order.courier.courierName;
+            if (!courierActiveOrders[courierName]) {
+                courierActiveOrders[courierName] = [];
             }
-        }
 
-        // Remove motoboys sem pedidos ativos
-        for (const courierName in courierActiveOrders) {
-            if (courierActiveOrders[courierName].length === 0) {
-                delete courierActiveOrders[courierName];
+            // Adiciona ou atualiza o pedido na lista de pedidos ativos do motoboy
+            const existingOrderIndex = courierActiveOrders[courierName].findIndex(o => o.id === order.id);
+            if (existingOrderIndex !== -1) {
+                courierActiveOrders[courierName][existingOrderIndex] = order;
+            } else {
+                courierActiveOrders[courierName].push(order);
+            }
+
+            // Remove pedidos concluídos ou cancelados
+            courierActiveOrders[courierName] = courierActiveOrders[courierName].filter(o => 
+                ['accepted', 'ready', 'onGoing', 'dispatched'].includes(o.status)
+            );
+
+            // Atualiza o tempo de início se todos os pedidos estiverem 'onGoing'
+            const allOnGoing = courierActiveOrders[courierName].every(o => o.status === 'onGoing');
+            if (allOnGoing && !courierTimeTrackingStart[courierName]) {
+                courierTimeTrackingStart[courierName] = Date.now();
+            } else if (!allOnGoing && courierTimeTrackingStart[courierName]) {
+                // Finaliza a contagem e salva o último tempo de rota
+                const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
+                courierLastRouteTime[courierName] = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
                 delete courierTimeTrackingStart[courierName];
             }
         }
-
-        updateCourierTimeTracking();
     }
+
+    // Remove motoboys sem pedidos ativos
+    for (const courierName in courierActiveOrders) {
+        if (courierActiveOrders[courierName].length === 0) {
+            delete courierActiveOrders[courierName];
+            // Não deletamos courierLastRouteTime[courierName] para manter o último tempo
+        }
+    }
+
+    updateCourierTimeTracking();
+}
 
     // Inicialização da aplicação
     loadDataFromLocalStorage();
