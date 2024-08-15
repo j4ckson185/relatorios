@@ -9,6 +9,15 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-4">
         <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Criar Novo Pedido</h1>
+        
+        <!-- Campo para inserir o token de autorização -->
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="authToken">
+                Token de Autorização
+            </label>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="authToken" type="text" placeholder="Insira o token de autorização">
+        </div>
+
         <form id="orderForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="id">
@@ -87,6 +96,12 @@
 
     <script>
         async function submitOrder() {
+            const authToken = document.getElementById('authToken').value;
+            if (!authToken) {
+                alert('Por favor, insira um token de autorização.');
+                return;
+            }
+
             const order = {
                 id: document.getElementById('id').value,
                 customerName: document.getElementById('customerName').value,
@@ -106,7 +121,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer 8d7c77946d534444a168bb7da794febf' // Substitua pelo token de autorização real, se necessário
+                        'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(order)
                 });
