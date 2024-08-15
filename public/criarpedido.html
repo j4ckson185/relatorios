@@ -1,106 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Management</title>
-    <style>
-        /* Estilização do formulário */
-        .order-form {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-        }
-        .order-form input, .order-form select {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0;
-            box-sizing: border-box;
-        }
-        .order-form button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .order-form button:hover {
-            background-color: #45a049;
-        }
-        /* Mapa */
-        #map {
-            height: 500px;
-            width: 100%;
-        }
-    </style>
+    <title>Criar Pedido - Foody Delivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Order Management</h1>
-
-    <!-- Formulário para criar pedidos -->
-    <div class="order-form">
-        <h2>Create New Order</h2>
-        <input type="text" id="orderId" placeholder="ID">
-        <input type="text" id="street" placeholder="Rua">
-        <input type="text" id="houseNumber" placeholder="Nº">
-        <input type="text" id="complement" placeholder="Complemento">
-        <select id="paymentMethod">
-            <option value="credit_card">Cartão de Crédito</option>
-            <option value="cash">Dinheiro</option>
-            <option value="pix">PIX</option>
-        </select>
-        <button onclick="createOrder()">Adicionar Pedido</button>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Criar Novo Pedido</h1>
+        <form id="orderForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="id">
+                    ID
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="id" type="text" placeholder="ID do Pedido">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="customerName">
+                    Cliente
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="customerName" type="text" placeholder="Nome do Cliente">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="street">
+                    Rua
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="street" type="text" placeholder="Nome da Rua">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="houseNumber">
+                    Nº
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="houseNumber" type="text" placeholder="Número da Casa">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="complement">
+                    Complemento
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="complement" type="text" placeholder="Complemento">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
+                    Detalhes do Pedido
+                </label>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderDetails" placeholder="Detalhes do Pedido"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">
+                    Método de Pagamento
+                </label>
+                <div class="mt-2">
+                    <label class="inline-flex items-center">
+                        <input type="radio" class="form-radio" name="paymentMethod" value="money">
+                        <span class="ml-2">Dinheiro</span>
+                    </label>
+                    <label class="inline-flex items-center ml-6">
+                        <input type="radio" class="form-radio" name="paymentMethod" value="card">
+                        <span class="ml-2">Cartão</span>
+                    </label>
+                    <label class="inline-flex items-center ml-6">
+                        <input type="radio" class="form-radio" name="paymentMethod" value="pix">
+                        <span class="ml-2">PIX</span>
+                    </label>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderTotal">
+                    Valor Total
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderTotal" type="number" step="0.01" placeholder="Valor Total">
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
+                    Observações
+                </label>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="notes" placeholder="Observações"></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button" onclick="submitOrder()">
+                    Criar Pedido
+                </button>
+            </div>
+        </form>
     </div>
 
-    <!-- Div para o mapa -->
-    <div id="map"></div>
-
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&callback=initMap" async defer></script>
     <script>
-        let map;
-        let orders = [];
-
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: -15.7942, lng: -47.8822 }, // Brasília
-                zoom: 12,
-            });
-        }
-
-        function createOrder() {
-            const orderId = document.getElementById("orderId").value;
-            const street = document.getElementById("street").value;
-            const houseNumber = document.getElementById("houseNumber").value;
-            const complement = document.getElementById("complement").value;
-            const paymentMethod = document.getElementById("paymentMethod").value;
-
-            if (!orderId || !street || !houseNumber) {
-                alert("Preencha todos os campos obrigatórios!");
-                return;
-            }
-
-            // Adiciona o pedido à lista de pedidos
-            const newOrder = {
-                id: orderId,
-                street: street,
-                houseNumber: houseNumber,
-                complement: complement,
-                paymentMethod: paymentMethod,
+        function submitOrder() {
+            const order = {
+                id: document.getElementById('id').value,
+                customerName: document.getElementById('customerName').value,
+                street: document.getElementById('street').value,
+                houseNumber: document.getElementById('houseNumber').value,
+                complement: document.getElementById('complement').value,
+                orderDetails: document.getElementById('orderDetails').value,
+                paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value,
+                orderTotal: parseFloat(document.getElementById('orderTotal').value),
+                notes: document.getElementById('notes').value
             };
-            orders.push(newOrder);
 
-            // Aqui você pode adicionar a lógica para exibir o pedido no mapa, se necessário
-            console.log("Pedido criado:", newOrder);
-
-            // Limpar campos do formulário
-            document.getElementById("orderId").value = "";
-            document.getElementById("street").value = "";
-            document.getElementById("houseNumber").value = "";
-            document.getElementById("complement").value = "";
-            document.getElementById("paymentMethod").value = "credit_card";
+            fetch('https://your-region-your-project.cloudfunctions.net/api/createOrder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer YOUR_AUTH_TOKEN' // Substitua pelo token de autorização real
+                },
+                body: JSON.stringify(order)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Pedido criado com sucesso!');
+                console.log(data);
+            })
+            .catch(error => {
+                alert('Erro ao criar pedido');
+                console.error('Erro:', error);
+            });
         }
     </script>
 </body>
