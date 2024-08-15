@@ -109,16 +109,16 @@
                 </label>
                 <div class="mt-2">
                     <label class="inline-flex items-center">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="MONEY" required>
+                        <input type="radio" class="form-radio" name="paymentMethod" value="money" required>
                         <span class="ml-2">Dinheiro</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="CREDIT_CARD">
-                        <span class="ml-2">Cartão de Crédito</span>
+                        <input type="radio" class="form-radio" name="paymentMethod" value="card">
+                        <span class="ml-2">Cartão</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="PIX">
-                        <span class="ml-2">PIX</span>
+                        <input type="radio" class="form-radio" name="paymentMethod" value="online">
+                        <span class="ml-2">Pg online</span>
                     </label>
                 </div>
             </div>
@@ -195,15 +195,12 @@
                         streetNumber: document.getElementById('streetNumber').value,
                         complement: document.getElementById('complement').value,
                         neighborhood: document.getElementById('neighborhood').value,
-                        city: document.getElementById('city').value,
-                        state: document.getElementById('state').value,
-                        country: document.getElementById('country').value,
                         zipCode: document.getElementById('zipCode').value
                     },
                     orderDetails: document.getElementById('orderDetails').value,
                     payment: {
                         method: document.querySelector('input[name="paymentMethod"]:checked').value,
-                        total: parseFloat(document.getElementById('orderTotal').value.replace(',', '.'))
+                        orderTotal: parseFloat(document.getElementById('orderTotal').value.replace(',', '.'))
                     },
                     status: document.getElementById('status').value,
                     notes: document.getElementById('notes').value
