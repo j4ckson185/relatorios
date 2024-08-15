@@ -99,27 +99,28 @@
                 notes: document.getElementById('notes').value
             };
 
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-            const targetUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/api/createOrder';
+            const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createOrder';
 
             try {
-                const response = await fetch(proxyUrl + targetUrl, {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer 8d7c77946d534444a168bb7da794febf', // Substitua pelo token de autorização real
-                        'Origin': 'https://app.foodydelivery.com/rest/1.2/orders/'
+                        'Authorization': 'Bearer 8d7c77946d534444a168bb7da794febf' // Substitua pelo token de autorização real, se necessário
                     },
                     body: JSON.stringify(order)
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
                 alert('Pedido criado com sucesso!');
                 console.log(data);
+                // Limpar o formulário após o sucesso
+                document.getElementById('orderForm').reset();
             } catch (error) {
                 alert('Erro ao criar pedido: ' + error.message);
                 console.error('Erro:', error);
