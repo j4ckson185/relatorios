@@ -103,10 +103,10 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="items">
                     Detalhes do Pedido
                 </label>
-                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderDetails" placeholder="Digite os detalhes do pedido aqui" required></textarea>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="items" placeholder="Digite os detalhes do pedido aqui" required></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">
@@ -131,7 +131,7 @@
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="orderTotal">
                     Valor Total
                 </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderTotal" type="number" step="0.01" placeholder="Valor Total" required>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderTotal" type="number" step="0.01" placeholder="0.00" required>
             </div>
             <div class="mb-6">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
@@ -191,6 +191,10 @@
             return element ? element.value : '';
         }
 
+        function formatDecimal(value) {
+            return parseFloat(value).toFixed(2);
+        }
+
         async function submitOrder() {
             const debugText = document.getElementById('debugText');
             if (debugText) {
@@ -209,6 +213,8 @@
             try {
                 const paymentMethodElement = document.querySelector('input[name="paymentMethod"]:checked');
                 const paymentMethod = paymentMethodElement ? paymentMethodElement.value : '';
+
+                const orderTotal = formatDecimal(getElementValueById('orderTotal'));
 
                 const order = {
                     id: getElementValueById('orderId'),
@@ -229,7 +235,7 @@
                     orderDetails: getElementValueById('orderDetails'),
                     payment: {
                         method: paymentMethod,
-                        orderTotal: parseFloat(getElementValueById('orderTotal').replace(',', '.'))
+                        total: orderTotal
                     },
                     status: getElementValueById('status'),
                     notes: getElementValueById('notes')
