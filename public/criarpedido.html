@@ -19,16 +19,16 @@
 
         <form id="orderForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="id">
-                    ID do Pedido
-                </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="id" type="text" placeholder="ID do Pedido">
-            </div>
-            <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="customerName">
                     Nome do Cliente
                 </label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="customerName" type="text" placeholder="Nome do Cliente">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="customerPhone">
+                    Telefone do Cliente
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="customerPhone" type="text" placeholder="Telefone do Cliente">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="street">
@@ -37,10 +37,10 @@
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="street" type="text" placeholder="Nome da Rua">
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="houseNumber">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="streetNumber">
                     Número
                 </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="houseNumber" type="text" placeholder="Número da Casa">
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="streetNumber" type="text" placeholder="Número da Casa">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="complement">
@@ -79,10 +79,10 @@
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="zipCode" type="text" placeholder="CEP">
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
-                    Detalhes do Pedido
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="items">
+                    Itens do Pedido (JSON)
                 </label>
-                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderDetails" placeholder="Detalhes do Pedido"></textarea>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="items" placeholder='[{"name": "Item 1", "quantity": 1, "price": 10.00}]'></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">
@@ -90,15 +90,15 @@
                 </label>
                 <div class="mt-2">
                     <label class="inline-flex items-center">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="money">
+                        <input type="radio" class="form-radio" name="paymentMethod" value="MONEY">
                         <span class="ml-2">Dinheiro</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="card">
-                        <span class="ml-2">Cartão</span>
+                        <input type="radio" class="form-radio" name="paymentMethod" value="CREDIT_CARD">
+                        <span class="ml-2">Cartão de Crédito</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="pix">
+                        <input type="radio" class="form-radio" name="paymentMethod" value="PIX">
                         <span class="ml-2">PIX</span>
                     </label>
                 </div>
@@ -148,23 +148,25 @@
             appendDebugInfo(`Token usado: ${authToken.substring(0, 10)}...`);
 
             const order = {
-                id: document.getElementById('id').value,
-                customerName: document.getElementById('customerName').value,
-                deliveryPoint: {
-                    address: {
-                        street: document.getElementById('street').value,
-                        number: document.getElementById('houseNumber').value,
-                        complement: document.getElementById('complement').value,
-                        neighborhood: document.getElementById('neighborhood').value,
-                        city: document.getElementById('city').value,
-                        state: document.getElementById('state').value,
-                        country: document.getElementById('country').value,
-                        zipCode: document.getElementById('zipCode').value
-                    }
+                customer: {
+                    name: document.getElementById('customerName').value,
+                    phone: document.getElementById('customerPhone').value
                 },
-                orderDetails: document.getElementById('orderDetails').value,
-                paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value,
-                orderTotal: parseFloat(document.getElementById('orderTotal').value),
+                deliveryAddress: {
+                    street: document.getElementById('street').value,
+                    streetNumber: document.getElementById('streetNumber').value,
+                    complement: document.getElementById('complement').value,
+                    neighborhood: document.getElementById('neighborhood').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value,
+                    country: document.getElementById('country').value,
+                    zipCode: document.getElementById('zipCode').value
+                },
+                items: JSON.parse(document.getElementById('items').value),
+                payment: {
+                    method: document.querySelector('input[name="paymentMethod"]:checked').value,
+                    total: parseFloat(document.getElementById('orderTotal').value)
+                },
                 notes: document.getElementById('notes').value
             };
 
