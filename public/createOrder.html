@@ -638,7 +638,7 @@
                 <h3>Pedido #${order.id}</h3>
                 <p class="status-${order.status.toLowerCase()}">${getStatusDisplay(order.status)}</p>
                 <p>Cliente: ${order.customer.customerName}</p>
-                ${order.courier ? <p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p> : ''}
+                ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
 <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
 <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
 ${order.notes ? <p>Observações: ${order.notes}</p> : ''}
