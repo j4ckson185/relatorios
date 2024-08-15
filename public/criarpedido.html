@@ -134,6 +134,16 @@
             debugText.textContent += info + '\n';
         }
 
+        function parseItems(itemsString) {
+            // Substituir vírgulas por pontos em valores numéricos
+            const correctedString = itemsString.replace(/"price":\s*(\d+),(\d+)/g, '"price": $1.$2');
+            try {
+                return JSON.parse(correctedString);
+            } catch (error) {
+                throw new Error(`Erro ao analisar os itens do pedido: ${error.message}`);
+            }
+        }
+
         async function submitOrder() {
             const debugText = document.getElementById('debugText');
             debugText.textContent = ''; // Limpa informações de debug anteriores
@@ -147,34 +157,36 @@
 
             appendDebugInfo(`Token usado: ${authToken.substring(0, 10)}...`);
 
-            const order = {
-                customer: {
-                    name: document.getElementById('customerName').value,
-                    phone: document.getElementById('customerPhone').value
-                },
-                deliveryAddress: {
-                    street: document.getElementById('street').value,
-                    streetNumber: document.getElementById('streetNumber').value,
-                    complement: document.getElementById('complement').value,
-                    neighborhood: document.getElementById('neighborhood').value,
-                    city: document.getElementById('city').value,
-                    state: document.getElementById('state').value,
-                    country: document.getElementById('country').value,
-                    zipCode: document.getElementById('zipCode').value
-                },
-                items: JSON.parse(document.getElementById('items').value),
-                payment: {
-                    method: document.querySelector('input[name="paymentMethod"]:checked').value,
-                    total: parseFloat(document.getElementById('orderTotal').value)
-                },
-                notes: document.getElementById('notes').value
-            };
-
-            appendDebugInfo(`Dados do pedido: ${JSON.stringify(order, null, 2)}`);
-
-            const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createOrder';
-
             try {
+                const items = parseItems(document.getElementById('items').value);
+                
+                const order = {
+                    customer: {
+                        name: document.getElementById('customerName').value,
+                        phone: document.getElementById('customerPhone').value
+                    },
+                    deliveryAddress: {
+                        street: document.getElementById('street').value,
+                        streetNumber: document.getElementById('streetNumber').value,
+                        complement: document.getElementById('complement').value,
+                        neighborhood: document.getElementById('neighborhood').value,
+                        city: document.getElementById('city').value,
+                        state: document.getElementById('state').value,
+                        country: document.getElementById('country').value,
+                        zipCode: document.getElementById('zipCode').value
+                    },
+                    items: items,
+                    payment: {
+                        method: document.querySelector('input[name="paymentMethod"]:checked').value,
+                        total: parseFloat(document.getElementById('orderTotal').value.replace(',', '.'))
+                    },
+                    notes: document.getElementById('notes').value
+                };
+
+                appendDebugInfo(`Dados do pedido: ${JSON.stringify(order, null, 2)}`);
+
+                const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createOrder';
+
                 appendDebugInfo(`Iniciando requisição para: ${apiUrl}`);
 
                 const response = await fetch(apiUrl, {
