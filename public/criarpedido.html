@@ -10,7 +10,6 @@
     <div class="container mx-auto p-4">
         <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Criar Novo Pedido</h1>
         
-        <!-- Campo para inserir o token de autorização -->
         <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="authToken">
                 Token de Autorização
@@ -92,15 +91,31 @@
                 </button>
             </div>
         </form>
+
+        <div id="debugInfo" class="mt-4 p-4 bg-gray-200 rounded">
+            <h2 class="text-lg font-bold mb-2">Informações de Debug:</h2>
+            <pre id="debugText" class="whitespace-pre-wrap"></pre>
+        </div>
     </div>
 
     <script>
+        function appendDebugInfo(info) {
+            const debugText = document.getElementById('debugText');
+            debugText.textContent += info + '\n';
+        }
+
         async function submitOrder() {
+            const debugText = document.getElementById('debugText');
+            debugText.textContent = ''; // Limpa informações de debug anteriores
+
             const authToken = document.getElementById('authToken').value;
             if (!authToken) {
                 alert('Por favor, insira um token de autorização.');
+                appendDebugInfo('Erro: Token de autorização não fornecido');
                 return;
             }
+
+            appendDebugInfo(`Token usado: ${authToken}`);
 
             const order = {
                 id: document.getElementById('id').value,
@@ -114,9 +129,13 @@
                 notes: document.getElementById('notes').value
             };
 
+            appendDebugInfo(`Dados do pedido: ${JSON.stringify(order, null, 2)}`);
+
             const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createOrder';
 
             try {
+                appendDebugInfo(`Iniciando requisição para: ${apiUrl}`);
+
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
@@ -126,17 +145,22 @@
                     body: JSON.stringify(order)
                 });
 
+                appendDebugInfo(`Status da resposta: ${response.status}`);
+
                 if (!response.ok) {
                     const errorData = await response.json();
+                    appendDebugInfo(`Erro recebido: ${JSON.stringify(errorData, null, 2)}`);
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
+                appendDebugInfo(`Resposta recebida: ${JSON.stringify(data, null, 2)}`);
                 alert('Pedido criado com sucesso!');
                 console.log(data);
                 // Limpar o formulário após o sucesso
                 document.getElementById('orderForm').reset();
             } catch (error) {
+                appendDebugInfo(`Erro capturado: ${error.message}`);
                 alert('Erro ao criar pedido: ' + error.message);
                 console.error('Erro:', error);
             }
