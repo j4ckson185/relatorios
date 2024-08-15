@@ -98,10 +98,10 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="items">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
                     Detalhes do Pedido
                 </label>
-                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="items" placeholder="Digite os detalhes do pedido aqui" required></textarea>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderDetails" placeholder="Digite os detalhes do pedido aqui" required></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">
@@ -200,7 +200,7 @@
                         country: document.getElementById('country').value,
                         zipCode: document.getElementById('zipCode').value
                     },
-                    items: document.getElementById('items').value,
+                    orderDetails: document.getElementById('orderDetails').value,
                     payment: {
                         method: document.querySelector('input[name="paymentMethod"]:checked').value,
                         total: parseFloat(document.getElementById('orderTotal').value.replace(',', '.'))
