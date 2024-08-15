@@ -214,7 +214,10 @@
                 const paymentMethodElement = document.querySelector('input[name="paymentMethod"]:checked');
                 const paymentMethod = paymentMethodElement ? paymentMethodElement.value : '';
 
-                const orderTotal = formatDecimal(getElementValueById('orderTotal'));
+                const orderTotalRaw = getElementValueById('orderTotal');
+                appendDebugInfo(`Valor total bruto: ${orderTotalRaw}`);
+                const orderTotal = formatDecimal(orderTotalRaw);
+                appendDebugInfo(`Valor total formatado: ${orderTotal}`);
 
                 const order = {
                     id: getElementValueById('orderId'),
@@ -233,9 +236,9 @@
                         zipCode: getElementValueById('zipCode')
                     },
                     orderDetails: getElementValueById('orderDetails'),
-                    paymentMethod: {
+                    payment: {
                         method: paymentMethod,
-                        total: orderTotal
+                        total: Number(orderTotal)  // Convertendo para número
                     },
                     status: getElementValueById('status'),
                     notes: getElementValueById('notes')
