@@ -641,7 +641,7 @@
                 ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
 <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
 <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-${order.notes ? <p>Observações: ${order.notes}</p> : ''}
+${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
 <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
 <div class="order-options">
 <i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
