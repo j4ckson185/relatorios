@@ -15,6 +15,9 @@
                 Token de Autorização
             </label>
             <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="authToken" type="text" placeholder="Insira o token de autorização">
+            <button onclick="saveToken()" class="mt-2 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Salvar Token
+            </button>
         </div>
 
         <form id="orderForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
@@ -95,10 +98,10 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="items">
                     Detalhes do Pedido
                 </label>
-                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="items" placeholder='Itens do Pedido' required></textarea>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="items" placeholder="Digite os detalhes do pedido aqui" required></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">
@@ -145,18 +148,23 @@
     </div>
 
     <script>
+        // Carregar o token salvo ao iniciar a página
+        window.onload = function() {
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                document.getElementById('authToken').value = savedToken;
+            }
+        }
+
+        function saveToken() {
+            const token = document.getElementById('authToken').value;
+            localStorage.setItem('authToken', token);
+            alert('Token salvo com sucesso!');
+        }
+
         function appendDebugInfo(info) {
             const debugText = document.getElementById('debugText');
             debugText.textContent += info + '\n';
-        }
-
-        function parseItems(itemsString) {
-            const correctedString = itemsString.replace(/"price":\s*(\d+),(\d+)/g, '"price": $1.$2');
-            try {
-                return JSON.parse(correctedString);
-            } catch (error) {
-                throw new Error(`Erro ao analisar os itens do pedido: ${error.message}`);
-            }
         }
 
         async function submitOrder() {
@@ -173,8 +181,6 @@
             appendDebugInfo(`Token usado: ${authToken.substring(0, 10)}...`);
 
             try {
-                const items = parseItems(document.getElementById('items').value);
-                
                 const order = {
                     id: document.getElementById('orderId').value,
                     customer: {
@@ -194,7 +200,7 @@
                         country: document.getElementById('country').value,
                         zipCode: document.getElementById('zipCode').value
                     },
-                    items: items,
+                    items: document.getElementById('items').value,
                     payment: {
                         method: document.querySelector('input[name="paymentMethod"]:checked').value,
                         total: parseFloat(document.getElementById('orderTotal').value.replace(',', '.'))
