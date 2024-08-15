@@ -119,7 +119,7 @@
                     </label>
                     <label class="inline-flex items-center ml-6">
                         <input type="radio" class="form-radio" name="paymentMethod" value="CARD">
-                        <span class="ml-2">Cartão</span>
+                        <span class="ml-2">Cartão (card)</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
                         <input type="radio" class="form-radio" name="paymentMethod" value="ONLINE">
@@ -181,14 +181,23 @@
 
         function appendDebugInfo(info) {
             const debugText = document.getElementById('debugText');
-            debugText.textContent += info + '\n';
+            if (debugText) {
+                debugText.textContent += info + '\n';
+            }
+        }
+
+        function getElementValueById(id) {
+            const element = document.getElementById(id);
+            return element ? element.value : '';
         }
 
         async function submitOrder() {
             const debugText = document.getElementById('debugText');
-            debugText.textContent = '';
+            if (debugText) {
+                debugText.textContent = '';
+            }
 
-            const authToken = document.getElementById('authToken').value;
+            const authToken = getElementValueById('authToken');
             if (!authToken) {
                 alert('Por favor, insira um token de autorização.');
                 appendDebugInfo('Erro: Token de autorização não fornecido');
@@ -198,29 +207,32 @@
             appendDebugInfo(`Token usado: ${authToken.substring(0, 10)}...`);
 
             try {
+                const paymentMethodElement = document.querySelector('input[name="paymentMethod"]:checked');
+                const paymentMethod = paymentMethodElement ? paymentMethodElement.value : '';
+
                 const order = {
-                    id: document.getElementById('orderId').value,
+                    id: getElementValueById('orderId'),
                     customer: {
-                        customerName: document.getElementById('customerName').value,
-                        customerPhone: document.getElementById('customerPhone').value
+                        customerName: getElementValueById('customerName'),
+                        customerPhone: getElementValueById('customerPhone')
                     },
                     deliveryPoint: {
-                        address: `${document.getElementById('street').value}, ${document.getElementById('streetNumber').value}, ${document.getElementById('neighborhood').value}`,
+                        address: `${getElementValueById('street')}, ${getElementValueById('streetNumber')}, ${getElementValueById('neighborhood')}`,
                     },
                     deliveryAddress: {
-                        street: document.getElementById('street').value,
-                        streetNumber: document.getElementById('streetNumber').value,
-                        complement: document.getElementById('complement').value,
-                        neighborhood: document.getElementById('neighborhood').value,
-                        zipCode: document.getElementById('zipCode').value
+                        street: getElementValueById('street'),
+                        streetNumber: getElementValueById('streetNumber'),
+                        complement: getElementValueById('complement'),
+                        neighborhood: getElementValueById('neighborhood'),
+                        zipCode: getElementValueById('zipCode')
                     },
-                    orderDetails: document.getElementById('orderDetails').value,
+                    items: getElementValueById('items'),
                     payment: {
-                        method: document.querySelector('input[name="paymentMethod"]:checked').value,
-                        orderTotal: parseFloat(document.getElementById('orderTotal').value.replace(',', '.'))
+                        method: paymentMethod,
+                        orderTotal: parseFloat(getElementValueById('orderTotal').replace(',', '.'))
                     },
-                    status: document.getElementById('status').value,
-                    notes: document.getElementById('notes').value
+                    status: getElementValueById('status'),
+                    notes: getElementValueById('notes')
                 };
 
                 appendDebugInfo(`Dados do pedido: ${JSON.stringify(order, null, 2)}`);
