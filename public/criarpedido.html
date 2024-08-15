@@ -7,7 +7,30 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto p-4">
+    <div id="loginForm" class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Login</h1>
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+                    Usuário
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="username" type="text" placeholder="Usuário">
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                    Senha
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="password" type="password" placeholder="******************">
+            </div>
+            <div class="flex items-center justify-between">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button" onclick="login()">
+                    Entrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="orderFormContainer" class="container mx-auto p-4" style="display: none;">
         <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Criar Novo Pedido</h1>
         
         <div class="mb-4">
@@ -64,24 +87,6 @@
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="complement" type="text" placeholder="Complemento">
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="city">
-                    Cidade
-                </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="city" type="text" placeholder="Cidade" required>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="state">
-                    Estado
-                </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="state" type="text" placeholder="Estado" required>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="country">
-                    País
-                </label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="country" type="text" placeholder="País" required>
-            </div>
-            <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="zipCode">
                     CEP
                 </label>
@@ -98,10 +103,10 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="items">
                     Detalhes do Pedido
                 </label>
-                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="orderDetails" placeholder="Digite os detalhes do pedido aqui" required></textarea>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="items" placeholder="Digite os detalhes do pedido aqui" required></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">
@@ -109,16 +114,16 @@
                 </label>
                 <div class="mt-2">
                     <label class="inline-flex items-center">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="money" required>
+                        <input type="radio" class="form-radio" name="paymentMethod" value="MONEY" required>
                         <span class="ml-2">Dinheiro</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="card">
+                        <input type="radio" class="form-radio" name="paymentMethod" value="CARD">
                         <span class="ml-2">Cartão</span>
                     </label>
                     <label class="inline-flex items-center ml-6">
-                        <input type="radio" class="form-radio" name="paymentMethod" value="online">
-                        <span class="ml-2">Pg online</span>
+                        <input type="radio" class="form-radio" name="paymentMethod" value="ONLINE">
+                        <span class="ml-2">Pg Online (online)</span>
                     </label>
                 </div>
             </div>
@@ -148,8 +153,20 @@
     </div>
 
     <script>
-        // Carregar o token salvo ao iniciar a página
-        window.onload = function() {
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === 'admin' && password === 'saberviagens') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('orderFormContainer').style.display = 'block';
+                loadToken();
+            } else {
+                alert('Usuário ou senha incorretos.');
+            }
+        }
+
+        function loadToken() {
             const savedToken = localStorage.getItem('authToken');
             if (savedToken) {
                 document.getElementById('authToken').value = savedToken;
