@@ -115,7 +115,7 @@
                 return;
             }
 
-            appendDebugInfo(`Token usado: ${authToken}`);
+            appendDebugInfo(`Token usado: ${authToken.substring(0, 10)}...`);
 
             const order = {
                 id: document.getElementById('id').value,
@@ -140,7 +140,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': authToken
                     },
                     body: JSON.stringify(order)
                 });
@@ -164,7 +164,6 @@
                 appendDebugInfo(`Resposta processada: ${JSON.stringify(data, null, 2)}`);
                 alert('Pedido criado com sucesso!');
                 console.log(data);
-                // Limpar o formulário após o sucesso
                 document.getElementById('orderForm').reset();
             } catch (error) {
                 appendDebugInfo(`Erro capturado: ${error.message}`);
