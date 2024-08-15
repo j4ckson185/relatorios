@@ -20,13 +20,13 @@
         <form id="orderForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="id">
-                    ID
+                    ID do Pedido
                 </label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="id" type="text" placeholder="ID do Pedido">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="customerName">
-                    Cliente
+                    Nome do Cliente
                 </label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="customerName" type="text" placeholder="Nome do Cliente">
             </div>
@@ -38,7 +38,7 @@
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="houseNumber">
-                    Nº
+                    Número
                 </label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="houseNumber" type="text" placeholder="Número da Casa">
             </div>
@@ -47,6 +47,36 @@
                     Complemento
                 </label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="complement" type="text" placeholder="Complemento">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="neighborhood">
+                    Bairro
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="neighborhood" type="text" placeholder="Bairro">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="city">
+                    Cidade
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="city" type="text" placeholder="Cidade">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="state">
+                    Estado
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="state" type="text" placeholder="Estado">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="country">
+                    País
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="country" type="text" placeholder="País">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="zipCode">
+                    CEP
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="zipCode" type="text" placeholder="CEP">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="orderDetails">
@@ -120,9 +150,18 @@
             const order = {
                 id: document.getElementById('id').value,
                 customerName: document.getElementById('customerName').value,
-                street: document.getElementById('street').value,
-                houseNumber: document.getElementById('houseNumber').value,
-                complement: document.getElementById('complement').value,
+                deliveryPoint: {
+                    address: {
+                        street: document.getElementById('street').value,
+                        number: document.getElementById('houseNumber').value,
+                        complement: document.getElementById('complement').value,
+                        neighborhood: document.getElementById('neighborhood').value,
+                        city: document.getElementById('city').value,
+                        state: document.getElementById('state').value,
+                        country: document.getElementById('country').value,
+                        zipCode: document.getElementById('zipCode').value
+                    }
+                },
                 orderDetails: document.getElementById('orderDetails').value,
                 paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value,
                 orderTotal: parseFloat(document.getElementById('orderTotal').value),
