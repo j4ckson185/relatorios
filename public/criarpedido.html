@@ -131,7 +131,7 @@
 
             appendDebugInfo(`Dados do pedido: ${JSON.stringify(order, null, 2)}`);
 
-            const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createFoodyOrder';
+            const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createOrder';
 
             try {
                 appendDebugInfo(`Iniciando requisição para: ${apiUrl}`);
@@ -147,14 +147,21 @@
 
                 appendDebugInfo(`Status da resposta: ${response.status}`);
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    appendDebugInfo(`Erro recebido: ${JSON.stringify(errorData, null, 2)}`);
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                const responseText = await response.text();
+                appendDebugInfo(`Resposta bruta: ${responseText}`);
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Falha ao analisar resposta como JSON: ${responseText}`);
                 }
 
-                const data = await response.json();
-                appendDebugInfo(`Resposta recebida: ${JSON.stringify(data, null, 2)}`);
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                }
+
+                appendDebugInfo(`Resposta processada: ${JSON.stringify(data, null, 2)}`);
                 alert('Pedido criado com sucesso!');
                 console.log(data);
                 // Limpar o formulário após o sucesso
