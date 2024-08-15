@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management</title>
+    <style>
+        /* Estilização do formulário */
+        .order-form {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .order-form input, .order-form select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        .order-form button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .order-form button:hover {
+            background-color: #45a049;
+        }
+        /* Mapa */
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Order Management</h1>
+
+    <!-- Formulário para criar pedidos -->
+    <div class="order-form">
+        <h2>Create New Order</h2>
+        <input type="text" id="orderId" placeholder="ID">
+        <input type="text" id="street" placeholder="Rua">
+        <input type="text" id="houseNumber" placeholder="Nº">
+        <input type="text" id="complement" placeholder="Complemento">
+        <select id="paymentMethod">
+            <option value="credit_card">Cartão de Crédito</option>
+            <option value="cash">Dinheiro</option>
+            <option value="pix">PIX</option>
+        </select>
+        <button onclick="createOrder()">Adicionar Pedido</button>
+    </div>
+
+    <!-- Div para o mapa -->
+    <div id="map"></div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&callback=initMap" async defer></script>
+    <script>
+        let map;
+        let orders = [];
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: -15.7942, lng: -47.8822 }, // Brasília
+                zoom: 12,
+            });
+        }
+
+        function createOrder() {
+            const orderId = document.getElementById("orderId").value;
+            const street = document.getElementById("street").value;
+            const houseNumber = document.getElementById("houseNumber").value;
+            const complement = document.getElementById("complement").value;
+            const paymentMethod = document.getElementById("paymentMethod").value;
+
+            if (!orderId || !street || !houseNumber) {
+                alert("Preencha todos os campos obrigatórios!");
+                return;
+            }
+
+            // Adiciona o pedido à lista de pedidos
+            const newOrder = {
+                id: orderId,
+                street: street,
+                houseNumber: houseNumber,
+                complement: complement,
+                paymentMethod: paymentMethod,
+            };
+            orders.push(newOrder);
+
+            // Aqui você pode adicionar a lógica para exibir o pedido no mapa, se necessário
+            console.log("Pedido criado:", newOrder);
+
+            // Limpar campos do formulário
+            document.getElementById("orderId").value = "";
+            document.getElementById("street").value = "";
+            document.getElementById("houseNumber").value = "";
+            document.getElementById("complement").value = "";
+            document.getElementById("paymentMethod").value = "credit_card";
+        }
+    </script>
+</body>
+</html>
