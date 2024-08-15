@@ -86,7 +86,7 @@
     </div>
 
     <script>
-        function submitOrder() {
+        async function submitOrder() {
             const order = {
                 id: document.getElementById('id').value,
                 customerName: document.getElementById('customerName').value,
@@ -99,23 +99,31 @@
                 notes: document.getElementById('notes').value
             };
 
-            fetch('https://your-region-your-project.cloudfunctions.net/api/createOrder', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer YOUR_AUTH_TOKEN' // Substitua pelo token de autorização real
-                },
-                body: JSON.stringify(order)
-            })
-            .then(response => response.json())
-            .then(data => {
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+            const targetUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/api/createOrder';
+
+            try {
+                const response = await fetch(proxyUrl + targetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer 8d7c77946d534444a168bb7da794febf', // Substitua pelo token de autorização real
+                        'Origin': 'https://app.foodydelivery.com/rest/1.2/orders/'
+                    },
+                    body: JSON.stringify(order)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
                 alert('Pedido criado com sucesso!');
                 console.log(data);
-            })
-            .catch(error => {
-                alert('Erro ao criar pedido');
+            } catch (error) {
+                alert('Erro ao criar pedido: ' + error.message);
                 console.error('Erro:', error);
-            });
+            }
         }
     </script>
 </body>
