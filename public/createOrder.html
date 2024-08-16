@@ -1285,6 +1285,8 @@ function updateCourierTimeTracking() {
         } else if (courierLastRouteTime[courierName]) {
             timeInRoute = courierLastRouteTime[courierName];
             statusMessage = '(Última rota)';
+        } else if (activeOrders.length > 0) {
+            statusMessage = `(${activeOrders.length} pedido${activeOrders.length !== 1 ? 's' : ''} aguardando)`;
         }
 
         content += `
@@ -1311,21 +1313,22 @@ function updateCourierStatus(orders) {
             const existingOrderIndex = courierActiveOrders[courierName].findIndex(o => o.id === order.id);
             if (existingOrderIndex !== -1) {
                 courierActiveOrders[courierName][existingOrderIndex] = order;
-            } else {
+            } else if (order.status !== 'closed') {
                 courierActiveOrders[courierName].push(order);
             }
 
-            // Remove pedidos concluídos ou cancelados
-            courierActiveOrders[courierName] = courierActiveOrders[courierName].filter(o => 
-                ['accepted', 'ready', 'onGoing', 'dispatched'].includes(o.status)
-            );
+            // Remove pedidos concluídos
+            courierActiveOrders[courierName] = courierActiveOrders[courierName].filter(o => o.status !== 'closed');
 
-            // Atualiza o tempo de início se todos os pedidos estiverem 'onGoing'
+            // Verifica se todos os pedidos estão 'onGoing' ou se não há pedidos ativos
             const allOnGoing = courierActiveOrders[courierName].every(o => o.status === 'onGoing');
+            const noActiveOrders = courierActiveOrders[courierName].length === 0;
+
             if (allOnGoing && !courierTimeTrackingStart[courierName]) {
+                // Inicia a contagem se todos os pedidos estiverem 'onGoing'
                 courierTimeTrackingStart[courierName] = Date.now();
-            } else if (!allOnGoing && courierTimeTrackingStart[courierName]) {
-                // Finaliza a contagem e salva o último tempo de rota
+            } else if ((noActiveOrders || !allOnGoing) && courierTimeTrackingStart[courierName]) {
+                // Finaliza a contagem se não houver pedidos ativos ou se nem todos estiverem 'onGoing'
                 const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
                 courierLastRouteTime[courierName] = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
                 delete courierTimeTrackingStart[courierName];
