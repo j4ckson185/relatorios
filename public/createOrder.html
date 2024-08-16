@@ -1276,7 +1276,6 @@ function updateCourierTimeTracking() {
         const startTime = courierTimeTrackingStart[courierName];
         
         let timeInRoute = '00:00:00';
-        let statusMessage = '';
 
         if (onGoingOrders.length > 0) {
             if (!startTime) {
@@ -1290,15 +1289,10 @@ function updateCourierTimeTracking() {
             delete courierTimeTrackingStart[courierName];
         }
 
-        const onGoingCount = onGoingOrders.length;
-        const otherCount = activeOrders.length - onGoingCount;
-        statusMessage = `(${onGoingCount} A Caminho, ${otherCount} outros)`;
-
         content += `
             <div class="courier-time-item">
                 <span class="courier-name">${courierName}</span>: 
                 <strong>${timeInRoute}</strong>
-                ${statusMessage}
             </div>
         `;
     }
