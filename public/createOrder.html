@@ -1278,9 +1278,16 @@ function updateCourierTimeTracking() {
         let timeInRoute = '00:00:00';
         let statusMessage = '';
 
-        if (startTime) {
-            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        if (onGoingOrders.length > 0) {
+            if (!startTime) {
+                // Se há pedidos onGoing mas o tempo não foi iniciado, inicie agora
+                courierTimeTrackingStart[courierName] = Date.now();
+            }
+            const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
             timeInRoute = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
+        } else if (startTime) {
+            // Se não há pedidos onGoing mas o tempo estava contando, pare a contagem
+            delete courierTimeTrackingStart[courierName];
         }
 
         const onGoingCount = onGoingOrders.length;
