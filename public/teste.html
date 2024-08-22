@@ -232,6 +232,7 @@
         .action-btn.secondary {
             background-color: var(--secondary-color);
             color: var(--white);
+            cursor: pointer;
         }
 
         .modal {
@@ -253,6 +254,7 @@
             border: 1px solid #888;
             width: 80%;
             max-width: 600px;
+            border-radius: 8px;
         }
 
         .close {
@@ -313,6 +315,83 @@
         .courier-stat.same-address i {
             color: var(--danger-color);
         }
+
+        #createOrderForm {
+            display: grid;
+            gap: 10px;
+        }
+
+        #createOrderForm label {
+            font-weight: bold;
+        }
+
+        #createOrderForm input,
+        #createOrderForm select,
+        #createOrderForm textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #createOrderForm button {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #createOrderForm button:hover {
+            background-color: #E03026;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--white);
+            border-left: 5px solid var(--primary-color);
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .notification-title {
+            font-weight: bold;
+        }
+
+        .notification-close {
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .notification-message {
+            margin-bottom: 10px;
+        }
+
+        .notification-action {
+            text-align: right;
+        }
+
+        .notification-action button {
+            background-color: var(--secondary-color);
+            color: var(--white);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -332,7 +411,7 @@
             </nav>
             <section class="orders-section">
                 <div class="orders-header">
-                    <h2 class="orders-title">Pedidos (<span id="orderCount">0</span>)</h2>
+                    <h2 class="orders-title">Pedidos (<span id="orderCount">0</span>) | Finalizados Hoje: <span id="finishedOrdersCount">0</span></h2>
                     <div class="search-bar">
                         <input type="text" id="searchInput" placeholder="Buscar pedidos..." onkeyup="searchOrders()">
                         <button class="refresh-btn" onclick="fetchOrders()"><i class="fas fa-sync-alt"></i></button>
@@ -442,8 +521,10 @@
         let currentOrders = [];
         let filteredOrders = [];
         let currentTab = 'preparing';
+        let lastOrderStatuses = {};
+        let notificationId = 0;
 
-async function fetchOrders() {
+        async function fetchOrders() {
             try {
                 const now = new Date();
                 const startDate = formatDate(new Date(now.setHours(0, 0, 0, 0)));
@@ -459,7 +540,10 @@ async function fetchOrders() {
                 });
                 console.log('Pedidos recebidos:', response.data);
                 currentOrders = response.data.filter(order => isWithinTimeRange(new Date(order.creationDate)));
+                checkForStatusChanges(currentOrders);
                 filterOrders(currentTab);
+                updateFinishedOrdersCount();
+                checkForSameAddressDeliveries();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -743,7 +827,7 @@ async function fetchOrders() {
                 ['accepted', 'ready', 'onGoing'].includes(order.status)
             );
 
-            let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
+let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
             ongoingDeliveries.forEach(order => {
                 content += `
                     <div class="order-card">
@@ -756,6 +840,89 @@ async function fetchOrders() {
             });
 
             document.getElementById('courierDeliveriesContent').innerHTML = content;
+        }
+
+        function updateFinishedOrdersCount() {
+            const finishedOrders = currentOrders.filter(order => order.status === 'closed');
+            document.getElementById('finishedOrdersCount').textContent = finishedOrders.length;
+        }
+
+        function checkForStatusChanges(orders) {
+            orders.forEach(order => {
+                if (lastOrderStatuses[order.id] && lastOrderStatuses[order.id] !== order.status) {
+                    if (order.status === 'cancelled') {
+                        showCancellationNotification(order);
+                    }
+                }
+                lastOrderStatuses[order.id] = order.status;
+            });
+        }
+
+        function checkForSameAddressDeliveries() {
+            const sameAddressDeliveries = {};
+            currentOrders.forEach(order => {
+                if (order.status === 'onGoing' && order.courier) {
+                    const courierName = order.courier.courierName;
+                    const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
+                    if (!sameAddressDeliveries[courierName]) {
+                        sameAddressDeliveries[courierName] = {};
+                    }
+                    if (!sameAddressDeliveries[courierName][address]) {
+                        sameAddressDeliveries[courierName][address] = [];
+                    }
+                    sameAddressDeliveries[courierName][address].push(order);
+                }
+            });
+
+            for (const [courierName, addresses] of Object.entries(sameAddressDeliveries)) {
+                for (const [address, orders] of Object.entries(addresses)) {
+                    if (orders.length > 1) {
+                        showSameAddressNotification(courierName, orders.length, address);
+                    }
+                }
+            }
+        }
+
+        function showCancellationNotification(order) {
+            const message = `
+                O pedido #${order.id} foi cancelado!
+                Cliente: ${order.customer.customerName}
+                ${order.courier ? `Motoboy: ${order.courier.courierName}` : ''}
+            `;
+            showNotification('Pedido Cancelado', message);
+        }
+
+        function showSameAddressNotification(courierName, orderCount, address) {
+            const message = `
+                O motoboy ${courierName} está levando ${orderCount} pedidos para o mesmo endereço:
+                ${address}
+            `;
+            showNotification('Entregas para o Mesmo Endereço', message);
+        }
+
+        function showNotification(title, message) {
+            const notificationId = 'notification-' + Date.now();
+            const notification = document.createElement('div');
+            notification.id = notificationId;
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <span class="notification-title">${title}</span>
+                    <span class="notification-close" onclick="closeNotification('${notificationId}')">&times;</span>
+                </div>
+                <div class="notification-message">${message}</div>
+                <div class="notification-action">
+                    <button onclick="closeNotification('${notificationId}')">Fechar</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+        }
+
+        function closeNotification(notificationId) {
+            const notification = document.getElementById(notificationId);
+            if (notification) {
+                notification.remove();
+            }
         }
 
         // Inicialização
