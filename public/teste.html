@@ -58,6 +58,7 @@
         .logo i {
             margin-right: 10px;
             font-size: 30px;
+            color: #000;
         }
 
         .header-actions {
@@ -247,6 +248,16 @@
             color: var(--dark-gray);
         }
 
+        .status-ready {
+            background-color: #8E44AD;
+            color: var(--white);
+        }
+
+        .status-onGoing {
+            background-color: #3498DB;
+            color: var(--white);
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -410,7 +421,7 @@
     <div class="container">
         <header>
             <div class="logo">
-                <i class="fas fa-ice-cream"></i>
+                <i class="fas fa-utensils"></i>
                 Cabana Açaí
             </div>
             <div class="header-actions">
@@ -422,7 +433,7 @@
             <nav class="sidebar">
                 <a href="createOrder.html" title="Home"><i class="fas fa-home"></i></a>
                 <a href="createOrder.html" title="Pedidos"><i class="fas fa-clipboard-list"></i></a>
-                <a href="relatorios.html" title="Relatórios"><i class="fas fa-chart-bar"></i></a>
+                <a href="relatorio.html" title="Relatórios"><i class="fas fa-chart-bar"></i></a>
             </nav>
             <section class="orders-section">
                 <div class="orders-header">
@@ -539,6 +550,7 @@
         let currentTab = 'preparing';
         let lastOrderStatuses = {};
         let notificationId = 0;
+        let shownNotifications = new Set();
 
         async function fetchOrders() {
             try {
@@ -584,7 +596,7 @@
                         ${order.notes ? `<div class="order-info"><i class="fas fa-sticky-note"></i>${order.notes}</div>` : ''}
                     </div>
                     <div class="order-actions">
-                        <div class="action-btn primary ${order.status === 'accepted' ? 'status-accepted' : ''}">${getStatusButton(order.status)}</div>
+                        <div class="action-btn primary ${getStatusClass(order.status)}">${getStatusButton(order.status)}</div>
                         <button class="action-btn secondary" onclick="printOrderDetails('${order.id}')"><i class="fas fa-print"></i></button>
                     </div>
                 `;
@@ -618,6 +630,15 @@
                 case 'closed': return 'Finalizado';
                 case 'cancelled': return 'Cancelado';
                 default: return status;
+            }
+        }
+
+        function getStatusClass(status) {
+            switch (status) {
+                case 'accepted': return 'status-accepted';
+                case 'ready': return 'status-ready';
+                case 'onGoing': return 'status-onGoing';
+                default: return '';
             }
         }
 
@@ -815,7 +836,7 @@
                             </div>
                 `;
 
-// Adicionar informações sobre entregas para o mesmo endereço
+                // Adicionar informações sobre entregas para o mesmo endereço
                 let sameAddressCount = 0;
                 if (sameAddressOrders[courierName]) {
                     for (const [address, orders] of Object.entries(sameAddressOrders[courierName])) {
@@ -892,7 +913,11 @@
             for (const [courierName, addresses] of Object.entries(sameAddressDeliveries)) {
                 for (const [address, orders] of Object.entries(addresses)) {
                     if (orders.length > 1) {
-                        showSameAddressNotification(courierName, orders.length, address);
+                        const notificationKey = `${courierName}-${address}-${orders.length}`;
+                        if (!shownNotifications.has(notificationKey)) {
+                            showSameAddressNotification(courierName, orders.length, address);
+                            shownNotifications.add(notificationKey);
+                        }
                     }
                 }
             }
