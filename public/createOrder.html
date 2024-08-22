@@ -7,7 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E&libraries=visualization"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body {
@@ -36,12 +35,6 @@
             flex-direction: column;
             padding: 20px;
             overflow-y: auto;
-        }
-        #map {
-            height: 60vh;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
         }
         .dashboard {
             display: flex;
@@ -379,7 +372,6 @@
                 </div>
             </div>
 
-<div id="map"></div>
         <div class="dashboard">
             <div class="metric-card">
                 <div class="metric-title">Resumo de Pedidos</div>
@@ -447,9 +439,6 @@
     firebase.initializeApp(firebaseConfig);
 
     const db = firebase.firestore();
-    let map;
-    let heatmap;
-    let markers = {};
     const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
     const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
     const authToken = '8d7c77946d534444a168bb7da794febf';
@@ -533,38 +522,6 @@
         if (storedHiddenNotifications) hiddenNotifications = JSON.parse(storedHiddenNotifications);
     }
 
-    function initMap() {
-        const centerAddress = { lat: -5.750636, lng: -35.254625 };
-        map = new google.maps.Map(document.getElementById('map'), {
-            center: centerAddress,
-            zoom: 12
-        });
-        heatmap = new google.maps.visualization.HeatmapLayer({
-            data: [],
-            map: map
-        });
-        new google.maps.Marker({
-            position: centerAddress,
-            map: map,
-            title: "Rua Serra do Mar, 1216, Potengi",
-            icon: {
-                url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                scaledSize: new google.maps.Size(40, 40)
-            }
-        });
-    }
-
-    function formatDate(date) {
-        return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
-    }
-
-    function isWithinTimeRange(date) {
-        const hour = date.getHours();
-        const minutes = date.getMinutes();
-        const totalMinutes = hour * 60 + minutes;
-        return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
-    }
-
     async function fetchOrders() {
         try {
             const now = new Date();
@@ -590,7 +547,6 @@
             currentOrders = filteredOrders;
             priorityOrders = currentOrders.filter(order => order.status === 'accepted');
             updateOrderList(currentOrders);
-            updateMap(currentOrders);
             updateDashboard(allOrdersToday);
             updatePrepTimes(currentOrders);
             updateCourierDeliveries(allOrdersToday);
@@ -645,128 +601,22 @@
 ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
 <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
 <div class="order-options">
-<i class="fas fa-map-marker-alt" onclick="centerOrderOnMap('${order.uid}')"></i>
+<i class="fas fa-map-marker-alt"></i>
 </div>
 `;
 orderList.appendChild(orderDiv);
 });
 }
-    function updateMap(orders) {
-        const heatmapData = [];
-        orders.forEach(order => {
-            if (order.deliveryPoint && order.deliveryPoint.coordinates) {
-                const { lat, lng } = order.deliveryPoint.coordinates;
-                let marker = markers[`order-${order.uid}`];
-                if (!marker) {
-                    marker = new google.maps.Marker({
-                        position: { lat, lng },
-                        map: map,
-                        title: `Pedido #${order.id}`,
-                        icon: getOrderMarkerIcon(order.status, order.id)
-                    });
-                    markers[`order-${order.uid}`] = marker;
-                    marker.addListener('click', () => {
-                        showOrderDetails(order);
-                    });
-                } else {
-                    marker.setPosition({ lat, lng });
-                    marker.setIcon(getOrderMarkerIcon(order.status, order.id));
-                }
-                heatmapData.push(new google.maps.LatLng(lat, lng));
-            }
-            if (order.status === 'onGoing' || order.status === 'dispatched') {
-                updateCourierLocation(order);
-            }
-        });
-        // Remove markers for orders that no longer exist
-        Object.keys(markers).forEach(key => {
-            if (key.startsWith('order-') && !orders.some(order => `order-${order.uid}` === key)) {
-                markers[key].setMap(null);
-                delete markers[key];
-            }
-        });
-        heatmap.setData(heatmapData);
+
+    function formatDate(date) {
+        return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
     }
 
-    function getOrderMarkerIcon(status, orderId) {
-        let color;
-        switch (status) {
-            case 'open': color = '#e74c3c'; break;
-            case 'accepted': color = '#f1c40f'; break;
-            case 'ready': color = '#8E44AD'; break;
-            case 'onGoing': color = '#87CEEB'; break;
-            case 'dispatched': color = '#e67e22'; break;
-            default: color = 'gray';
-        }
-        return {
-            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                    <rect width="32" height="32" fill="${color}" stroke="black" stroke-width="1" />
-                    <text x="16" y="20" font-family="Arial" font-size="12" fill="black" text-anchor="middle">${orderId}</text>
-                </svg>
-            `)}`,
-            scaledSize: new google.maps.Size(32, 32),
-            anchor: new google.maps.Point(16, 16)
-        };
-    }
-
-    async function updateCourierLocation(order) {
-        try {
-            const response = await axios.get(trackingUrl, {
-                headers: {
-                    'Authorization': authToken,
-                    'Content-Type': 'application/json;charset=UTF-8'
-                },
-                params: {
-                    orderUid: order.uid
-                }
-            });
-            const tracking = response.data;
-            if (tracking.courierLocationCoordinates) {
-                const { lat, lng } = tracking.courierLocationCoordinates;
-                let courierMarker = markers[`courier-${order.courier.courierName}`];
-                if (!courierMarker) {
-                    courierMarker = new google.maps.Marker({
-                        position: { lat, lng },
-                        map: map,
-                        title: `Motoboy - ${order.courier.courierName}`,
-                        icon: getCourierIcon(order.courier.courierName, order.status)
-                    });
-                    markers[`courier-${order.courier.courierName}`] = courierMarker;
-                    courierMarker.addListener('click', () => {
-                        showCourierDetails(order, tracking);
-                    });
-                } else {
-                    courierMarker.setPosition({ lat, lng });
-                    courierMarker.setIcon(getCourierIcon(order.courier.courierName, order.status));
-                }
-            }
-        } catch (error) {
-            console.error(`Erro ao buscar localização do motoboy para o pedido ${order.uid}:`, error);
-        }
-    }
-
-    function getCourierIcon(courierName, status) {
-        return {
-            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60">
-                    <rect width="60" height="20" rx="10" ry="10" fill="${status === 'onGoing' ? 'red' : 'green'}" />
-                    <text x="30" y="14" font-family="Arial" font-size="12" fill="white" text-anchor="middle">${courierName.substring(0, 5).toUpperCase()}</text>
-                    <path d="M30 25 L20 55 L40 55 Z" fill="black" />
-                    <circle cx="30" cy="35" r="7" fill="white" />
-                </svg>
-            `)}`,
-            scaledSize: new google.maps.Size(60, 60),
-            anchor: new google.maps.Point(30, 30)
-        };
-    }
-
-    function centerOrderOnMap(orderUid) {
-        const marker = markers[`order-${orderUid}`] || markers[`courier-${orderUid}`];
-        if (marker) {
-            map.setCenter(marker.getPosition());
-            map.setZoom(16);
-        }
+    function isWithinTimeRange(date) {
+        const hour = date.getHours();
+        const minutes = date.getMinutes();
+        const totalMinutes = hour * 60 + minutes;
+        return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
     }
 
     function getStatusDisplay(status) {
@@ -787,46 +637,6 @@ orderList.appendChild(orderDiv);
             case 'card': return 'Cartão';
             case 'online': return 'Online';
             default: return method;
-        }
-    }
-
-    function showOrderDetails(order) {
-        const infoWindow = new google.maps.InfoWindow({
-            content: `
-                <div style="max-width: 200px;">
-                    <h3>Pedido #${order.id}</h3>
-                    <p>Cliente: ${order.customer.customerName}</p>
-                    <p>Endereço: ${order.deliveryPoint.address}</p>
-                    <p>Status: ${getStatusDisplay(order.status)}</p>
-                    ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
-                    <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
-                    <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-                    ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
-                    <p>Tempo de Preparo: ${getPrepTimeForOrder(order.id)} min</p>
-                </div>
-            `
-        });
-        const marker = markers[`order-${order.uid}`];
-        if (marker) {
-            infoWindow.open(map, marker);
-        }
-    }
-
-    function showCourierDetails(order, tracking) {
-        const infoWindow = new google.maps.InfoWindow({
-            content: `
-                <div style="max-width: 200px;">
-                    <h3>Motoboy - <span class="courier-name">${order.courier.courierName}</span></h3>
-                    <p>Status: ${getStatusDisplay(order.status)}</p>
-                    ${tracking.pointsToDelivery && tracking.pointsToDelivery.length > 0 ?
-                    `<p>Posição na rota: ${tracking.pointsToDelivery[0].position}</p>` : ''}
-                    <p>Pedido atual: #${order.id}</p>
-                </div>
-            `
-        });
-        const marker = markers[`courier-${order.courier.courierName}`];
-        if (marker) {
-            infoWindow.open(map, marker);
         }
     }
 
@@ -1343,7 +1153,6 @@ function updateCourierStatus(orders) {
 
     // Inicialização da aplicação
     loadDataFromLocalStorage();
-    initMap();
     fetchOrders();
     setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
     setInterval(updateCourierTimeTracking, 1000); // Atualiza o tempo em rota a cada segundo
