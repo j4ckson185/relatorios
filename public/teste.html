@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDV Profissional - Foody Delivery</title>
+    <title>PDV Profissional - Cabana Açaí</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
@@ -48,9 +48,16 @@
         }
 
         .logo {
+            display: flex;
+            align-items: center;
             font-size: 24px;
             font-weight: bold;
             color: var(--primary-color);
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 30px;
         }
 
         .header-actions {
@@ -235,6 +242,11 @@
             cursor: pointer;
         }
 
+        .status-accepted {
+            background-color: var(--warning-color);
+            color: var(--dark-gray);
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -397,7 +409,10 @@
 <body>
     <div class="container">
         <header>
-            <div class="logo">BEE FOOD - EMPRESA EXEMPLO</div>
+            <div class="logo">
+                <i class="fas fa-ice-cream"></i>
+                Cabana Açaí
+            </div>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="showCreateOrderModal()">Criar Novo Pedido</button>
                 <button class="btn btn-danger" onclick="showCourierDeliveriesModal()">Entregas por Motoboy</button>
@@ -411,7 +426,7 @@
             </nav>
             <section class="orders-section">
                 <div class="orders-header">
-                    <h2 class="orders-title">Pedidos (<span id="orderCount">0</span>) | Finalizados Hoje: <span id="finishedOrdersCount">0</span></h2>
+                    <h2 class="orders-title">Pedidos (<span id="orderCount">0</span>)</h2>
                     <div class="search-bar">
                         <input type="text" id="searchInput" placeholder="Buscar pedidos..." onkeyup="searchOrders()">
                         <button class="refresh-btn" onclick="fetchOrders()"><i class="fas fa-sync-alt"></i></button>
@@ -419,6 +434,7 @@
                 </div>
                 <div class="order-status-tabs">
                     <div class="status-tab" onclick="filterOrders('preparing')">Em Preparo</div>
+                    <div class="status-tab" onclick="filterOrders('priorities')">Prioridades</div>
                     <div class="status-tab" onclick="filterOrders('onGoing')">A Caminho</div>
                     <div class="status-tab" onclick="filterOrders('closed')">Finalizados</div>
                     <div class="status-tab" onclick="filterOrders('cancelled')">Cancelados</div>
@@ -542,7 +558,6 @@
                 currentOrders = response.data.filter(order => isWithinTimeRange(new Date(order.creationDate)));
                 checkForStatusChanges(currentOrders);
                 filterOrders(currentTab);
-                updateFinishedOrdersCount();
                 checkForSameAddressDeliveries();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
@@ -566,9 +581,10 @@
                         <div class="order-info"><i class="fas fa-motorcycle"></i>${order.courier ? order.courier.courierName : 'Não atribuído'}</div>
                         <div class="order-info"><i class="${getPaymentIcon(order.paymentMethod)}"></i>${translatePaymentMethod(order.paymentMethod)}</div>
                         <div class="order-info order-total"><i class="fas fa-dollar-sign"></i>R$ ${order.orderTotal.toFixed(2)}</div>
+                        ${order.notes ? `<div class="order-info"><i class="fas fa-sticky-note"></i>${order.notes}</div>` : ''}
                     </div>
                     <div class="order-actions">
-                        <div class="action-btn primary">${getStatusButton(order.status)}</div>
+                        <div class="action-btn primary ${order.status === 'accepted' ? 'status-accepted' : ''}">${getStatusButton(order.status)}</div>
                         <button class="action-btn secondary" onclick="printOrderDetails('${order.id}')"><i class="fas fa-print"></i></button>
                     </div>
                 `;
@@ -627,7 +643,10 @@
             currentTab = status;
             switch (status) {
                 case 'preparing':
-                    filteredOrders = currentOrders.filter(order => order.status === 'open' || order.status === 'ready');
+                    filteredOrders = currentOrders.filter(order => order.status === 'open' || order.status === 'ready' || order.status === 'accepted');
+                    break;
+                case 'priorities':
+                    filteredOrders = currentOrders.filter(order => order.status === 'accepted');
                     break;
                 case 'onGoing':
                     filteredOrders = currentOrders.filter(order => order.status === 'onGoing');
@@ -647,12 +666,12 @@
             document.querySelectorAll('.status-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            document.querySelector(`.status-tab:nth-child(${['preparing', 'onGoing', 'closed', 'cancelled'].indexOf(status) + 1})`).classList.add('active');
+            document.querySelector(`.status-tab:nth-child(${['preparing', 'priorities', 'onGoing', 'closed', 'cancelled'].indexOf(status) + 1})`).classList.add('active');
         }
 
         function searchOrders() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const searchResults = filteredOrders.filter(order => 
+            const searchResults = currentOrders.filter(order => 
                 order.id.toLowerCase().includes(searchTerm) ||
                 order.customer.customerName.toLowerCase().includes(searchTerm) ||
                 (order.courier && order.courier.courierName.toLowerCase().includes(searchTerm))
@@ -671,6 +690,7 @@
                     Total: R$ ${order.orderTotal.toFixed(2)}
                     Status: ${getStatusButton(order.status)}
                     Data/Hora: ${new Date(order.creationDate).toLocaleString('pt-BR')}
+                    ${order.notes ? `Observações: ${order.notes}` : ''}
                 `;
                 const printWindow = window.open('', '', 'height=400,width=800');
                 printWindow.document.write('<html><head><title>Detalhes do Pedido</title>');
@@ -795,7 +815,7 @@
                             </div>
                 `;
 
-                // Adicionar informações sobre entregas para o mesmo endereço
+// Adicionar informações sobre entregas para o mesmo endereço
                 let sameAddressCount = 0;
                 if (sameAddressOrders[courierName]) {
                     for (const [address, orders] of Object.entries(sameAddressOrders[courierName])) {
@@ -827,7 +847,7 @@
                 ['accepted', 'ready', 'onGoing'].includes(order.status)
             );
 
-let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
+            let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
             ongoingDeliveries.forEach(order => {
                 content += `
                     <div class="order-card">
@@ -840,11 +860,6 @@ let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
             });
 
             document.getElementById('courierDeliveriesContent').innerHTML = content;
-        }
-
-        function updateFinishedOrdersCount() {
-            const finishedOrders = currentOrders.filter(order => order.status === 'closed');
-            document.getElementById('finishedOrdersCount').textContent = finishedOrders.length;
         }
 
         function checkForStatusChanges(orders) {
