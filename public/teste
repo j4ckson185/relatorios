@@ -450,7 +450,7 @@
         </div>
         <div class="main-content">
             <div id="createOrderSection">
-                <button id="toggleFormButton" onclick="toggleCreateOrderForm()">Criar Novo Pedido</button>
+<button id="toggleFormButton" onclick="toggleCreateOrderForm()">Criar Novo Pedido</button>
                 <button id="toggleCourierTimeButton" onclick="toggleCourierTimeTracking()">Tempo em Rota dos Motoboys</button>
                 <form id="createOrderForm" style="display: none;">
                     <label for="orderId">ID do Pedido:</label>
@@ -733,17 +733,17 @@
                 <p class="status-${order.status.toLowerCase()}">${getStatusDisplay(order.status)}</p>
                 <p>Cliente: ${order.customer.customerName}</p>
                 ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
-<p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
-<p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
-<p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
-<div class="order-options">
-<i class="fas fa-map-marker-alt"></i>
-</div>
-`;
-orderList.appendChild(orderDiv);
-});
-}
+                <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
+                <p>Total do Pedido: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
+                ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
+                <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
+                <div class="order-options">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+            `;
+            orderList.appendChild(orderDiv);
+        });
+    }
 
     function formatDate(date) {
         return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
@@ -1213,80 +1213,80 @@ orderList.appendChild(orderDiv);
         }
     }
 
-function updateCourierTimeTracking() {
-    const trackingDiv = document.getElementById('courierTimeTracking');
-    let content = '<h3>Tempo em Rota dos Motoboys</h3>';
+    function updateCourierTimeTracking() {
+        const trackingDiv = document.getElementById('courierTimeTracking');
+        let content = '<h3>Tempo em Rota dos Motoboys</h3>';
 
-    for (const courierName in courierActiveOrders) {
-        const activeOrders = courierActiveOrders[courierName];
-        const onGoingOrders = activeOrders.filter(o => o.status === 'onGoing');
-        const startTime = courierTimeTrackingStart[courierName];
-        
-        let timeInRoute = '00:00:00';
+        for (const courierName in courierActiveOrders) {
+            const activeOrders = courierActiveOrders[courierName];
+            const onGoingOrders = activeOrders.filter(o => o.status === 'onGoing');
+            const startTime = courierTimeTrackingStart[courierName];
+            
+            let timeInRoute = '00:00:00';
 
-        if (onGoingOrders.length > 0) {
-            if (!startTime) {
-                // Se há pedidos onGoing mas o tempo não foi iniciado, inicie agora
+            if (onGoingOrders.length > 0) {
+                if (!startTime) {
+                    // Se há pedidos onGoing mas o tempo não foi iniciado, inicie agora
+                    courierTimeTrackingStart[courierName] = Date.now();
+                }
+                const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
+                timeInRoute = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
+            } else if (startTime) {
+                // Se não há pedidos onGoing mas o tempo estava contando, pare a contagem
+                delete courierTimeTrackingStart[courierName];
+            }
+
+            content += `
+                <div class="courier-time-item">
+                    <span class="courier-name">${courierName}</span>: 
+                    <strong>${timeInRoute}</strong>
+                </div>
+            `;
+        }
+
+        trackingDiv.innerHTML = content;
+    }
+
+    function updateCourierStatus(orders) {
+        for (const courierName in courierActiveOrders) {
+            courierActiveOrders[courierName] = [];
+        }
+
+        for (const order of orders) {
+            if (order.courier) {
+                const courierName = order.courier.courierName;
+                if (!courierActiveOrders[courierName]) {
+                    courierActiveOrders[courierName] = [];
+                }
+                courierActiveOrders[courierName].push(order);
+            }
+        }
+
+        for (const courierName in courierActiveOrders) {
+            const activeOrders = courierActiveOrders[courierName];
+            const allOnGoing = activeOrders.length > 0 && activeOrders.every(o => o.status === 'onGoing');
+            const anyOnGoing = activeOrders.some(o => o.status === 'onGoing');
+
+            if (allOnGoing && !courierTimeTrackingStart[courierName]) {
+                // Inicia a contagem se todos os pedidos estiverem 'onGoing'
                 courierTimeTrackingStart[courierName] = Date.now();
+            } else if (!anyOnGoing && courierTimeTrackingStart[courierName]) {
+                // Finaliza a contagem se não houver nenhum pedido 'onGoing'
+                const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
+                courierLastRouteTime[courierName] = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
+                delete courierTimeTrackingStart[courierName];
             }
-            const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
-            timeInRoute = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
-        } else if (startTime) {
-            // Se não há pedidos onGoing mas o tempo estava contando, pare a contagem
-            delete courierTimeTrackingStart[courierName];
-        }
 
-        content += `
-            <div class="courier-time-item">
-                <span class="courier-name">${courierName}</span>: 
-                <strong>${timeInRoute}</strong>
-            </div>
-        `;
-    }
-
-    trackingDiv.innerHTML = content;
-}
-
-function updateCourierStatus(orders) {
-    for (const courierName in courierActiveOrders) {
-        courierActiveOrders[courierName] = [];
-    }
-
-    for (const order of orders) {
-        if (order.courier) {
-            const courierName = order.courier.courierName;
-            if (!courierActiveOrders[courierName]) {
-                courierActiveOrders[courierName] = [];
+            if (activeOrders.length === 0) {
+                // Se não há pedidos, remove o motoboy das listas ativas
+                delete courierActiveOrders[courierName];
+                delete courierTimeTrackingStart[courierName];
+                delete courierLastRouteTime[courierName];
             }
-            courierActiveOrders[courierName].push(order);
         }
+
+        updateCourierTimeTracking();
     }
-
-    for (const courierName in courierActiveOrders) {
-        const activeOrders = courierActiveOrders[courierName];
-        const allOnGoing = activeOrders.length > 0 && activeOrders.every(o => o.status === 'onGoing');
-        const anyOnGoing = activeOrders.some(o => o.status === 'onGoing');
-
-        if (allOnGoing && !courierTimeTrackingStart[courierName]) {
-            // Inicia a contagem se todos os pedidos estiverem 'onGoing'
-            courierTimeTrackingStart[courierName] = Date.now();
-        } else if (!anyOnGoing && courierTimeTrackingStart[courierName]) {
-            // Finaliza a contagem se não houver nenhum pedido 'onGoing'
-            const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
-            courierLastRouteTime[courierName] = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
-            delete courierTimeTrackingStart[courierName];
-        }
-
-        if (activeOrders.length === 0) {
-            // Se não há pedidos, remove o motoboy das listas ativas
-            delete courierActiveOrders[courierName];
-            delete courierTimeTrackingStart[courierName];
-            delete courierLastRouteTime[courierName];
-        }
-    }
-
-    updateCourierTimeTracking();
-}
 
     // Inicialização da aplicação
     loadDataFromLocalStorage();
