@@ -10,12 +10,14 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --background-color: #ecf0f1;
-            --text-color: #333;
-            --light-text-color: #fff;
+            --primary-color: #FF4136;
+            --secondary-color: #0074D9;
+            --success-color: #2ECC40;
+            --warning-color: #FFDC00;
+            --danger-color: #FF4136;
+            --light-gray: #f0f0f0;
+            --dark-gray: #333;
+            --white: #fff;
         }
 
         * {
@@ -25,294 +27,218 @@
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
+            font-family: Arial, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--dark-gray);
         }
 
         .container {
-            display: grid;
-            grid-template-columns: 250px 1fr 300px;
-            grid-template-rows: auto 1fr;
+            display: flex;
+            flex-direction: column;
             height: 100vh;
-            overflow: hidden;
         }
 
         header {
-            grid-column: 1 / -1;
-            background-color: var(--primary-color);
-            color: var(--light-text-color);
-            padding: 1rem;
+            background-color: var(--white);
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #ddd;
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-info span {
+            margin-right: 10px;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 60px;
+            background-color: var(--dark-gray);
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sidebar a {
+            color: var(--white);
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .orders-section {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .orders-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .orders-title {
+            font-size: 20px;
             font-weight: bold;
         }
 
-        nav {
-            background-color: var(--secondary-color);
-            color: var(--light-text-color);
-            padding: 1rem;
-            overflow-y: auto;
+        .search-bar {
+            display: flex;
+            align-items: center;
         }
 
-        nav ul {
-            list-style-type: none;
-        }
-
-        nav ul li {
-            margin-bottom: 1rem;
-        }
-
-        nav ul li a {
-            color: var(--light-text-color);
-            text-decoration: none;
-            display: block;
-            padding: 0.5rem;
+        .search-bar input {
+            padding: 5px 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            transition: background-color 0.3s;
         }
 
-        nav ul li a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+        .refresh-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--secondary-color);
         }
 
-        main {
-            padding: 1rem;
-            overflow-y: auto;
+        .order-status-tabs {
+            display: flex;
+            margin-bottom: 20px;
         }
 
-        .orders-container {
+        .status-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background-color: var(--white);
+            color: var(--dark-gray);
+            cursor: pointer;
+            border: 1px solid #ddd;
+        }
+
+        .status-tab.active {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .orders-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1rem;
+            gap: 20px;
         }
 
         .order-card {
-            background-color: #fff;
+            background-color: var(--white);
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            padding: 1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .order-card:hover {
-            transform: translateY(-5px);
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .order-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 10px;
         }
 
-        .order-status {
-            font-weight: bold;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-
-        .status-open { background-color: #f1c40f; color: #000; }
-        .status-accepted { background-color: #3498db; color: #fff; }
-        .status-ready { background-color: #2ecc71; color: #fff; }
-        .status-onGoing { background-color: #9b59b6; color: #fff; }
-        .status-dispatched { background-color: #e67e22; color: #fff; }
-
-        .sidebar {
-            background-color: #fff;
-            border-left: 1px solid #ddd;
-            padding: 1rem;
-            overflow-y: auto;
-        }
-
-        .metric-card {
-            background-color: var(--secondary-color);
-            color: var(--light-text-color);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .metric-title {
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .metric-value {
-            font-size: 1.5rem;
+        .order-number {
             font-weight: bold;
         }
 
-        .courier-deliveries {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        .order-time {
+            color: #777;
+            font-size: 14px;
         }
 
-        .courier-name {
+        .order-details {
+            margin-bottom: 10px;
+        }
+
+        .order-total {
             font-weight: bold;
             color: var(--primary-color);
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
+        .order-actions {
+            display: flex;
+            justify-content: space-between;
         }
 
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
-            border-radius: 8px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #000;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .action-button {
-            background-color: var(--primary-color);
-            color: white;
+        .action-btn {
+            padding: 5px 10px;
             border: none;
-            padding: 0.5rem 1rem;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
+            font-size: 14px;
         }
 
-        .action-button:hover {
-            background-color: #2980b9;
+        .action-btn.primary {
+            background-color: var(--primary-color);
+            color: var(--white);
         }
 
-        #createOrderForm {
-            display: none;
-        }
-
-        #createOrderForm input,
-        #createOrderForm select,
-        #createOrderForm textarea {
-            width: 100%;
-            padding: 0.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        #createOrderForm label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-
-        #courierTimeTracking {
-            margin-top: 1rem;
-        }
-
-        .courier-time-item {
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            padding: 0.5rem;
-            margin-bottom: 0.5rem;
+        .action-btn.secondary {
+            background-color: var(--secondary-color);
+            color: var(--white);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">Foody Delivery PDV</div>
-            <div>
-                <button id="toggleFormButton" class="action-button" onclick="toggleCreateOrderForm()">Criar Novo Pedido</button>
-                <button id="toggleCourierTimeButton" class="action-button" onclick="toggleCourierTimeTracking()">Tempo em Rota</button>
+            <div class="logo">BEE FOOD - EMPRESA EXEMPLO</div>
+            <div class="user-info">
+                <span>Loja Aberta</span>
+                <span>Caixa Aberto</span>
+                <span>Plano Bestech</span>
+                <span>Olá, FUNCIONÁRIO</span>
             </div>
         </header>
-        <nav>
-            <ul>
-                <li><a href="#" onclick="showReadyOrders()">Pedidos Prontos</a></li>
-                <li><a href="#" onclick="showPriorityOrders()">Pedidos Prioritários</a></li>
-                <li><a href="#" onclick="resetCounters()">Zerar Contadores</a></li>
-                <li><a href="relatorios.html" target="_blank">Relatórios</a></li>
-            </ul>
-        </nav>
-        <main>
-            <div id="orderList" class="orders-container"></div>
-        </main>
-        <aside class="sidebar">
-            <div class="metric-card">
-                <div class="metric-title">Resumo de Pedidos</div>
-                <div class="metric-value" id="totalOrders">0</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-title">Valor Total Hoje</div>
-                <div class="metric-value" id="totalValue">R$ 0,00</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-title">Tempo Médio de Preparo</div>
-                <div class="metric-value" id="avgPrepTime">0 min</div>
-            </div>
-            <div id="courierDeliveries"></div>
-            <div id="courierTimeTracking" style="display: none;"></div>
-        </aside>
-    </div>
-
-    <div id="createOrderForm" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Criar Novo Pedido</h2>
-            <form>
-                <!-- Campos do formulário aqui -->
-            </form>
-        </div>
-    </div>
-
-    <div id="ongoingModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="ongoingContent"></div>
-        </div>
-    </div>
-
-    <div id="readyOrdersModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="readyOrdersContent"></div>
-        </div>
-    </div>
-
-    <div id="priorityOrdersModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="priorityOrdersContent"></div>
+        <div class="main-content">
+            <nav class="sidebar">
+                <a href="#" title="Home"><i class="fas fa-home"></i></a>
+                <a href="#" title="Pedidos"><i class="fas fa-clipboard-list"></i></a>
+                <a href="#" title="Relatórios"><i class="fas fa-chart-bar"></i></a>
+                <a href="#" title="Configurações"><i class="fas fa-cog"></i></a>
+            </nav>
+            <section class="orders-section">
+                <div class="orders-header">
+                    <h2 class="orders-title">Pedidos(16)</h2>
+                    <div class="search-bar">
+                        <input type="text" placeholder="Buscar pedidos...">
+                        <button class="refresh-btn" onclick="fetchOrders()"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="order-status-tabs">
+                    <div class="status-tab active" onclick="filterOrders('all')">Todos</div>
+                    <div class="status-tab" onclick="filterOrders('waiting')">Aguardando (2)</div>
+                    <div class="status-tab" onclick="filterOrders('preparing')">Em Preparo (3)</div>
+                    <div class="status-tab" onclick="filterOrders('ready')">Em Entrega/Pronto (4)</div>
+                </div>
+                <div id="orderList" class="orders-grid">
+                    <!-- Os pedidos serão inseridos aqui dinamicamente -->
+                </div>
+            </section>
         </div>
     </div>
 
@@ -332,29 +258,11 @@
 
         const db = firebase.firestore();
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
-        const trackingUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyTracking/tracking';
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
-        // Variáveis globais
-        let orderPrepTimes = {};
-        let totalPrepTime = 0;
-        let preparedOrders = 0;
-        let totalOrdersCount = 0;
-        let totalOrdersValue = 0;
-        let yesterdayOrdersValue = 0;
-        let paymentMethods = { money: 0, card: 0, online: 0 };
         let currentOrders = [];
-        let allOrdersToday = [];
-        let courierDeliveries = {};
-        let cancelledOrders = 0;
-        let lastOrderStatuses = {};
-        let priorityOrders = [];
-        let courierTimeTrackingStart = {};
-        let courierActiveOrders = {};
-        let courierLastRouteTime = {};
 
-        // Funções principais
         async function fetchOrders() {
             try {
                 const now = new Date();
@@ -370,297 +278,95 @@
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                allOrdersToday = response.data.filter(order => {
+                currentOrders = response.data.filter(order => {
                     const orderDate = new Date(order.creationDate);
                     return isWithinTimeRange(orderDate);
                 });
-                currentOrders = allOrdersToday.filter(order =>
-                    ['open', 'accepted', 'ready', 'onGoing', 'dispatched'].includes(order.status)
-                );
-                priorityOrders = currentOrders.filter(order => order.status === 'accepted');
                 updateOrderList(currentOrders);
-                updateDashboard(allOrdersToday);
-                updatePrepTimes(currentOrders);
-                updateCourierDeliveries(allOrdersToday);
-                updateCourierStatus(allOrdersToday);
-                saveDataToLocalStorage();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
             }
         }
 
-function updateOrderList(orders) {
-    const orderList = document.getElementById('orderList');
-    orderList.innerHTML = '';
-    orders.forEach(order => {
-        const orderCard = document.createElement('div');
-        orderCard.className = 'order-card';
-        orderCard.innerHTML = `
-            <div class="order-header">
-                <h3>Pedido #${order.id}</h3>
-                <span class="order-status status-${order.status.toLowerCase()}">${getStatusDisplay(order.status)}</span>
-            </div>
-            <p>Cliente: ${order.customer.customerName}</p>
-            <p>Total: R$ ${order.orderTotal ? order.orderTotal.toFixed(2) : 'N/A'}</p>
-            <p>Tempo de Preparo: <span id="prepTime-${order.id}">0 min</span></p>
-            ${order.courier ? `<p>Motoboy: <span class="courier-name">${order.courier.courierName}</span></p>` : ''}
-            <p>Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}</p>
-            ${order.notes ? `<p>Observações: ${order.notes}</p>` : ''}
-        `;
-        orderList.appendChild(orderCard);
-    });
-}
-
-function getStatusDisplay(status) {
-    switch (status) {
-        case 'open': return 'Aberto';
-        case 'accepted': return 'Aceito';
-        case 'ready': return 'Pronto';
-        case 'onGoing': return 'A Caminho';
-        case 'dispatched': return 'Despachado';
-        case 'cancelled': return 'Cancelado';
-        default: return status;
-    }
-}
-
-function translatePaymentMethod(method) {
-    switch (method) {
-        case 'money': return 'Dinheiro';
-        case 'card': return 'Cartão';
-        case 'online': return 'Online';
-        default: return method;
-    }
-}
-
-function updateDashboard(allOrders) {
-    totalOrdersCount = allOrders.length;
-    totalOrdersValue = 0;
-    paymentMethods = { money: 0, card: 0, online: 0 };
-    cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
-    priorityOrders = allOrders.filter(order => order.status === 'accepted');
-
-    allOrders.forEach(order => {
-        if (order.status !== 'cancelled') {
-            totalOrdersValue += order.orderTotal || 0;
-            const paymentType = order.paymentMethod;
-            paymentMethods[paymentType] = (paymentMethods[paymentType] || 0) + (order.orderTotal || 0);
+        function updateOrderList(orders) {
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '';
+            orders.forEach(order => {
+                const orderCard = document.createElement('div');
+                orderCard.className = 'order-card';
+                orderCard.innerHTML = `
+                    <div class="order-header">
+                        <span class="order-number">#${order.id}</span>
+                        <span class="order-time">${formatTime(order.creationDate)}</span>
+                    </div>
+                    <div class="order-details">
+                        <p>${order.customer.customerName}</p>
+                        <p class="order-total">R$ ${order.orderTotal.toFixed(2)}</p>
+                    </div>
+                    <div class="order-actions">
+                        <button class="action-btn primary">${getStatusButton(order.status)}</button>
+                        <button class="action-btn secondary"><i class="fas fa-print"></i></button>
+                    </div>
+                `;
+                orderList.appendChild(orderCard);
+            });
         }
-    });
 
-    document.getElementById('totalOrders').textContent = totalOrdersCount;
-    document.getElementById('totalValue').textContent = `R$ ${totalOrdersValue.toFixed(2)}`;
-
-    const avgPrepTime = preparedOrders > 0 ? totalPrepTime / preparedOrders : 0;
-    document.getElementById('avgPrepTime').textContent = `${avgPrepTime.toFixed(1)} min`;
-
-    saveDataToLocalStorage();
-}
-
-function updatePrepTimes(orders) {
-    const now = new Date();
-    orders.forEach(order => {
-        if (order.status === 'open' && !orderPrepTimes[order.id]) {
-            orderPrepTimes[order.id] = now.getTime();
-        } else if (order.status === 'onGoing' && orderPrepTimes[order.id]) {
-            const prepTime = (now.getTime() - orderPrepTimes[order.id]) / 60000; // em minutos
-            totalPrepTime += prepTime;
-            preparedOrders++;
-            delete orderPrepTimes[order.id];
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
         }
-        const prepTimeElement = document.getElementById(`prepTime-${order.id}`);
-        if (prepTimeElement) {
-            prepTimeElement.textContent = `${getPrepTimeForOrder(order.id)} min`;
+
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
-    });
-    saveDataToLocalStorage();
-}
 
-function getPrepTimeForOrder(orderId) {
-    if (orderPrepTimes[orderId]) {
-        const now = new Date();
-        return ((now.getTime() - orderPrepTimes[orderId]) / 60000).toFixed(1);
-    }
-    return '0.0';
-}
+        function isWithinTimeRange(date) {
+            const hour = date.getHours();
+            const minutes = date.getMinutes();
+            const totalMinutes = hour * 60 + minutes;
+            return totalMinutes >= 12 * 60 + 30 && totalMinutes <= 22 * 60 + 30;
+        }
 
-function updateCourierDeliveries(allOrders) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    courierDeliveries = {};
-
-    allOrders.forEach(order => {
-        if (order.courier && new Date(order.creationDate) >= today) {
-            const courierName = order.courier.courierName;
-            if (order.status === 'closed' || order.status === 'delivered') {
-                courierDeliveries[courierName] = (courierDeliveries[courierName] || 0) + 1;
+        function getStatusButton(status) {
+            switch (status) {
+                case 'open': return 'Aguardando';
+                case 'accepted': return 'Em Preparo';
+                case 'ready': return 'Pronto';
+                case 'onGoing': return 'Em Entrega';
+                case 'dispatched': return 'Despachado';
+                default: return status;
             }
         }
-    });
 
-    const courierDeliveriesElement = document.getElementById('courierDeliveries');
-    courierDeliveriesElement.innerHTML = '<h3>Entregas por Motoboy (Hoje)</h3>';
-    for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
-        courierDeliveriesElement.innerHTML += `
-            <div class="courier-deliveries">
-                <span class="courier-name">${courierName}</span>: 
-                <strong>${deliveries}</strong> entrega${deliveries !== 1 ? 's' : ''}
-            </div>
-        `;
-    }
-    saveDataToLocalStorage();
-}
-
-function updateCourierStatus(orders) {
-    for (const courierName in courierActiveOrders) {
-        courierActiveOrders[courierName] = [];
-    }
-
-    for (const order of orders) {
-        if (order.courier) {
-            const courierName = order.courier.courierName;
-            if (!courierActiveOrders[courierName]) {
-                courierActiveOrders[courierName] = [];
+        function filterOrders(status) {
+            let filteredOrders;
+            switch (status) {
+                case 'waiting':
+                    filteredOrders = currentOrders.filter(order => order.status === 'open');
+                    break;
+                case 'preparing':
+                    filteredOrders = currentOrders.filter(order => order.status === 'accepted');
+                    break;
+                case 'ready':
+                    filteredOrders = currentOrders.filter(order => ['ready', 'onGoing', 'dispatched'].includes(order.status));
+                    break;
+                default:
+                    filteredOrders = currentOrders;
             }
-            courierActiveOrders[courierName].push(order);
-        }
-    }
-
-    for (const courierName in courierActiveOrders) {
-        const activeOrders = courierActiveOrders[courierName];
-        const allOnGoing = activeOrders.length > 0 && activeOrders.every(o => o.status === 'onGoing');
-        const anyOnGoing = activeOrders.some(o => o.status === 'onGoing');
-
-        if (allOnGoing && !courierTimeTrackingStart[courierName]) {
-            courierTimeTrackingStart[courierName] = Date.now();
-        } else if (!anyOnGoing && courierTimeTrackingStart[courierName]) {
-            const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
-            courierLastRouteTime[courierName] = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
-            delete courierTimeTrackingStart[courierName];
+            updateOrderList(filteredOrders);
+            
+            // Atualiza a classe ativa na aba de status
+            document.querySelectorAll('.status-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
         }
 
-        if (activeOrders.length === 0) {
-            delete courierActiveOrders[courierName];
-            delete courierTimeTrackingStart[courierName];
-            delete courierLastRouteTime[courierName];
-        }
-    }
-
-    updateCourierTimeTracking();
-}
-
-function updateCourierTimeTracking() {
-    const trackingDiv = document.getElementById('courierTimeTracking');
-    let content = '<h3>Tempo em Rota dos Motoboys</h3>';
-
-    for (const courierName in courierActiveOrders) {
-        const activeOrders = courierActiveOrders[courierName];
-        const onGoingOrders = activeOrders.filter(o => o.status === 'onGoing');
-        const startTime = courierTimeTrackingStart[courierName];
-        
-        let timeInRoute = '00:00:00';
-
-        if (onGoingOrders.length > 0) {
-            if (!startTime) {
-                courierTimeTrackingStart[courierName] = Date.now();
-            }
-            const elapsedTime = Math.floor((Date.now() - courierTimeTrackingStart[courierName]) / 1000);
-            timeInRoute = new Date(elapsedTime * 1000).toISOString().substr(11, 8);
-        } else if (startTime) {
-            delete courierTimeTrackingStart[courierName];
-        }
-
-        content += `
-            <div class="courier-time-item">
-                <span class="courier-name">${courierName}</span>: 
-                <strong>${timeInRoute}</strong>
-            </div>
-        `;
-    }
-
-    trackingDiv.innerHTML = content;
-}
-
-function toggleCreateOrderForm() {
-    const form = document.getElementById('createOrderForm');
-    const button = document.getElementById('toggleFormButton');
-    if (form.style.display === 'none') {
-        form.style.display = 'block';
-        button.textContent = 'Fechar Formulário';
-    } else {
-        form.style.display = 'none';
-        button.textContent = 'Criar Novo Pedido';
-    }
-}
-
-function toggleCourierTimeTracking() {
-    const trackingDiv = document.getElementById('courierTimeTracking');
-    const button = document.getElementById('toggleCourierTimeButton');
-    if (trackingDiv.style.display === 'none') {
-        trackingDiv.style.display = 'block';
-        button.textContent = 'Ocultar Tempo em Rota';
-        updateCourierTimeTracking();
-    } else {
-        trackingDiv.style.display = 'none';
-        button.textContent = 'Tempo em Rota';
-    }
-}
-
-function saveDataToLocalStorage() {
-    localStorage.setItem('orderPrepTimes', JSON.stringify(orderPrepTimes));
-    localStorage.setItem('totalPrepTime', totalPrepTime.toString());
-    localStorage.setItem('preparedOrders', preparedOrders.toString());
-    localStorage.setItem('totalOrdersCount', totalOrdersCount.toString());
-    localStorage.setItem('totalOrdersValue', totalOrdersValue.toString());
-    localStorage.setItem('yesterdayOrdersValue', yesterdayOrdersValue.toString());
-    localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
-    localStorage.setItem('courierDeliveries', JSON.stringify(courierDeliveries));
-    localStorage.setItem('cancelledOrders', cancelledOrders.toString());
-    localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
-}
-
-function loadDataFromLocalStorage() {
-    const storedOrderPrepTimes = localStorage.getItem('orderPrepTimes');
-    if (storedOrderPrepTimes) orderPrepTimes = JSON.parse(storedOrderPrepTimes);
-    const storedTotalPrepTime = localStorage.getItem('totalPrepTime');
-    if (storedTotalPrepTime) totalPrepTime = parseFloat(storedTotalPrepTime);
-    const storedPreparedOrders = localStorage.getItem('preparedOrders');
-    if (storedPreparedOrders) preparedOrders = parseInt(storedPreparedOrders);
-    const storedTotalOrdersCount = localStorage.getItem('totalOrdersCount');
-    if (storedTotalOrdersCount) totalOrdersCount = parseInt(storedTotalOrdersCount);
-    const storedTotalOrdersValue = localStorage.getItem('totalOrdersValue');
-    if (storedTotalOrdersValue) totalOrdersValue = parseFloat(storedTotalOrdersValue);
-    const storedYesterdayOrdersValue = localStorage.getItem('yesterdayOrdersValue');
-    if (storedYesterdayOrdersValue) yesterdayOrdersValue = parseFloat(storedYesterdayOrdersValue);
-    const storedPaymentMethods = localStorage.getItem('paymentMethods');
-    if (storedPaymentMethods) paymentMethods = JSON.parse(storedPaymentMethods);
-    const storedCourierDeliveries = localStorage.getItem('courierDeliveries');
-    if (storedCourierDeliveries) courierDeliveries = JSON.parse(storedCourierDeliveries);
-    const storedCancelledOrders = localStorage.getItem('cancelledOrders');
-    if (storedCancelledOrders) cancelledOrders = parseInt(storedCancelledOrders);
-    const storedPriorityOrders = localStorage.getItem('priorityOrders');
-    if (storedPriorityOrders) priorityOrders = JSON.parse(storedPriorityOrders);
-}
-
-// Inicialização
-loadDataFromLocalStorage();
-fetchOrders();
-setInterval(fetchOrders, 30000); // Atualiza a cada 30 segundos
-setInterval(updateCourierTimeTracking, 1000); // Atualiza o tempo em rota a cada segundo
-
-// Event Listeners
-document.querySelectorAll('.close').forEach(closeButton => {
-    closeButton.onclick = function() {
-        this.closest('.modal').style.display = 'none';
-    }
-});
-
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-}
+        // Inicialização
+        fetchOrders();
+        setInterval(fetchOrders, 30000); // Atualiza a cada 30 segundos
     </script>
 </body>
 </html>
-</antArtifact>
