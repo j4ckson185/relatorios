@@ -53,13 +53,28 @@
             color: var(--primary-color);
         }
 
-        .user-info {
+        .header-actions {
             display: flex;
-            align-items: center;
+            gap: 10px;
         }
 
-        .user-info span {
-            margin-right: 10px;
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: var(--white);
         }
 
         .main-content {
@@ -134,6 +149,7 @@
             color: var(--dark-gray);
             cursor: pointer;
             border: 1px solid #ddd;
+            font-weight: bold;
         }
 
         .status-tab.active {
@@ -174,6 +190,17 @@
             margin-bottom: 10px;
         }
 
+        .order-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .order-info i {
+            margin-right: 10px;
+            color: var(--secondary-color);
+        }
+
         .order-total {
             font-weight: bold;
             color: var(--primary-color);
@@ -182,14 +209,18 @@
         .order-actions {
             display: flex;
             justify-content: space-between;
+            margin-top: 15px;
         }
 
         .action-btn {
-            padding: 5px 10px;
+            padding: 10px 15px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            flex: 1;
+            margin: 0 5px;
         }
 
         .action-btn.primary {
@@ -201,44 +232,98 @@
             background-color: var(--secondary-color);
             color: var(--white);
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <div class="logo">BEE FOOD - EMPRESA EXEMPLO</div>
-            <div class="user-info">
-                <span>Loja Aberta</span>
-                <span>Caixa Aberto</span>
-                <span>Plano Bestech</span>
-                <span>Olá, FUNCIONÁRIO</span>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showCreateOrderModal()">Criar Novo Pedido</button>
+                <button class="btn btn-danger" onclick="showCourierDeliveriesModal()">Entregas por Motoboy</button>
             </div>
         </header>
         <div class="main-content">
             <nav class="sidebar">
-                <a href="#" title="Home"><i class="fas fa-home"></i></a>
-                <a href="#" title="Pedidos"><i class="fas fa-clipboard-list"></i></a>
-                <a href="#" title="Relatórios"><i class="fas fa-chart-bar"></i></a>
-                <a href="#" title="Configurações"><i class="fas fa-cog"></i></a>
+                <a href="createOrder.html" title="Home"><i class="fas fa-home"></i></a>
+                <a href="createOrder.html" title="Pedidos"><i class="fas fa-clipboard-list"></i></a>
+                <a href="relatorios.html" title="Relatórios"><i class="fas fa-chart-bar"></i></a>
             </nav>
             <section class="orders-section">
                 <div class="orders-header">
-                    <h2 class="orders-title">Pedidos(16)</h2>
+                    <h2 class="orders-title">Pedidos (<span id="orderCount">0</span>)</h2>
                     <div class="search-bar">
-                        <input type="text" placeholder="Buscar pedidos...">
+                        <input type="text" id="searchInput" placeholder="Buscar pedidos..." onkeyup="searchOrders()">
                         <button class="refresh-btn" onclick="fetchOrders()"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
                 <div class="order-status-tabs">
-                    <div class="status-tab active" onclick="filterOrders('all')">Todos</div>
-                    <div class="status-tab" onclick="filterOrders('waiting')">Aguardando (2)</div>
-                    <div class="status-tab" onclick="filterOrders('preparing')">Em Preparo (3)</div>
-                    <div class="status-tab" onclick="filterOrders('ready')">Em Entrega/Pronto (4)</div>
+                    <div class="status-tab active" onclick="filterOrders('preparing')">Em Preparo</div>
+                    <div class="status-tab" onclick="filterOrders('onGoing')">A Caminho</div>
+                    <div class="status-tab" onclick="filterOrders('closed')">Finalizados</div>
+                    <div class="status-tab" onclick="filterOrders('cancelled')">Cancelados</div>
                 </div>
                 <div id="orderList" class="orders-grid">
                     <!-- Os pedidos serão inseridos aqui dinamicamente -->
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- Modal para Criar Novo Pedido -->
+    <div id="createOrderModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateOrderModal()">&times;</span>
+            <h2>Criar Novo Pedido</h2>
+            <form id="createOrderForm">
+                <!-- Campos do formulário aqui -->
+                <button type="button" onclick="submitOrder()">Criar Pedido</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Entregas por Motoboy -->
+    <div id="courierDeliveriesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCourierDeliveriesModal()">&times;</span>
+            <h2>Entregas por Motoboy</h2>
+            <div id="courierDeliveriesContent"></div>
         </div>
     </div>
 
@@ -262,6 +347,7 @@
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         let currentOrders = [];
+        let filteredOrders = [];
 
         async function fetchOrders() {
             try {
@@ -278,11 +364,8 @@
                     }
                 });
                 console.log('Pedidos recebidos:', response.data);
-                currentOrders = response.data.filter(order => {
-                    const orderDate = new Date(order.creationDate);
-                    return isWithinTimeRange(orderDate);
-                });
-                updateOrderList(currentOrders);
+                currentOrders = response.data.filter(order => isWithinTimeRange(new Date(order.creationDate)));
+                filterOrders('preparing'); // Inicialmente, mostra os pedidos em preparo
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -301,16 +384,19 @@
                         <span class="order-time">${formatTime(order.creationDate)}</span>
                     </div>
                     <div class="order-details">
-                        <p>${order.customer.customerName}</p>
-                        <p class="order-total">R$ ${order.orderTotal.toFixed(2)}</p>
+                        <div class="order-info"><i class="fas fa-user"></i>${order.customer.customerName}</div>
+                        <div class="order-info"><i class="fas fa-motorcycle"></i>${order.courier ? order.courier.courierName : 'Não atribuído'}</div>
+                        <div class="order-info"><i class="fas fa-credit-card"></i>${translatePaymentMethod(order.paymentMethod)}</div>
+                        <div class="order-info order-total"><i class="fas fa-dollar-sign"></i>R$ ${order.orderTotal.toFixed(2)}</div>
                     </div>
                     <div class="order-actions">
-                        <button class="action-btn primary">${getStatusButton(order.status)}</button>
-                        <button class="action-btn secondary"><i class="fas fa-print"></i></button>
+                        <button class="action-btn primary" onclick="updateOrderStatus('${order.id}', '${getNextStatus(order.status)}')">${getStatusButton(order.status)}</button>
+                        <button class="action-btn secondary" onclick="printOrderDetails('${order.id}')"><i class="fas fa-print"></i></button>
                     </div>
                 `;
                 orderList.appendChild(orderCard);
             });
+            document.getElementById('orderCount').textContent = orders.length;
         }
 
         function formatDate(date) {
@@ -322,7 +408,7 @@
             return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
 
-        function isWithinTimeRange(date) {
+function isWithinTimeRange(date) {
             const hour = date.getHours();
             const minutes = date.getMinutes();
             const totalMinutes = hour * 60 + minutes;
@@ -331,26 +417,48 @@
 
         function getStatusButton(status) {
             switch (status) {
-                case 'open': return 'Aguardando';
-                case 'accepted': return 'Em Preparo';
-                case 'ready': return 'Pronto';
-                case 'onGoing': return 'Em Entrega';
-                case 'dispatched': return 'Despachado';
+                case 'open': return 'Aceitar';
+                case 'accepted': return 'Pronto';
+                case 'ready': return 'Entregar';
+                case 'onGoing': return 'Finalizar';
+                case 'closed': return 'Finalizado';
+                case 'cancelled': return 'Cancelado';
                 default: return status;
             }
         }
 
+        function getNextStatus(currentStatus) {
+            switch (currentStatus) {
+                case 'open': return 'accepted';
+                case 'accepted': return 'ready';
+                case 'ready': return 'onGoing';
+                case 'onGoing': return 'closed';
+                default: return currentStatus;
+            }
+        }
+
+        function translatePaymentMethod(method) {
+            switch (method) {
+                case 'money': return 'Dinheiro';
+                case 'card': return 'Cartão';
+                case 'online': return 'Online';
+                default: return method;
+            }
+        }
+
         function filterOrders(status) {
-            let filteredOrders;
             switch (status) {
-                case 'waiting':
-                    filteredOrders = currentOrders.filter(order => order.status === 'open');
-                    break;
                 case 'preparing':
-                    filteredOrders = currentOrders.filter(order => order.status === 'accepted');
+                    filteredOrders = currentOrders.filter(order => order.status === 'open' || order.status === 'ready');
                     break;
-                case 'ready':
-                    filteredOrders = currentOrders.filter(order => ['ready', 'onGoing', 'dispatched'].includes(order.status));
+                case 'onGoing':
+                    filteredOrders = currentOrders.filter(order => order.status === 'onGoing');
+                    break;
+                case 'closed':
+                    filteredOrders = currentOrders.filter(order => order.status === 'closed');
+                    break;
+                case 'cancelled':
+                    filteredOrders = currentOrders.filter(order => order.status === 'cancelled');
                     break;
                 default:
                     filteredOrders = currentOrders;
@@ -364,9 +472,161 @@
             event.target.classList.add('active');
         }
 
+        function searchOrders() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchResults = filteredOrders.filter(order => 
+                order.id.toLowerCase().includes(searchTerm) ||
+                order.customer.customerName.toLowerCase().includes(searchTerm) ||
+                (order.courier && order.courier.courierName.toLowerCase().includes(searchTerm))
+            );
+            updateOrderList(searchResults);
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                // Aqui você implementaria a lógica para atualizar o status do pedido na API
+                console.log(`Atualizando pedido ${orderId} para status ${newStatus}`);
+                // Após atualizar na API, atualize localmente
+                const orderIndex = currentOrders.findIndex(order => order.id === orderId);
+                if (orderIndex !== -1) {
+                    currentOrders[orderIndex].status = newStatus;
+                    filterOrders(document.querySelector('.status-tab.active').textContent.toLowerCase());
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar status do pedido:', error);
+            }
+        }
+
+        function printOrderDetails(orderId) {
+            const order = currentOrders.find(order => order.id === orderId);
+            if (order) {
+                const orderDetails = `
+                    Pedido #${order.id}
+                    Cliente: ${order.customer.customerName}
+                    Motoboy: ${order.courier ? order.courier.courierName : 'Não atribuído'}
+                    Método de Pagamento: ${translatePaymentMethod(order.paymentMethod)}
+                    Total: R$ ${order.orderTotal.toFixed(2)}
+                    Status: ${getStatusButton(order.status)}
+                    Data/Hora: ${new Date(order.creationDate).toLocaleString('pt-BR')}
+                `;
+                const printWindow = window.open('', '', 'height=400,width=800');
+                printWindow.document.write('<html><head><title>Detalhes do Pedido</title>');
+                printWindow.document.write('</head><body >');
+                printWindow.document.write('<pre>' + orderDetails + '</pre>');
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
+
+        function showCreateOrderModal() {
+            document.getElementById('createOrderModal').style.display = 'block';
+        }
+
+        function closeCreateOrderModal() {
+            document.getElementById('createOrderModal').style.display = 'none';
+        }
+
+        async function submitOrder() {
+            // Implementar a lógica de criação de pedido aqui
+            // Use o endpoint do iFood conforme solicitado
+            console.log('Criar novo pedido');
+            closeCreateOrderModal();
+            await fetchOrders(); // Atualiza a lista de pedidos após criar um novo
+        }
+
+        function showCourierDeliveriesModal() {
+            updateCourierDeliveries();
+            document.getElementById('courierDeliveriesModal').style.display = 'block';
+        }
+
+        function closeCourierDeliveriesModal() {
+            document.getElementById('courierDeliveriesModal').style.display = 'none';
+        }
+
+        function updateCourierDeliveries() {
+            const courierDeliveries = {};
+            const sameAddressOrders = {};
+
+            currentOrders.forEach(order => {
+                if (order.courier) {
+                    const courierName = order.courier.courierName;
+                    if (!courierDeliveries[courierName]) {
+                        courierDeliveries[courierName] = { completed: 0, ongoing: 0 };
+                    }
+                    if (order.status === 'closed') {
+                        courierDeliveries[courierName].completed++;
+                    } else if (['accepted', 'ready', 'onGoing'].includes(order.status)) {
+                        courierDeliveries[courierName].ongoing++;
+                    }
+
+                    // Verificar entregas para o mesmo endereço
+                    const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
+                    if (!sameAddressOrders[courierName]) {
+                        sameAddressOrders[courierName] = {};
+                    }
+                    if (!sameAddressOrders[courierName][address]) {
+                        sameAddressOrders[courierName][address] = [];
+                    }
+                    sameAddressOrders[courierName][address].push(order.id);
+                }
+            });
+
+            let content = '';
+            for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
+                content += `<h3>${courierName}</h3>`;
+                content += `<p>Entregas finalizadas: ${deliveries.completed}</p>`;
+                content += `<p>Entregas em andamento: ${deliveries.ongoing}</p>`;
+
+                // Adicionar informações sobre entregas para o mesmo endereço
+                if (sameAddressOrders[courierName]) {
+                    for (const [address, orders] of Object.entries(sameAddressOrders[courierName])) {
+                        if (orders.length > 1) {
+                            content += `<p>Mesma casa: ${orders.length} pedidos para ${address}</p>`;
+                        }
+                    }
+                }
+
+                content += `<button onclick="showCourierOngoingDeliveries('${courierName}')">Ver Entregas em Andamento</button>`;
+                content += '<hr>';
+            }
+
+            document.getElementById('courierDeliveriesContent').innerHTML = content;
+        }
+
+        function showCourierOngoingDeliveries(courierName) {
+            const ongoingDeliveries = currentOrders.filter(order => 
+                order.courier && 
+                order.courier.courierName === courierName && 
+                ['accepted', 'ready', 'onGoing'].includes(order.status)
+            );
+
+            let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
+            ongoingDeliveries.forEach(order => {
+                content += `
+                    <div>
+                        <p>Pedido #${order.id}</p>
+                        <p>Cliente: ${order.customer.customerName}</p>
+                        <p>Endereço: ${order.deliveryPoint.address}</p>
+                        <p>Status: ${getStatusButton(order.status)}</p>
+                    </div>
+                    <hr>
+                `;
+            });
+
+            document.getElementById('courierDeliveriesContent').innerHTML = content;
+        }
+
         // Inicialização
         fetchOrders();
         setInterval(fetchOrders, 30000); // Atualiza a cada 30 segundos
+
+        // Event Listeners para fechar modais
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
