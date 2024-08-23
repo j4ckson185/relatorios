@@ -7,7 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -134,7 +133,7 @@
                     <th>Motoqueiro</th>
                     <th>Situação</th>
                     <th>Forma de Pagamento</th>
-                    <th>Endereço</th>
+                    <th>Detalhes do Pedido</th>
                     <th>Valor Total</th>
                 </tr>
             </thead>
@@ -255,6 +254,46 @@
             
             document.getElementById('totalEntregas').textContent = totalEntregas;
             document.getElementById('valorTotal').textContent = valorTotal.toFixed(2);
+
+            // Adicionar informações de entregas na mesma casa por motoboy
+            const courierSameHouseDeliveries = countSameHouseDeliveriesByCourier(orders);
+            let sameHouseSummary = '<h3>Entregas na Mesma Casa por Motoboy:</h3>';
+            for (const [courier, count] of Object.entries(courierSameHouseDeliveries)) {
+                sameHouseSummary += `<p>${courier}: ${count} entregas na mesma casa</p>`;
+            }
+            document.getElementById('sameHouseSummary').innerHTML = sameHouseSummary;
+        }
+
+        function countSameHouseDeliveriesByCourier(orders) {
+            const courierDeliveries = {};
+            const addressCount = {};
+
+            orders.forEach(order => {
+                if (order.courier) {
+                    const courierName = order.courier.courierName;
+                    const address = order.deliveryPoint.address;
+                    
+                    if (!courierDeliveries[courierName]) {
+                        courierDeliveries[courierName] = new Set();
+                    }
+                    
+                    if (!addressCount[address]) {
+                        addressCount[address] = 1;
+                    } else {
+                        addressCount[address]++;
+                        if (addressCount[address] === 2) {
+                            courierDeliveries[courierName].add(address);
+                        }
+                    }
+                }
+            });
+
+            const result = {};
+            for (const [courier, addresses] of Object.entries(courierDeliveries)) {
+                result[courier] = addresses.size;
+            }
+
+            return result;
         }
 
         function getStatusDisplay(status) {
