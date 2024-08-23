@@ -255,7 +255,11 @@
             const addressCount = {};
 
             orders.forEach(order => {
-                const address = order.customer ? `${order.customer.address.street}, ${order.customer.address.number}` : null;
+                // Verifica se o endereço é válido antes de acessar suas propriedades
+                const address = order.customer && order.customer.address && order.customer.address.street && order.customer.address.number
+                    ? `${order.customer.address.street}, ${order.customer.address.number}`
+                    : null;
+
                 if (address) {
                     if (!addressCount[address]) {
                         addressCount[address] = 0;
@@ -280,7 +284,9 @@
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
-                row.insertCell().textContent = order.customer ? `${order.customer.address.street}, ${order.customer.address.number}` : 'N/A';
+                row.insertCell().textContent = order.customer && order.customer.address && order.customer.address.street && order.customer.address.number
+                    ? `${order.customer.address.street}, ${order.customer.address.number}`
+                    : 'N/A';
                 row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
 
                 totalValue += order.orderTotal || 0;
