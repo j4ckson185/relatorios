@@ -140,7 +140,7 @@
                     <th>Motoqueiro</th>
                     <th>Situação</th>
                     <th>Forma de Pagamento</th>
-                    <th>Endereço</th> <!-- Campo Endereço substituído -->
+                    <th>Endereço</th>
                     <th>Valor Total</th>
                 </tr>
             </thead>
@@ -300,7 +300,7 @@
             let count = 0;
             for (const address in deliveriesByAddress) {
                 if (deliveriesByAddress[address] > 1) {
-                    count += deliveriesByAddress[address];
+                    count += Math.floor(deliveriesByAddress[address] / 2); // Dividindo a quantidade por 2
                 }
             }
             return count;
