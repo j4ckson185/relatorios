@@ -3,63 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios Foody Delivery - Cabana Açaí</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <title>Relatórios - Foody Delivery</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
             margin: 0;
             padding: 20px;
-            background-color: #f4f4f4;
+            background-color: #f0f0f0;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background-color: #fff;
+            background-color: white;
             padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h1 {
             color: #333;
+            text-align: center;
         }
         .filter-section {
             margin-bottom: 20px;
         }
         .filter-row {
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 15px;
+            justify-content: space-between;
+            margin-bottom: 10px;
         }
         .filter-item {
             flex: 1;
-            min-width: 200px;
+            margin-right: 10px;
         }
         label {
             display: block;
             margin-bottom: 5px;
         }
-        select, input[type="date"] {
+        input, select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        .checkbox-group {
-            display: flex;
-            gap: 10px;
-        }
         button {
+            padding: 10px 20px;
             background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 10px 15px;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 10px;
         }
         button:hover {
             background-color: #45a049;
@@ -67,11 +64,10 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 8px;
             text-align: left;
         }
         th {
@@ -81,51 +77,62 @@
             margin-top: 20px;
             font-weight: bold;
         }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+            width: auto;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Relatórios Foody Delivery</h1>
-
         <div class="filter-section">
             <div class="filter-row">
                 <div class="filter-item">
-                    <label for="dateFilter">Data:</label>
-                    <input type="date" id="dateFilter">
+                    <label for="dataInicio">Data:</label>
+                    <input type="date" id="dataInicio">
                 </div>
                 <div class="filter-item">
-                    <label for="courierFilter">Motoqueiro:</label>
-                    <select id="courierFilter">
+                    <label for="motoqueiro">Motoqueiro:</label>
+                    <select id="motoqueiro">
                         <option value="">Todos</option>
                     </select>
                 </div>
                 <div class="filter-item">
-                    <label for="statusFilter">Situação do Pedido:</label>
-                    <select id="statusFilter" multiple>
+                    <label for="situacao">Situação do Pedido:</label>
+                    <select id="situacao">
                         <option value="">Todas</option>
                         <option value="open">Aberto</option>
                         <option value="accepted">Aceito</option>
-                        <option value="ready">Pronto</option>
                         <option value="onGoing">A Caminho</option>
+                        <option value="canceled">Cancelado</option>
                         <option value="dispatched">Despachado</option>
-                        <option value="closed">Finalizado</option>
-                        <option value="cancelled">Cancelado</option>
+                        <option value="finished">Finalizado</option>
+                        <option value="ready">Pronto</option>
                     </select>
                 </div>
                 <div class="filter-item">
                     <label>Forma de Pagamento:</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" name="paymentMethod" value="money"> Dinheiro</label>
-                        <label><input type="checkbox" name="paymentMethod" value="card"> Cartão</label>
-                        <label><input type="checkbox" name="paymentMethod" value="online"> Online</label>
+                        <label><input type="checkbox" name="pagamento" value="money"> Dinheiro</label>
+                        <label><input type="checkbox" name="pagamento" value="card"> Cartão</label>
+                        <label><input type="checkbox" name="pagamento" value="online"> Online</label>
                     </div>
                 </div>
             </div>
-            <button onclick="applyFilters()">Buscar</button>
-            <button onclick="exportToExcel()">Exportar para Excel</button>
+            <button id="buscarBtn">Buscar</button>
+            <button id="exportarBtn">Exportar para Excel</button>
         </div>
-
-        <table id="reportTable">
+        <table id="relatorioTable">
             <thead>
                 <tr>
                     <th>ID do Pedido</th>
@@ -137,43 +144,52 @@
                     <th>Valor Total</th>
                 </tr>
             </thead>
-            <tbody id="reportBody">
-                <!-- Dados serão inseridos aqui -->
+            <tbody>
+                <!-- Os dados serão inseridos aqui dinamicamente -->
             </tbody>
         </table>
-
         <div class="summary">
             <p>Total de Entregas: <span id="totalEntregas">0</span></p>
             <p>Valor Total: R$ <span id="valorTotal">0.00</span></p>
+            <p id="sameAddressCount">Entregas na mesma casa: 0</p>
         </div>
     </div>
 
     <script>
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-pF2lRStLTN9Xw9aYQj962qdNFyUXI2E",
-            authDomain: "cabana-8d55e.firebaseapp.com",
-            databaseURL: "https://cabana-8d55e-default-rtdb.firebaseio.com",
-            projectId: "cabana-8d55e",
-            storageBucket: "cabana-8d55e.appspot.com",
-            messagingSenderId: "706144237954",
-            appId: "1:706144237954:web:345c10370972486afc779b",
-            measurementId: "G-96Y337GYT8"
-        };
-        firebase.initializeApp(firebaseConfig);
-
-        const db = firebase.firestore();
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
 
         let allOrders = [];
+        let currentFilters = {
+            motoqueiro: '',
+            situacao: '',
+            pagamento: []
+        };
+
+        moment.tz.setDefault("America/Sao_Paulo");
+
+        function setDefaultDate() {
+            const today = moment().format('YYYY-MM-DD');
+            document.getElementById('dataInicio').value = today;
+        }
+
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        }
 
         async function fetchOrders() {
             try {
-                const now = new Date();
-                const startDate = formatDate(new Date(now.setDate(now.getDate() - 7))); // Busca pedidos dos últimos 7 dias
-                const endDate = formatDate(new Date());
+                const selectedDate = document.getElementById('dataInicio').value;
+                if (!selectedDate) {
+                    return;
+                }
+                const now = moment();
+                const startDate = formatDate(moment(selectedDate).startOf('day'));
+                const endDate = formatDate(now < moment(selectedDate).endOf('day') ? now : moment(selectedDate).endOf('day'));
+
+                console.log('Buscando pedidos de', startDate, 'até', endDate);
+
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
@@ -183,156 +199,162 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
+
                 allOrders = response.data;
-                populateCourierFilter();
+                console.log('Pedidos recebidos:', allOrders);
+                updateMotoqueirosSelect();
                 applyFilters();
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
-                document.getElementById('reportBody').innerHTML = '<tr><td colspan="7">Erro ao carregar dados. Por favor, tente novamente mais tarde.</td></tr>';
+                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
             }
         }
 
-        function formatDate(date) {
-            return date.toISOString().split('T')[0];
-        }
-
-        function populateCourierFilter() {
-            const courierFilter = document.getElementById('courierFilter');
-            courierFilter.innerHTML = '<option value="">Todos</option>';
-            const couriers = new Set();
+        function updateMotoqueirosSelect() {
+            const motoqueirosSet = new Set();
             allOrders.forEach(order => {
-                if (order.courier) {
-                    couriers.add(order.courier.courierName);
+                if (order.courier && order.courier.courierName) {
+                    motoqueirosSet.add(order.courier.courierName);
                 }
             });
-            couriers.forEach(courier => {
+
+            const motoqueirosSelect = document.getElementById('motoqueiro');
+            const currentSelection = motoqueirosSelect.value;
+            motoqueirosSelect.innerHTML = '<option value="">Todos</option>';
+            motoqueirosSet.forEach(motoqueiro => {
                 const option = document.createElement('option');
-                option.value = courier;
-                option.textContent = courier;
-                courierFilter.appendChild(option);
+                option.value = motoqueiro;
+                option.textContent = motoqueiro;
+                motoqueirosSelect.appendChild(option);
             });
+            motoqueirosSelect.value = currentSelection;
         }
 
         function applyFilters() {
-            const dateFilter = document.getElementById('dateFilter').value;
-            const courierFilter = document.getElementById('courierFilter').value;
-            const statusFilter = Array.from(document.getElementById('statusFilter').selectedOptions).map(option => option.value);
-            const paymentFilter = Array.from(document.querySelectorAll('input[name="paymentMethod"]:checked')).map(checkbox => checkbox.value);
+            currentFilters = {
+                motoqueiro: document.getElementById('motoqueiro').value,
+                situacao: document.getElementById('situacao').value,
+                pagamento: Array.from(document.querySelectorAll('input[name="pagamento"]:checked')).map(el => el.value)
+            };
 
             const filteredOrders = allOrders.filter(order => {
-                const dateMatch = !dateFilter || order.creationDate.startsWith(dateFilter);
-                const courierMatch = !courierFilter || (order.courier && order.courier.courierName === courierFilter);
-                const statusMatch = statusFilter.length === 0 || statusFilter.includes(order.status);
-                const paymentMatch = paymentFilter.length === 0 || paymentFilter.includes(order.paymentMethod);
-                return dateMatch && courierMatch && statusMatch && paymentMatch;
+                const statusMatch = !currentFilters.situacao ||
+                    order.status === currentFilters.situacao ||
+                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
+                    (currentFilters.situacao === 'canceled' && (order.status === 'canceled' || order.status === 'cancelled'));
+                return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
+                    statusMatch &&
+                    (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
             });
 
-            updateReportTable(filteredOrders);
-            updateSummary(filteredOrders);
+            const deliveriesByAddress = countSameAddressDeliveries(filteredOrders);
+            updateTable(filteredOrders, deliveriesByAddress);
         }
 
-        function updateReportTable(orders) {
-            const reportBody = document.getElementById('reportBody');
-            reportBody.innerHTML = '';
-            orders.forEach(order => {
-                const row = reportBody.insertRow();
-                row.innerHTML = `
-                    <td>${order.id}</td>
-                    <td>${order.customer.customerName}</td>
-                    <td>${order.courier ? order.courier.courierName : 'N/A'}</td>
-                    <td>${getStatusDisplay(order.status)}</td>
-                    <td>${getPaymentMethodDisplay(order.paymentMethod)}</td>
-                    <td>${order.deliveryPoint.address}</td>
-                    <td>R$ ${order.orderTotal.toFixed(2)}</td>
-                `;
-            });
-        }
-
-        function updateSummary(orders) {
-            const totalEntregas = orders.length;
-            const valorTotal = orders.reduce((sum, order) => sum + order.orderTotal, 0);
-            
-            document.getElementById('totalEntregas').textContent = totalEntregas;
-            document.getElementById('valorTotal').textContent = valorTotal.toFixed(2);
-
-            // Adicionar informações de entregas na mesma casa por motoboy
-            const courierSameHouseDeliveries = countSameHouseDeliveriesByCourier(orders);
-            let sameHouseSummary = '<h3>Entregas na Mesma Casa por Motoboy:</h3>';
-            for (const [courier, count] of Object.entries(courierSameHouseDeliveries)) {
-                sameHouseSummary += `<p>${courier}: ${count} entregas na mesma casa</p>`;
-            }
-            document.getElementById('sameHouseSummary').innerHTML = sameHouseSummary;
-        }
-
-        function countSameHouseDeliveriesByCourier(orders) {
-            const courierDeliveries = {};
+        function countSameAddressDeliveries(orders) {
             const addressCount = {};
 
             orders.forEach(order => {
-                if (order.courier) {
-                    const courierName = order.courier.courierName;
-                    const address = order.deliveryPoint.address;
-                    
-                    if (!courierDeliveries[courierName]) {
-                        courierDeliveries[courierName] = new Set();
-                    }
-                    
+                const address = order.customer ? order.customer.address : null;
+                if (address) {
                     if (!addressCount[address]) {
-                        addressCount[address] = 1;
-                    } else {
-                        addressCount[address]++;
-                        if (addressCount[address] === 2) {
-                            courierDeliveries[courierName].add(address);
-                        }
+                        addressCount[address] = 0;
                     }
+                    addressCount[address]++;
                 }
             });
 
-            const result = {};
-            for (const [courier, addresses] of Object.entries(courierDeliveries)) {
-                result[courier] = addresses.size;
+            return addressCount;
+        }
+
+        function updateTable(orders, deliveriesByAddress) {
+            const tbody = document.querySelector('#relatorioTable tbody');
+            tbody.innerHTML = '';
+
+            let totalValue = 0;
+
+            orders.forEach(order => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = order.id || 'N/A';
+                row.insertCell().textContent = order.customer ? order.customer.customerName : 'N/A';
+                row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
+                row.insertCell().textContent = getStatusDisplay(order.status);
+                row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
+                row.insertCell().textContent = order.orderDetails || 'N/A';
+                row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
+
+                totalValue += order.orderTotal || 0;
+            });
+
+            const sameAddressCount = calculateSameAddressCount(deliveriesByAddress);
+            displaySummary(orders.length, totalValue, sameAddressCount);
+        }
+
+        function calculateSameAddressCount(deliveriesByAddress) {
+            let count = 0;
+            for (const address in deliveriesByAddress) {
+                if (deliveriesByAddress[address] > 1) {
+                    count += deliveriesByAddress[address];
+                }
+            }
+            return count;
+        }
+
+        function displaySummary(totalDeliveries, totalValue, sameAddressCount) {
+            document.getElementById('totalEntregas').textContent = totalDeliveries;
+            document.getElementById('valorTotal').textContent = totalValue.toFixed(2);
+
+            const summarySection = document.querySelector('.summary');
+            let sameAddressElement = document.getElementById('sameAddressCount');
+
+            if (!sameAddressElement) {
+                sameAddressElement = document.createElement('p');
+                sameAddressElement.id = 'sameAddressCount';
+                summarySection.appendChild(sameAddressElement);
             }
 
-            return result;
+            sameAddressElement.textContent = `Entregas na mesma casa: ${sameAddressCount}`;
         }
 
         function getStatusDisplay(status) {
             const statusMap = {
                 'open': 'Aberto',
                 'accepted': 'Aceito',
-                'ready': 'Pronto',
                 'onGoing': 'A Caminho',
+                'canceled': 'Cancelado',
+                'cancelled': 'Cancelado',
                 'dispatched': 'Despachado',
-                'closed': 'Finalizado',
-                'cancelled': 'Cancelado'
+                'finished': 'Finalizado',
+                'ready': 'Pronto',
+                'closed': 'Finalizado'
             };
             return statusMap[status] || status;
         }
 
-        function getPaymentMethodDisplay(method) {
-            const methodMap = {
+        function translatePaymentMethod(method) {
+            const paymentMap = {
                 'money': 'Dinheiro',
                 'card': 'Cartão',
                 'online': 'Online'
             };
-            return methodMap[method] || method;
+            return paymentMap[method] || method;
         }
 
         function exportToExcel() {
-            // Implementar a exportação para Excel aqui
-            alert('Funcionalidade de exportação para Excel ainda não implementada.');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('relatorioTable'));
+            XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
+            XLSX.writeFile(wb, 'Pedidos_Foody_Delivery.xlsx');
         }
 
-        // Atualização em tempo real
-        function startRealTimeUpdates() {
-            setInterval(fetchOrders, 30000); // Atualiza a cada 30 segundos
-        }
+        document.getElementById('buscarBtn').addEventListener('click', fetchOrders);
+        document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
 
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchOrders();
-            startRealTimeUpdates();
-        });
+        window.addEventListener('load', setDefaultDate);
+
+        setInterval(() => {
+            fetchOrders().then(() => applyFilters());
+        }, 30000);
     </script>
 </body>
 </html>
