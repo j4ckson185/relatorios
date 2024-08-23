@@ -140,7 +140,7 @@
                     <th>Motoqueiro</th>
                     <th>Situação</th>
                     <th>Forma de Pagamento</th>
-                    <th>Detalhes do Pedido</th>
+                    <th>Endereço</th> <!-- Campo Endereço substituído -->
                     <th>Valor Total</th>
                 </tr>
             </thead>
@@ -255,7 +255,7 @@
             const addressCount = {};
 
             orders.forEach(order => {
-                const address = order.customer ? order.customer.address : null;
+                const address = order.customer ? `${order.customer.address.street}, ${order.customer.address.number}` : null;
                 if (address) {
                     if (!addressCount[address]) {
                         addressCount[address] = 0;
@@ -280,7 +280,7 @@
                 row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
                 row.insertCell().textContent = getStatusDisplay(order.status);
                 row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
-                row.insertCell().textContent = order.orderDetails || 'N/A';
+                row.insertCell().textContent = order.customer ? `${order.customer.address.street}, ${order.customer.address.number}` : 'N/A';
                 row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
 
                 totalValue += order.orderTotal || 0;
