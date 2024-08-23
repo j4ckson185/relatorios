@@ -3,32 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Entregas - Cabana Açaí</title>
+    <title>Relatórios Foody Delivery - Cabana Açaí</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
     <style>
-        /* Estilos anteriores mantidos */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .filter-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .summary {
+            margin-top: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1><i class="fas fa-utensils"></i> Relatório de Entregas - Cabana Açaí</h1>
-        </header>
+        <h1>Relatórios Foody Delivery</h1>
 
-        <div class="filters">
-            <!-- Filtros anteriores mantidos -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label for="dateFilter">Data:</label>
+                    <input type="date" id="dateFilter">
+                </div>
+                <div class="filter-item">
+                    <label for="courierFilter">Motoqueiro:</label>
+                    <select id="courierFilter">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="statusFilter">Situação do Pedido:</label>
+                    <select id="statusFilter" multiple>
+                        <option value="">Todas</option>
+                        <option value="open">Aberto</option>
+                        <option value="accepted">Aceito</option>
+                        <option value="ready">Pronto</option>
+                        <option value="onGoing">A Caminho</option>
+                        <option value="dispatched">Despachado</option>
+                        <option value="closed">Finalizado</option>
+                        <option value="cancelled">Cancelado</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>Forma de Pagamento:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="paymentMethod" value="money"> Dinheiro</label>
+                        <label><input type="checkbox" name="paymentMethod" value="card"> Cartão</label>
+                        <label><input type="checkbox" name="paymentMethod" value="online"> Online</label>
+                    </div>
+                </div>
+            </div>
+            <button onclick="applyFilters()">Buscar</button>
+            <button onclick="exportToExcel()">Exportar para Excel</button>
         </div>
 
         <table id="reportTable">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>ID do Pedido</th>
                     <th>Cliente</th>
-                    <th>Motoboy</th>
-                    <th>Status</th>
+                    <th>Motoqueiro</th>
+                    <th>Situação</th>
                     <th>Forma de Pagamento</th>
                     <th>Endereço</th>
                     <th>Valor Total</th>
@@ -39,8 +143,9 @@
             </tbody>
         </table>
 
-        <div class="summary" id="reportSummary">
-            <!-- Resumo será inserido aqui -->
+        <div class="summary">
+            <p>Total de Entregas: <span id="totalEntregas">0</span></p>
+            <p>Valor Total: R$ <span id="valorTotal">0.00</span></p>
         </div>
     </div>
 
@@ -110,17 +215,17 @@
         }
 
         function applyFilters() {
-            const courierFilter = document.getElementById('courierFilter').value;
             const dateFilter = document.getElementById('dateFilter').value;
+            const courierFilter = document.getElementById('courierFilter').value;
             const statusFilter = Array.from(document.getElementById('statusFilter').selectedOptions).map(option => option.value);
-            const paymentFilter = Array.from(document.getElementById('paymentFilter').selectedOptions).map(option => option.value);
+            const paymentFilter = Array.from(document.querySelectorAll('input[name="paymentMethod"]:checked')).map(checkbox => checkbox.value);
 
             const filteredOrders = allOrders.filter(order => {
-                const courierMatch = !courierFilter || (order.courier && order.courier.courierName === courierFilter);
                 const dateMatch = !dateFilter || order.creationDate.startsWith(dateFilter);
+                const courierMatch = !courierFilter || (order.courier && order.courier.courierName === courierFilter);
                 const statusMatch = statusFilter.length === 0 || statusFilter.includes(order.status);
                 const paymentMatch = paymentFilter.length === 0 || paymentFilter.includes(order.paymentMethod);
-                return courierMatch && dateMatch && statusMatch && paymentMatch;
+                return dateMatch && courierMatch && statusMatch && paymentMatch;
             });
 
             updateReportTable(filteredOrders);
@@ -145,42 +250,11 @@
         }
 
         function updateSummary(orders) {
-            const totalDeliveries = orders.length;
-            const totalValue = orders.reduce((sum, order) => sum + order.orderTotal, 0);
-            const sameAddressDeliveries = countSameAddressDeliveries(orders);
-
-            const summaryHTML = `
-                <h2>Resumo</h2>
-                <div class="summary-item">
-                    <span class="summary-label">Total de Entregas:</span>
-                    <span>${totalDeliveries}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Valor Total:</span>
-                    <span>R$ ${totalValue.toFixed(2)}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">Entregas para Mesma Casa:</span>
-                    <span>${sameAddressDeliveries}</span>
-                </div>
-            `;
-
-            document.getElementById('reportSummary').innerHTML = summaryHTML;
-        }
-
-        function countSameAddressDeliveries(orders) {
-            const addressCount = {};
-            let sameAddressCount = 0;
-
-            orders.forEach(order => {
-                const address = order.deliveryPoint.address;
-                addressCount[address] = (addressCount[address] || 0) + 1;
-                if (addressCount[address] > 1) {
-                    sameAddressCount++;
-                }
-            });
-
-            return sameAddressCount;
+            const totalEntregas = orders.length;
+            const valorTotal = orders.reduce((sum, order) => sum + order.orderTotal, 0);
+            
+            document.getElementById('totalEntregas').textContent = totalEntregas;
+            document.getElementById('valorTotal').textContent = valorTotal.toFixed(2);
         }
 
         function getStatusDisplay(status) {
@@ -189,6 +263,7 @@
                 'accepted': 'Aceito',
                 'ready': 'Pronto',
                 'onGoing': 'A Caminho',
+                'dispatched': 'Despachado',
                 'closed': 'Finalizado',
                 'cancelled': 'Cancelado'
             };
@@ -202,6 +277,11 @@
                 'online': 'Online'
             };
             return methodMap[method] || method;
+        }
+
+        function exportToExcel() {
+            // Implementar a exportação para Excel aqui
+            alert('Funcionalidade de exportação para Excel ainda não implementada.');
         }
 
         // Atualização em tempo real
