@@ -607,8 +607,11 @@
         }
 
 function sendOrderMessage(orderId) {
-    // Chama o script AutoHotkey que automatiza o envio da mensagem
-    window.open(`C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk ${orderId}`, '_blank');
+    // Salva o ID do pedido em um arquivo temporário usando AutoHotkey
+    window.open(`C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\save-id.ahk "${orderId}"`, '_blank');
+
+    // Executa o script que enviará a mensagem
+    window.open('C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk', '_blank');
 
     alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
 }
