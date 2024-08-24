@@ -607,14 +607,13 @@
         }
 
 function sendOrderMessage(orderId) {
-    // Salva o ID do pedido em um arquivo temporário usando AutoHotkey
-    window.open(`C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\save-id.ahk "${orderId}"`, '_blank');
-
-    // Executa o script que enviará a mensagem
-    window.open('C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk', '_blank');
+    // Chama o script AutoHotkey com o ID do pedido como argumento
+    const ahkPath = 'C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk';
+    window.open(`file:///${ahkPath} "${orderId}"`, '_blank');
 
     alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
 }
+
 
         function formatDate(date) {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
