@@ -595,11 +595,11 @@
                         <div class="order-info order-total"><i class="fas fa-dollar-sign"></i>R$ ${order.orderTotal.toFixed(2)}</div>
                         ${order.notes ? `<div class="order-info"><i class="fas fa-sticky-note"></i>${order.notes}</div>` : ''}
                     </div>
-                    <div class="order-actions">
-                        <div class="action-btn primary ${getStatusClass(order.status)}">${getStatusButton(order.status)}</div>
-                        <button class="action-btn secondary" onclick="printOrderDetails('${order.id}')"><i class="fas fa-print"></i></button>
-                        <button class="action-btn secondary" onclick="sendOrderMessage('${order.id}')">Enviar Mensagem</button>
-                    </div>
+<div class="order-actions">
+    <div class="action-btn primary ${getStatusClass(order.status)}">${getStatusButton(order.status)}</div>
+    <button class="action-btn secondary" onclick="printOrderDetails('${order.id}')"><i class="fas fa-print"></i></button>
+    <button class="action-btn secondary" onclick="sendOrderMessage('${order.id}')">Enviar Mensagem</button>
+</div>
                 `;
                 orderList.appendChild(orderCard);
             });
@@ -612,7 +612,6 @@ function sendOrderMessage(orderId) {
 
     alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
 }
-
 
         function formatDate(date) {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
