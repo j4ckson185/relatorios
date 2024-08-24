@@ -606,12 +606,13 @@
             document.getElementById('orderCount').textContent = orders.length;
         }
 
-        function sendOrderMessage(orderId) {
-            // Chama o script AutoHotkey que automatiza o envio da mensagem
-            window.open(`C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.txt?id=${orderId}`, '_blank');
+function sendOrderMessage(orderId) {
+    // Chama o script AutoHotkey que automatiza o envio da mensagem
+    window.open(`C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk ${orderId}`, '_blank');
 
-            alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
-        }
+    alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
+}
+
 
         function formatDate(date) {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
