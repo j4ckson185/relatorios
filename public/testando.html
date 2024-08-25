@@ -614,9 +614,9 @@ function sendOrderMessage(orderId) {
     alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
 }
 
-        function monitorarPedidos() {
-    const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';  // Substitua pela URL da API
-    const authToken = '8d7c77946d534444a168bb7da794febf';  // Substitua pelo seu token de autorização
+function monitorarPedidos() {
+    const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+    const authToken = '8d7c77946d534444a168bb7da794febf';
 
     // Função para verificar os pedidos
     async function verificarPedidos() {
@@ -628,7 +628,11 @@ function sendOrderMessage(orderId) {
                     'Content-Type': 'application/json'
                 }
             });
-            const pedidos = await response.json();
+
+            const data = await response.json();
+
+            // Verifica se a resposta contém um array ou está dentro de uma chave específica
+            const pedidos = Array.isArray(data) ? data : data.data || data.pedidos || [];
 
             pedidos.forEach(pedido => {
                 if (pedido.status === 'onGoing') {  // Verifica o status "A Caminho"
@@ -645,7 +649,6 @@ function sendOrderMessage(orderId) {
 
     // Função para chamar o AutoHotkey com o ID do pedido
     function chamarAutoHotkey(idPedido) {
-        // Aqui estamos utilizando uma URL para acionar o AutoHotkey
         const ahkPath = 'C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk';
         window.open(`file:///${ahkPath} ${idPedido}`, '_blank');
     }
