@@ -614,6 +614,50 @@ function sendOrderMessage(orderId) {
     alert(`Mensagem para o pedido #${orderId} está sendo enviada pelo gestor de pedidos.`);
 }
 
+        function monitorarPedidos() {
+    const apiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';  // Substitua pela URL da API
+    const authToken = '8d7c77946d534444a168bb7da794febf';  // Substitua pelo seu token de autorização
+
+    // Função para verificar os pedidos
+    async function verificarPedidos() {
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const pedidos = await response.json();
+
+            pedidos.forEach(pedido => {
+                if (pedido.status === 'onGoing') {  // Verifica o status "A Caminho"
+                    const idPedido = pedido.id;
+
+                    // Chama o script AutoHotkey para enviar a mensagem
+                    chamarAutoHotkey(idPedido);
+                }
+            });
+        } catch (error) {
+            console.error('Erro ao verificar pedidos:', error);
+        }
+    }
+
+    // Função para chamar o AutoHotkey com o ID do pedido
+    function chamarAutoHotkey(idPedido) {
+        // Aqui estamos utilizando uma URL para acionar o AutoHotkey
+        const ahkPath = 'C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk';
+        window.open(`file:///${ahkPath} ${idPedido}`, '_blank');
+    }
+
+    // Verifica os pedidos a cada 60 segundos
+    setInterval(verificarPedidos, 60000);
+}
+
+// Inicia o monitoramento
+monitorarPedidos();
+
+
 
         function formatDate(date) {
             return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
