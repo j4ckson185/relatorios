@@ -648,10 +648,11 @@ function monitorarPedidos() {
     }
 
     // Função para chamar o AutoHotkey com o ID do pedido
-    function chamarAutoHotkey(idPedido) {
-        const ahkPath = 'C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk';
-        window.open(`file:///${ahkPath} ${idPedido}`, '_blank');
-    }
+function chamarAutoHotkey(idPedido) {
+    const ahkPath = 'C:\\Users\\jacks\\OneDrive\\Área de Trabalho\\script.ahk';
+    window.open(`file:///${ahkPath} ${idPedido}`, '_blank');
+}
+
 
     // Verifica os pedidos a cada 60 segundos
     setInterval(verificarPedidos, 60000);
