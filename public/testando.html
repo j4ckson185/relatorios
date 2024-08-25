@@ -615,7 +615,7 @@ function sendOrderMessage(orderId) {
 }
 
         function monitorarPedidos() {
-    const apiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';  // Substitua pela URL da API
+    const apiUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';  // Substitua pela URL da API
     const authToken = '8d7c77946d534444a168bb7da794febf';  // Substitua pelo seu token de autorização
 
     // Função para verificar os pedidos
