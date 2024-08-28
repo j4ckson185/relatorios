@@ -152,21 +152,19 @@
             <p>Total de Entregas: <span id="totalEntregas">0</span></p>
             <p>Valor Total: R$ <span id="valorTotal">0.00</span></p>
             <p id="sameAddressCount">Entregas na mesma casa: 0</p>
+            <p id="saoGoncaloCount">Taxas (São Gonçalo do Amarante): 0</p>
         </div>
     </div>
-
     <script>
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
-
         let allOrders = [];
         let currentFilters = {
             motoqueiro: '',
             situacao: '',
             pagamento: []
         };
-
         moment.tz.setDefault("America/Sao_Paulo");
 
         function setDefaultDate() {
@@ -187,9 +185,7 @@
                 const now = moment();
                 const startDate = formatDate(moment(selectedDate).startOf('day'));
                 const endDate = formatDate(now < moment(selectedDate).endOf('day') ? now : moment(selectedDate).endOf('day'));
-
                 console.log('Buscando pedidos de', startDate, 'até', endDate);
-
                 const response = await axios.get(firebaseFunctionUrl, {
                     headers: {
                         'Authorization': authToken,
@@ -199,7 +195,6 @@
                         url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
                     }
                 });
-
                 allOrders = response.data;
                 console.log('Pedidos recebidos:', allOrders);
                 updateMotoqueirosSelect();
@@ -217,7 +212,6 @@
                     motoqueirosSet.add(order.courier.courierName);
                 }
             });
-
             const motoqueirosSelect = document.getElementById('motoqueiro');
             const currentSelection = motoqueirosSelect.value;
             motoqueirosSelect.innerHTML = '<option value="">Todos</option>';
@@ -236,7 +230,6 @@
                 situacao: document.getElementById('situacao').value,
                 pagamento: Array.from(document.querySelectorAll('input[name="pagamento"]:checked')).map(el => el.value)
             };
-
             const filteredOrders = allOrders.filter(order => {
                 const statusMatch = !currentFilters.situacao ||
                     order.status === currentFilters.situacao ||
@@ -246,20 +239,17 @@
                     statusMatch &&
                     (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
             });
-
             const deliveriesByAddress = countSameAddressDeliveries(filteredOrders);
-            updateTable(filteredOrders, deliveriesByAddress);
+            const saoGoncaloCount = countSaoGoncaloDeliveries(filteredOrders);
+            updateTable(filteredOrders, deliveriesByAddress, saoGoncaloCount);
         }
 
         function countSameAddressDeliveries(orders) {
             const addressCount = {};
-
             orders.forEach(order => {
-                // Verifica se o deliveryPoint.address é válido antes de acessar suas propriedades
                 const address = order.deliveryPoint && order.deliveryPoint.address
                     ? order.deliveryPoint.address
                     : null;
-
                 if (address) {
                     if (!addressCount[address]) {
                         addressCount[address] = 0;
@@ -267,16 +257,21 @@
                     addressCount[address]++;
                 }
             });
-
             return addressCount;
         }
 
-        function updateTable(orders, deliveriesByAddress) {
+        function countSaoGoncaloDeliveries(orders) {
+            return orders.filter(order => 
+                order.deliveryPoint && 
+                order.deliveryPoint.address && 
+                order.deliveryPoint.address.toLowerCase().includes('são gonçalo do amarante')
+            ).length;
+        }
+
+        function updateTable(orders, deliveriesByAddress, saoGoncaloCount) {
             const tbody = document.querySelector('#relatorioTable tbody');
             tbody.innerHTML = '';
-
             let totalValue = 0;
-
             orders.forEach(order => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = order.id || 'N/A';
@@ -288,38 +283,27 @@
                     ? order.deliveryPoint.address
                     : 'N/A';
                 row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
-
                 totalValue += order.orderTotal || 0;
             });
-
             const sameAddressCount = calculateSameAddressCount(deliveriesByAddress);
-            displaySummary(orders.length, totalValue, sameAddressCount);
+            displaySummary(orders.length, totalValue, sameAddressCount, saoGoncaloCount);
         }
 
         function calculateSameAddressCount(deliveriesByAddress) {
             let count = 0;
             for (const address in deliveriesByAddress) {
                 if (deliveriesByAddress[address] > 1) {
-                    count += Math.floor(deliveriesByAddress[address] / 2); // Dividindo a quantidade por 2
+                    count += Math.floor(deliveriesByAddress[address] / 2);
                 }
             }
             return count;
         }
 
-        function displaySummary(totalDeliveries, totalValue, sameAddressCount) {
+        function displaySummary(totalDeliveries, totalValue, sameAddressCount, saoGoncaloCount) {
             document.getElementById('totalEntregas').textContent = totalDeliveries;
             document.getElementById('valorTotal').textContent = totalValue.toFixed(2);
-
-            const summarySection = document.querySelector('.summary');
-            let sameAddressElement = document.getElementById('sameAddressCount');
-
-            if (!sameAddressElement) {
-                sameAddressElement = document.createElement('p');
-                sameAddressElement.id = 'sameAddressCount';
-                summarySection.appendChild(sameAddressElement);
-            }
-
-            sameAddressElement.textContent = `Entregas na mesma casa: ${sameAddressCount}`;
+            document.getElementById('sameAddressCount').textContent = `Entregas na mesma casa: ${sameAddressCount}`;
+            document.getElementById('saoGoncaloCount').textContent = `Taxas (São Gonçalo do Amarante): ${saoGoncaloCount}`;
         }
 
         function getStatusDisplay(status) {
@@ -349,14 +333,33 @@
         function exportToExcel() {
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.table_to_sheet(document.getElementById('relatorioTable'));
+            
+            // Adicionar informações de resumo
+            const summaryData = [
+                ['Total de Entregas', document.getElementById('totalEntregas').textContent],
+                ['Valor Total', `R$ ${document.getElementById('valorTotal').textContent}`],
+                ['Entregas na mesma casa', document.getElementById('sameAddressCount').textContent.split(': ')[1]],
+                ['Taxas (São Gonçalo do Amarante)', document.getElementById('saoGoncaloCount').textContent.split(': ')[1]]
+            ];
+            
+            XLSX.utils.sheet_add_aoa(ws, summaryData, {origin: -1});
+            
             XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
             XLSX.writeFile(wb, 'Pedidos_Foody_Delivery.xlsx');
         }
 
         document.getElementById('buscarBtn').addEventListener('click', fetchOrders);
         document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
+        document.getElementById('motoqueiro').addEventListener('change', applyFilters);
+        document.getElementById('situacao').addEventListener('change', applyFilters);
+        document.querySelectorAll('input[name="pagamento"]').forEach(el => {
+            el.addEventListener('change', applyFilters);
+        });
 
-        window.addEventListener('load', setDefaultDate);
+        window.addEventListener('load', () => {
+            setDefaultDate();
+            fetchOrders();
+        });
 
         setInterval(() => {
             fetchOrders().then(() => applyFilters());
