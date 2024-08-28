@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Foody Delivery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .filter-item {
+            flex: 1;
+            margin-right: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .summary {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Relatórios Foody Delivery</h1>
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label for="dataInicio">Data:</label>
+                    <input type="date" id="dataInicio">
+                </div>
+                <div class="filter-item">
+                    <label for="motoqueiro">Motoqueiro:</label>
+                    <select id="motoqueiro">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="situacao">Situação do Pedido:</label>
+                    <select id="situacao">
+                        <option value="">Todas</option>
+                        <option value="open">Aberto</option>
+                        <option value="accepted">Aceito</option>
+                        <option value="onGoing">A Caminho</option>
+                        <option value="canceled">Cancelado</option>
+                        <option value="dispatched">Despachado</option>
+                        <option value="finished">Finalizado</option>
+                        <option value="ready">Pronto</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>Forma de Pagamento:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="pagamento" value="money"> Dinheiro</label>
+                        <label><input type="checkbox" name="pagamento" value="card"> Cartão</label>
+                        <label><input type="checkbox" name="pagamento" value="online"> Online</label>
+                    </div>
+                </div>
+            </div>
+            <button id="buscarBtn">Buscar</button>
+            <button id="exportarBtn">Exportar para Excel</button>
+        </div>
+        <table id="relatorioTable">
+            <thead>
+                <tr>
+                    <th>ID do Pedido</th>
+                    <th>Cliente</th>
+                    <th>Motoqueiro</th>
+                    <th>Situação</th>
+                    <th>Forma de Pagamento</th>
+                    <th>Endereço</th>
+                    <th>Valor Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Os dados serão inseridos aqui dinamicamente -->
+            </tbody>
+        </table>
+        <div class="summary">
+            <p>Total de Entregas: <span id="totalEntregas">0</span></p>
+            <p>Valor Total: R$ <span id="valorTotal">0.00</span></p>
+            <p id="sameAddressCount">Entregas na mesma casa: 0</p>
+            <p id="saoGoncaloCount">Taxas (São Gonçalo do Amarante): 0</p>
+        </div>
+    </div>
+    <script>
+        const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
+        const authToken = '8d7c77946d534444a168bb7da794febf';
+        const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
+        let allOrders = [];
+        let currentFilters = {
+            motoqueiro: '',
+            situacao: '',
+            pagamento: []
+        };
+        moment.tz.setDefault("America/Sao_Paulo");
+
+        function setDefaultDate() {
+            const today = moment().format('YYYY-MM-DD');
+            document.getElementById('dataInicio').value = today;
+        }
+
+        function formatDate(date) {
+            return date.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+        }
+
+        async function fetchOrders() {
+            try {
+                const selectedDate = document.getElementById('dataInicio').value;
+                if (!selectedDate) {
+                    return;
+                }
+                const now = moment();
+                const startDate = formatDate(moment(selectedDate).startOf('day'));
+                const endDate = formatDate(now < moment(selectedDate).endOf('day') ? now : moment(selectedDate).endOf('day'));
+                console.log('Buscando pedidos de', startDate, 'até', endDate);
+                const response = await axios.get(firebaseFunctionUrl, {
+                    headers: {
+                        'Authorization': authToken,
+                        'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    params: {
+                        url: `${foodyApiUrl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+                    }
+                });
+                allOrders = response.data;
+                console.log('Pedidos recebidos:', allOrders);
+                updateMotoqueirosSelect();
+                applyFilters();
+            } catch (error) {
+                console.error('Erro ao buscar pedidos:', error);
+                alert('Erro ao buscar pedidos. Por favor, tente novamente.');
+            }
+        }
+
+        function updateMotoqueirosSelect() {
+            const motoqueirosSet = new Set();
+            allOrders.forEach(order => {
+                if (order.courier && order.courier.courierName) {
+                    motoqueirosSet.add(order.courier.courierName);
+                }
+            });
+            const motoqueirosSelect = document.getElementById('motoqueiro');
+            const currentSelection = motoqueirosSelect.value;
+            motoqueirosSelect.innerHTML = '<option value="">Todos</option>';
+            motoqueirosSet.forEach(motoqueiro => {
+                const option = document.createElement('option');
+                option.value = motoqueiro;
+                option.textContent = motoqueiro;
+                motoqueirosSelect.appendChild(option);
+            });
+            motoqueirosSelect.value = currentSelection;
+        }
+
+        function applyFilters() {
+            currentFilters = {
+                motoqueiro: document.getElementById('motoqueiro').value,
+                situacao: document.getElementById('situacao').value,
+                pagamento: Array.from(document.querySelectorAll('input[name="pagamento"]:checked')).map(el => el.value)
+            };
+            const filteredOrders = allOrders.filter(order => {
+                const statusMatch = !currentFilters.situacao ||
+                    order.status === currentFilters.situacao ||
+                    (currentFilters.situacao === 'finished' && order.status === 'closed') ||
+                    (currentFilters.situacao === 'canceled' && (order.status === 'canceled' || order.status === 'cancelled'));
+                return (!currentFilters.motoqueiro || (order.courier && order.courier.courierName === currentFilters.motoqueiro)) &&
+                    statusMatch &&
+                    (currentFilters.pagamento.length === 0 || currentFilters.pagamento.includes(order.paymentMethod));
+            });
+            const deliveriesByAddress = countSameAddressDeliveries(filteredOrders);
+            const saoGoncaloCount = countSaoGoncaloDeliveries(filteredOrders);
+            updateTable(filteredOrders, deliveriesByAddress, saoGoncaloCount);
+        }
+
+        function countSameAddressDeliveries(orders) {
+            const addressCount = {};
+            orders.forEach(order => {
+                const address = order.deliveryPoint && order.deliveryPoint.address
+                    ? order.deliveryPoint.address
+                    : null;
+                if (address) {
+                    if (!addressCount[address]) {
+                        addressCount[address] = 0;
+                    }
+                    addressCount[address]++;
+                }
+            });
+            return addressCount;
+        }
+
+        function countSaoGoncaloDeliveries(orders) {
+            return orders.filter(order => 
+                order.deliveryPoint && 
+                order.deliveryPoint.address && 
+                order.deliveryPoint.address.toLowerCase().includes('são gonçalo do amarante')
+            ).length;
+        }
+
+        function updateTable(orders, deliveriesByAddress, saoGoncaloCount) {
+            const tbody = document.querySelector('#relatorioTable tbody');
+            tbody.innerHTML = '';
+            let totalValue = 0;
+            orders.forEach(order => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = order.id || 'N/A';
+                row.insertCell().textContent = order.customer ? order.customer.customerName : 'N/A';
+                row.insertCell().textContent = order.courier ? order.courier.courierName : 'N/A';
+                row.insertCell().textContent = getStatusDisplay(order.status);
+                row.insertCell().textContent = translatePaymentMethod(order.paymentMethod);
+                row.insertCell().textContent = order.deliveryPoint && order.deliveryPoint.address
+                    ? order.deliveryPoint.address
+                    : 'N/A';
+                row.insertCell().textContent = order.orderTotal !== undefined ? `R$ ${order.orderTotal.toFixed(2)}` : 'N/A';
+                totalValue += order.orderTotal || 0;
+            });
+            const sameAddressCount = calculateSameAddressCount(deliveriesByAddress);
+            displaySummary(orders.length, totalValue, sameAddressCount, saoGoncaloCount);
+        }
+
+        function calculateSameAddressCount(deliveriesByAddress) {
+            let count = 0;
+            for (const address in deliveriesByAddress) {
+                if (deliveriesByAddress[address] > 1) {
+                    count += Math.floor(deliveriesByAddress[address] / 2);
+                }
+            }
+            return count;
+        }
+
+        function displaySummary(totalDeliveries, totalValue, sameAddressCount, saoGoncaloCount) {
+            document.getElementById('totalEntregas').textContent = totalDeliveries;
+            document.getElementById('valorTotal').textContent = totalValue.toFixed(2);
+            document.getElementById('sameAddressCount').textContent = `Entregas na mesma casa: ${sameAddressCount}`;
+            document.getElementById('saoGoncaloCount').textContent = `Taxas (São Gonçalo do Amarante): ${saoGoncaloCount}`;
+        }
+
+        function getStatusDisplay(status) {
+            const statusMap = {
+                'open': 'Aberto',
+                'accepted': 'Aceito',
+                'onGoing': 'A Caminho',
+                'canceled': 'Cancelado',
+                'cancelled': 'Cancelado',
+                'dispatched': 'Despachado',
+                'finished': 'Finalizado',
+                'ready': 'Pronto',
+                'closed': 'Finalizado'
+            };
+            return statusMap[status] || status;
+        }
+
+        function translatePaymentMethod(method) {
+            const paymentMap = {
+                'money': 'Dinheiro',
+                'card': 'Cartão',
+                'online': 'Online'
+            };
+            return paymentMap[method] || method;
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('relatorioTable'));
+            
+            // Adicionar informações de resumo
+            const summaryData = [
+                ['Total de Entregas', document.getElementById('totalEntregas').textContent],
+                ['Valor Total', `R$ ${document.getElementById('valorTotal').textContent}`],
+                ['Entregas na mesma casa', document.getElementById('sameAddressCount').textContent.split(': ')[1]],
+                ['Taxas (São Gonçalo do Amarante)', document.getElementById('saoGoncaloCount').textContent.split(': ')[1]]
+            ];
+            
+            XLSX.utils.sheet_add_aoa(ws, summaryData, {origin: -1});
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
+            XLSX.writeFile(wb, 'Pedidos_Foody_Delivery.xlsx');
+        }
+
+        document.getElementById('buscarBtn').addEventListener('click', fetchOrders);
+        document.getElementById('exportarBtn').addEventListener('click', exportToExcel);
+        document.getElementById('motoqueiro').addEventListener('change', applyFilters);
+        document.getElementById('situacao').addEventListener('change', applyFilters);
+        document.querySelectorAll('input[name="pagamento"]').forEach(el => {
+            el.addEventListener('change', applyFilters);
+        });
+
+        window.addEventListener('load', () => {
+            setDefaultDate();
+            fetchOrders();
+        });
+
+        setInterval(() => {
+            fetchOrders().then(() => applyFilters());
+        }, 30000);
+    </script>
+</body>
+</html>
