@@ -978,27 +978,34 @@
             console.log("Verificando endereços...");
             orders.forEach(order => {
                 console.log(`Verificando pedido #${order.id}`);
-                if (order.deliveryPoint) {
-                    console.log("Dados do endereço:", JSON.stringify(order.deliveryPoint));
-                    if (isAddressOnlyZero(order.deliveryPoint) && !closedZeroNumberNotifications.has(order.id)) {
-                        console.log(`Notificação necessária para pedido #${order.id}`);
+                if (order.deliveryPoint && isAddressZeroWithNoOtherNumbers(order.deliveryPoint)) {
+                    console.log(`Notificação necessária para pedido #${order.id}`);
+                    if (!closedZeroNumberNotifications.has(order.id)) {
                         showZeroNumberAddressNotification(order);
                     }
                 }
             });
         }
 
-        function isAddressOnlyZero(deliveryPoint) {
+        function isAddressZeroWithNoOtherNumbers(deliveryPoint) {
+            console.log("Dados do endereço:", JSON.stringify(deliveryPoint));
+            
+            // Verifica se o houseNumber é '0'
+            if (deliveryPoint.houseNumber !== '0') {
+                console.log("houseNumber não é '0'");
+                return false;
+            }
+
             // Combina todos os campos relevantes do endereço em uma única string
-            const fullAddress = `${deliveryPoint.street} ${deliveryPoint.houseNumber} ${deliveryPoint.complement || ''} ${deliveryPoint.address || ''}`.toLowerCase();
-            console.log("Endereço completo:", fullAddress);
+            const fullAddress = `${deliveryPoint.street} ${deliveryPoint.complement || ''} ${deliveryPoint.address || ''}`.toLowerCase();
+            console.log("Endereço completo (sem houseNumber):", fullAddress);
             
             // Remove todos os caracteres que não são dígitos
             const numbersInAddress = fullAddress.replace(/\D/g, '');
-            console.log("Números no endereço:", numbersInAddress);
+            console.log("Números no endereço (sem houseNumber):", numbersInAddress);
             
-            // Verifica se o endereço contém apenas zeros ou nenhum número
-            const result = numbersInAddress === '0' || numbersInAddress === '';
+            // Verifica se há outros números além do zero no houseNumber
+            const result = numbersInAddress === '';
             console.log("Resultado da verificação:", result);
             return result;
         }
@@ -1006,13 +1013,13 @@
         function showZeroNumberAddressNotification(order) {
             console.log(`Mostrando notificação para pedido #${order.id}`);
             const message = `
-                O pedido #${order.id} tem um endereço possivelmente incompleto!
+                O pedido #${order.id} tem um endereço com número zero e possivelmente incompleto!
                 Cliente: ${order.customer.customerName}
                 Endereço: ${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}
                 ${order.deliveryPoint.complement ? `Complemento: ${order.deliveryPoint.complement}` : ''}
                 ${order.deliveryPoint.address ? `Endereço completo: ${order.deliveryPoint.address}` : ''}
             `;
-            showNotification('Endereço Possivelmente Incompleto', message, () => {
+            showNotification('Endereço com Número Zero', message, () => {
                 closedZeroNumberNotifications.add(order.id);
             });
         }
