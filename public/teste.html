@@ -551,6 +551,7 @@
         let lastOrderStatuses = {};
         let notificationId = 0;
         let shownNotifications = new Set();
+        let closedZeroNumberNotifications = new Set();
 
         async function fetchOrders() {
             try {
@@ -571,6 +572,7 @@
                 checkForStatusChanges(currentOrders);
                 filterOrders(currentTab);
                 checkForSameAddressDeliveries();
+                checkForZeroNumberAddress(currentOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -940,7 +942,7 @@
             showNotification('Entregas para o Mesmo Endereço', message);
         }
 
-        function showNotification(title, message) {
+         function showNotification(title, message, onClose) {
             const notificationId = 'notification-' + Date.now();
             const notification = document.createElement('div');
             notification.id = notificationId;
@@ -956,13 +958,70 @@
                 </div>
             `;
             document.body.appendChild(notification);
+            
+            // Armazena a função de callback onClose
+            notification.onClose = onClose;
         }
 
         function closeNotification(notificationId) {
             const notification = document.getElementById(notificationId);
             if (notification) {
+                // Executa a função de callback onClose, se existir
+                if (typeof notification.onClose === 'function') {
+                    notification.onClose();
+                }
                 notification.remove();
             }
+        }
+
+        function checkForZeroNumberAddress(orders) {
+            console.log("Verificando endereços...");
+            orders.forEach(order => {
+                console.log(`Verificando pedido #${order.id}`);
+                if (order.deliveryPoint && isAddressZeroWithNoOtherNumbers(order.deliveryPoint)) {
+                    console.log(`Notificação necessária para pedido #${order.id}`);
+                    if (!closedZeroNumberNotifications.has(order.id)) {
+                        showZeroNumberAddressNotification(order);
+                    }
+                }
+            });
+        }
+
+        function isAddressZeroWithNoOtherNumbers(deliveryPoint) {
+            console.log("Dados do endereço:", JSON.stringify(deliveryPoint));
+            
+            // Verifica se o houseNumber é '0'
+            if (deliveryPoint.houseNumber !== '0') {
+                console.log("houseNumber não é '0'");
+                return false;
+            }
+
+            // Combina todos os campos relevantes do endereço em uma única string
+            const fullAddress = `${deliveryPoint.street} ${deliveryPoint.complement || ''} ${deliveryPoint.address || ''}`.toLowerCase();
+            console.log("Endereço completo (sem houseNumber):", fullAddress);
+            
+            // Remove todos os caracteres que não são dígitos
+            const numbersInAddress = fullAddress.replace(/\D/g, '');
+            console.log("Números no endereço (sem houseNumber):", numbersInAddress);
+            
+            // Verifica se há outros números além do zero no houseNumber
+            const result = numbersInAddress === '';
+            console.log("Resultado da verificação:", result);
+            return result;
+        }
+
+        function showZeroNumberAddressNotification(order) {
+            console.log(`Mostrando notificação para pedido #${order.id}`);
+            const message = `
+                O pedido #${order.id} tem um endereço com número zero e possivelmente incompleto!
+                Cliente: ${order.customer.customerName}
+                Endereço: ${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}
+                ${order.deliveryPoint.complement ? `Complemento: ${order.deliveryPoint.complement}` : ''}
+                ${order.deliveryPoint.address ? `Endereço completo: ${order.deliveryPoint.address}` : ''}
+            `;
+            showNotification('Endereço com Número Zero', message, () => {
+                closedZeroNumberNotifications.add(order.id);
+            });
         }
 
         // Inicialização
