@@ -551,6 +551,7 @@
         let lastOrderStatuses = {};
         let notificationId = 0;
         let shownNotifications = new Set();
+        let closedZeroNumberNotifications = new Set();
 
         async function fetchOrders() {
             try {
@@ -941,7 +942,7 @@
             showNotification('Entregas para o Mesmo Endereço', message);
         }
 
-        function showNotification(title, message) {
+         function showNotification(title, message, onClose) {
             const notificationId = 'notification-' + Date.now();
             const notification = document.createElement('div');
             notification.id = notificationId;
@@ -957,18 +958,25 @@
                 </div>
             `;
             document.body.appendChild(notification);
+            
+            // Armazena a função de callback onClose
+            notification.onClose = onClose;
         }
 
         function closeNotification(notificationId) {
             const notification = document.getElementById(notificationId);
             if (notification) {
+                // Executa a função de callback onClose, se existir
+                if (typeof notification.onClose === 'function') {
+                    notification.onClose();
+                }
                 notification.remove();
             }
         }
 
-              function checkForZeroNumberAddress(orders) {
+        function checkForZeroNumberAddress(orders) {
             orders.forEach(order => {
-                if (order.deliveryPoint && order.deliveryPoint.houseNumber === '0') {
+                if (order.deliveryPoint && order.deliveryPoint.houseNumber === '0' && !closedZeroNumberNotifications.has(order.id)) {
                     showZeroNumberAddressNotification(order);
                 }
             });
@@ -980,7 +988,9 @@
                 Cliente: ${order.customer.customerName}
                 Endereço: ${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}
             `;
-            showNotification('Endereço com Número Zero', message);
+            showNotification('Endereço com Número Zero', message, () => {
+                closedZeroNumberNotifications.add(order.id);
+            });
         }
 
         // Inicialização
