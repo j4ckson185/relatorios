@@ -976,19 +976,32 @@
 
         function checkForZeroNumberAddress(orders) {
             orders.forEach(order => {
-                if (order.deliveryPoint && order.deliveryPoint.houseNumber === '0' && !closedZeroNumberNotifications.has(order.id)) {
+                if (order.deliveryPoint && isAddressOnlyZero(order.deliveryPoint) && !closedZeroNumberNotifications.has(order.id)) {
                     showZeroNumberAddressNotification(order);
                 }
             });
         }
 
+                function isAddressOnlyZero(deliveryPoint) {
+            // Combina todos os campos relevantes do endereço em uma única string
+            const fullAddress = `${deliveryPoint.street} ${deliveryPoint.houseNumber} ${deliveryPoint.complement || ''} ${deliveryPoint.address || ''}`.toLowerCase();
+            
+            // Remove todos os caracteres que não são dígitos
+            const numbersInAddress = fullAddress.replace(/\D/g, '');
+            
+            // Verifica se o endereço contém apenas zeros ou nenhum número
+            return numbersInAddress === '0' || numbersInAddress === '';
+        }
+
         function showZeroNumberAddressNotification(order) {
             const message = `
-                O pedido #${order.id} tem um endereço com número zero!
+                O pedido #${order.id} tem um endereço possivelmente incompleto!
                 Cliente: ${order.customer.customerName}
                 Endereço: ${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}
+                ${order.deliveryPoint.complement ? `Complemento: ${order.deliveryPoint.complement}` : ''}
+                ${order.deliveryPoint.address ? `Endereço completo: ${order.deliveryPoint.address}` : ''}
             `;
-            showNotification('Endereço com Número Zero', message, () => {
+            showNotification('Endereço Possivelmente Incompleto', message, () => {
                 closedZeroNumberNotifications.add(order.id);
             });
         }
