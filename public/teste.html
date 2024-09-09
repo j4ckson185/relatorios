@@ -19,25 +19,21 @@
             --dark-gray: #333;
             --white: #fff;
         }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-
         body {
             font-family: Arial, sans-serif;
             background-color: var(--light-gray);
             color: var(--dark-gray);
         }
-
         .container {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
-
         header {
             background-color: var(--white);
             padding: 10px 20px;
@@ -46,7 +42,6 @@
             align-items: center;
             border-bottom: 1px solid #ddd;
         }
-
         .logo {
             display: flex;
             align-items: center;
@@ -54,18 +49,15 @@
             font-weight: bold;
             color: var(--primary-color);
         }
-
         .logo i {
             margin-right: 10px;
             font-size: 30px;
             color: #000;
         }
-
         .header-actions {
             display: flex;
             gap: 10px;
         }
-
         .btn {
             padding: 10px 15px;
             border: none;
@@ -74,22 +66,18 @@
             font-size: 14px;
             font-weight: bold;
         }
-
         .btn-primary {
             background-color: var(--primary-color);
             color: var(--white);
         }
-
         .btn-danger {
             background-color: var(--danger-color);
             color: var(--white);
         }
-
         .main-content {
             display: flex;
             flex: 1;
         }
-
         .sidebar {
             width: 60px;
             background-color: var(--dark-gray);
@@ -98,44 +86,37 @@
             flex-direction: column;
             align-items: center;
         }
-
         .sidebar a {
             color: var(--white);
             text-decoration: none;
             margin-bottom: 20px;
             font-size: 20px;
         }
-
         .orders-section {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
         }
-
         .orders-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
-
         .orders-title {
             font-size: 20px;
             font-weight: bold;
         }
-
         .search-bar {
             display: flex;
             align-items: center;
         }
-
         .search-bar input {
             padding: 5px 10px;
             margin-right: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-
         .refresh-btn {
             background: none;
             border: none;
@@ -143,12 +124,10 @@
             font-size: 18px;
             color: var(--secondary-color);
         }
-
         .order-status-tabs {
             display: flex;
             margin-bottom: 20px;
         }
-
         .status-tab {
             flex: 1;
             text-align: center;
@@ -159,67 +138,55 @@
             border: 1px solid #ddd;
             font-weight: bold;
         }
-
         .status-tab.active {
             background-color: var(--primary-color);
             color: var(--white);
         }
-
         .orders-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
-
         .order-card {
             background-color: var(--white);
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
         .order-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
-
         .order-number {
             font-weight: bold;
         }
-
         .order-time {
             color: #777;
             font-size: 14px;
         }
-
         .order-details {
             margin-bottom: 10px;
         }
-
         .order-info {
             display: flex;
             align-items: center;
             margin-bottom: 5px;
         }
-
         .order-info i {
             margin-right: 10px;
             color: var(--secondary-color);
         }
-
         .order-total {
             font-weight: bold;
             color: var(--primary-color);
         }
-
         .order-actions {
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
         }
-
         .action-btn {
             padding: 10px 15px;
             border: none;
@@ -231,33 +198,27 @@
             margin: 0 5px;
             text-align: center;
         }
-
         .action-btn.primary {
             background-color: var(--primary-color);
             color: var(--white);
         }
-
         .action-btn.secondary {
             background-color: var(--secondary-color);
             color: var(--white);
             cursor: pointer;
         }
-
         .status-accepted {
             background-color: var(--warning-color);
             color: var(--dark-gray);
         }
-
         .status-ready {
             background-color: #8E44AD;
             color: var(--white);
         }
-
         .status-onGoing {
             background-color: #3498DB;
             color: var(--white);
         }
-
         .modal {
             display: none;
             position: fixed;
@@ -269,7 +230,6 @@
             overflow: auto;
             background-color: rgba(0,0,0,0.4);
         }
-
         .modal-content {
             background-color: var(--white);
             margin: 15% auto;
@@ -279,7 +239,6 @@
             max-width: 600px;
             border-radius: 8px;
         }
-
         .close {
             color: #aaa;
             float: right;
@@ -287,33 +246,28 @@
             font-weight: bold;
             cursor: pointer;
         }
-
         .close:hover,
         .close:focus {
             color: #000;
             text-decoration: none;
             cursor: pointer;
         }
-
         .courier-deliveries {
             background-color: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
         }
-
         .courier-name {
             font-size: 18px;
             font-weight: bold;
             color: var(--secondary-color);
             margin-bottom: 10px;
         }
-
         .courier-stats {
             display: flex;
             justify-content: space-between;
         }
-
         .courier-stat {
             text-align: center;
             padding: 10px;
@@ -321,33 +275,26 @@
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
         .courier-stat i {
             font-size: 24px;
             margin-bottom: 5px;
         }
-
         .courier-stat.completed i {
             color: var(--success-color);
         }
-
         .courier-stat.ongoing i {
             color: var(--warning-color);
         }
-
         .courier-stat.same-address i {
             color: var(--danger-color);
         }
-
         #createOrderForm {
             display: grid;
             gap: 10px;
         }
-
         #createOrderForm label {
             font-weight: bold;
         }
-
         #createOrderForm input,
         #createOrderForm select,
         #createOrderForm textarea {
@@ -356,7 +303,6 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-
         #createOrderForm button {
             background-color: var(--primary-color);
             color: var(--white);
@@ -366,11 +312,9 @@
             cursor: pointer;
             font-weight: bold;
         }
-
         #createOrderForm button:hover {
             background-color: #E03026;
         }
-
         .notification {
             position: fixed;
             bottom: 20px;
@@ -382,31 +326,25 @@
             max-width: 300px;
             z-index: 1000;
         }
-
         .notification-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
-
         .notification-title {
             font-weight: bold;
         }
-
         .notification-close {
             cursor: pointer;
             font-size: 18px;
         }
-
         .notification-message {
             margin-bottom: 10px;
         }
-
         .notification-action {
             text-align: right;
         }
-
         .notification-action button {
             background-color: var(--secondary-color);
             color: var(--white);
@@ -456,7 +394,6 @@
             </section>
         </div>
     </div>
-
     <!-- Modal para Criar Novo Pedido -->
     <div id="createOrderModal" class="modal">
         <div class="modal-content">
@@ -465,37 +402,27 @@
             <form id="createOrderForm">
                 <label for="orderId">ID do Pedido:</label>
                 <input type="text" id="orderId" required>
-
                 <label for="customerName">Nome do Cliente:</label>
                 <input type="text" id="customerName" required>
-
                 <label for="customerPhone">Telefone do Cliente:</label>
                 <input type="text" id="customerPhone" required>
-
                 <label for="street">Logradouro:</label>
                 <input type="text" id="street" required>
-
                 <label for="streetNumber">Número:</label>
                 <input type="text" id="streetNumber" required>
-
                 <label for="neighborhood">Bairro:</label>
                 <input type="text" id="neighborhood" required>
-
                 <label for="complement">Complemento:</label>
                 <input type="text" id="complement">
-
                 <label for="zipCode">CEP:</label>
                 <input type="text" id="zipCode" required>
-
                 <label for="status">Status:</label>
                 <select id="status" required>
                     <option value="open">Aberto</option>
                     <option value="ready">Pronto</option>
                 </select>
-
                 <label for="orderDetails">Detalhes do Pedido:</label>
                 <textarea id="orderDetails" required></textarea>
-
                 <label>Método de Pagamento:</label>
                 <div>
                     <input type="radio" id="paymentMoney" name="paymentMethod" value="money" required>
@@ -505,18 +432,14 @@
                     <input type="radio" id="paymentOnline" name="paymentMethod" value="online">
                     <label for="paymentOnline">Online</label>
                 </div>
-
                 <label for="orderTotal">Valor Total:</label>
                 <input type="number" id="orderTotal" step="0.01" required>
-
                 <label for="notes">Observações:</label>
                 <textarea id="notes"></textarea>
-
                 <button type="button" onclick="submitOrder()">Criar Pedido</button>
             </form>
         </div>
     </div>
-
     <!-- Modal para Entregas por Motoboy -->
     <div id="courierDeliveriesModal" class="modal">
         <div class="modal-content">
@@ -525,7 +448,6 @@
             <div id="courierDeliveriesContent"></div>
         </div>
     </div>
-
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
@@ -539,19 +461,16 @@
             measurementId: "G-96Y337GYT8"
         };
         firebase.initializeApp(firebaseConfig);
-
         const db = firebase.firestore();
         const firebaseFunctionUrl = 'https://us-central1-cabana-8d55e.cloudfunctions.net/getFoodyOrders/proxy';
         const authToken = '8d7c77946d534444a168bb7da794febf';
         const foodyApiUrl = 'https://app.foodydelivery.com/rest/1.2/orders/';
-
         let currentOrders = [];
         let filteredOrders = [];
         let currentTab = 'preparing';
         let lastOrderStatuses = {};
         let notificationId = 0;
         let shownNotifications = new Set();
-        let closedZeroNumberNotifications = new Set();
 
         async function fetchOrders() {
             try {
@@ -572,7 +491,6 @@
                 checkForStatusChanges(currentOrders);
                 filterOrders(currentTab);
                 checkForSameAddressDeliveries();
-                checkForZeroNumberAddress(currentOrders);
             } catch (error) {
                 console.error('Erro ao buscar pedidos:', error);
                 document.getElementById('orderList').innerHTML = '<p class="error">Erro ao carregar pedidos. Por favor, tente novamente mais tarde.</p>';
@@ -684,7 +602,7 @@
                     filteredOrders = currentOrders;
             }
             updateOrderList(filteredOrders);
-            
+
             // Atualiza a classe ativa na aba de status
             document.querySelectorAll('.status-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -756,7 +674,6 @@
                     customerName: document.getElementById('customerName').value
                 }
             };
-
             try {
                 const response = await fetch('https://us-central1-cabana-8d55e.cloudfunctions.net/foodyDeliveryApi/createOrder', {
                     method: 'POST',
@@ -766,11 +683,9 @@
                     },
                     body: JSON.stringify(order)
                 });
-
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
                 const result = await response.json();
                 console.log('Pedido criado:', result);
                 alert('Pedido criado com sucesso!');
@@ -795,7 +710,6 @@
         function updateCourierDeliveries() {
             const courierDeliveries = {};
             const sameAddressOrders = {};
-
             currentOrders.forEach(order => {
                 if (order.courier) {
                     const courierName = order.courier.courierName;
@@ -807,7 +721,6 @@
                     } else if (['accepted', 'ready', 'onGoing'].includes(order.status)) {
                         courierDeliveries[courierName].ongoing++;
                     }
-
                     // Verificar entregas para o mesmo endereço
                     const address = `${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}`;
                     if (!sameAddressOrders[courierName]) {
@@ -819,7 +732,6 @@
                     sameAddressOrders[courierName][address].push(order.id);
                 }
             });
-
             let content = '';
             for (const [courierName, deliveries] of Object.entries(courierDeliveries)) {
                 content += `
@@ -837,7 +749,6 @@
                                 <div>${deliveries.ongoing}</div>
                             </div>
                 `;
-
                 // Adicionar informações sobre entregas para o mesmo endereço
                 let sameAddressCount = 0;
                 if (sameAddressOrders[courierName]) {
@@ -847,7 +758,6 @@
                         }
                     }
                 }
-
                 content += `
                             <div class="courier-stat same-address">
                                 <i class="fas fa-home"></i>
@@ -859,7 +769,6 @@
                     </div>
                 `;
             }
-
             document.getElementById('courierDeliveriesContent').innerHTML = content;
         }
 
@@ -869,7 +778,6 @@
                 order.courier.courierName === courierName && 
                 ['accepted', 'ready', 'onGoing'].includes(order.status)
             );
-
             let content = `<h3>Entregas em Andamento - ${courierName}</h3>`;
             ongoingDeliveries.forEach(order => {
                 content += `
@@ -881,7 +789,6 @@
                     </div>
                 `;
             });
-
             document.getElementById('courierDeliveriesContent').innerHTML = content;
         }
 
@@ -911,7 +818,6 @@
                     sameAddressDeliveries[courierName][address].push(order);
                 }
             });
-
             for (const [courierName, addresses] of Object.entries(sameAddressDeliveries)) {
                 for (const [address, orders] of Object.entries(addresses)) {
                     if (orders.length > 1) {
@@ -942,7 +848,7 @@
             showNotification('Entregas para o Mesmo Endereço', message);
         }
 
-         function showNotification(title, message, onClose) {
+        function showNotification(title, message) {
             const notificationId = 'notification-' + Date.now();
             const notification = document.createElement('div');
             notification.id = notificationId;
@@ -958,70 +864,13 @@
                 </div>
             `;
             document.body.appendChild(notification);
-            
-            // Armazena a função de callback onClose
-            notification.onClose = onClose;
         }
 
         function closeNotification(notificationId) {
             const notification = document.getElementById(notificationId);
             if (notification) {
-                // Executa a função de callback onClose, se existir
-                if (typeof notification.onClose === 'function') {
-                    notification.onClose();
-                }
                 notification.remove();
             }
-        }
-
-        function checkForZeroNumberAddress(orders) {
-            console.log("Verificando endereços...");
-            orders.forEach(order => {
-                console.log(`Verificando pedido #${order.id}`);
-                if (order.deliveryPoint && isAddressZeroWithNoOtherNumbers(order.deliveryPoint)) {
-                    console.log(`Notificação necessária para pedido #${order.id}`);
-                    if (!closedZeroNumberNotifications.has(order.id)) {
-                        showZeroNumberAddressNotification(order);
-                    }
-                }
-            });
-        }
-
-        function isAddressZeroWithNoOtherNumbers(deliveryPoint) {
-            console.log("Dados do endereço:", JSON.stringify(deliveryPoint));
-            
-            // Verifica se o houseNumber é '0'
-            if (deliveryPoint.houseNumber !== '0') {
-                console.log("houseNumber não é '0'");
-                return false;
-            }
-
-            // Combina todos os campos relevantes do endereço em uma única string
-            const fullAddress = `${deliveryPoint.street} ${deliveryPoint.complement || ''} ${deliveryPoint.address || ''}`.toLowerCase();
-            console.log("Endereço completo (sem houseNumber):", fullAddress);
-            
-            // Remove todos os caracteres que não são dígitos
-            const numbersInAddress = fullAddress.replace(/\D/g, '');
-            console.log("Números no endereço (sem houseNumber):", numbersInAddress);
-            
-            // Verifica se há outros números além do zero no houseNumber
-            const result = numbersInAddress === '';
-            console.log("Resultado da verificação:", result);
-            return result;
-        }
-
-        function showZeroNumberAddressNotification(order) {
-            console.log(`Mostrando notificação para pedido #${order.id}`);
-            const message = `
-                O pedido #${order.id} tem um endereço com número zero e possivelmente incompleto!
-                Cliente: ${order.customer.customerName}
-                Endereço: ${order.deliveryPoint.street} ${order.deliveryPoint.houseNumber}
-                ${order.deliveryPoint.complement ? `Complemento: ${order.deliveryPoint.complement}` : ''}
-                ${order.deliveryPoint.address ? `Endereço completo: ${order.deliveryPoint.address}` : ''}
-            `;
-            showNotification('Endereço com Número Zero', message, () => {
-                closedZeroNumberNotifications.add(order.id);
-            });
         }
 
         // Inicialização
